@@ -19,6 +19,7 @@ import Account from "@/pages/account";
 import ScamNews from "@/pages/scam-news";
 import LegalHelp from "@/pages/legal-help";
 import FraudHeatmap from "@/pages/fraud-heatmap";
+import FraudHeatmap2 from "@/pages/fraud-heatmap2";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
@@ -35,6 +36,7 @@ function Router() {
         )}
       </Route>
       <Route path="/scan" component={Scan} />
+      <Route path="/fraud-heatmap" component={FraudHeatmap} />
       <Route path="/payment" component={Payment} />
       <Route path="/success" component={Success} />
       <Route path="/upi-check">
@@ -93,13 +95,7 @@ function Router() {
           </MainLayout>
         )}
       </Route>
-      <Route path="/fraud-heatmap">
-        {() => (
-          <MainLayout>
-            <FraudHeatmap />
-          </MainLayout>
-        )}
-      </Route>
+
       <Route component={NotFound} />
     </Switch>
   );
