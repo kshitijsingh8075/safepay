@@ -178,7 +178,7 @@ export default function Home() {
         </button>
       </div>
       
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-4 mb-4">
         <button 
           onClick={() => setLocation('/scam-news')}
           className="flex flex-col items-center"
@@ -245,7 +245,7 @@ export default function Home() {
               />
             </svg>
           </div>
-          <span className="text-xs">Upload WhatsApp Scam</span>
+          <span className="text-xs">WhatsApp Scam</span>
         </button>
         
         <button 
@@ -268,7 +268,30 @@ export default function Home() {
               />
             </svg>
           </div>
-          <span className="text-xs">Legal Help Screen</span>
+          <span className="text-xs">Legal Help</span>
+        </button>
+        
+        <button 
+          onClick={() => setLocation('/fraud-heatmap')}
+          className="flex flex-col items-center"
+        >
+          <div className="w-14 h-14 bg-[#F5F6FA] rounded-xl flex items-center justify-center mb-2">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              strokeWidth={1.5} 
+              stroke="currentColor" 
+              className="w-6 h-6 text-[#00D2FF]"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" 
+              />
+            </svg>
+          </div>
+          <span className="text-xs">Fraud Heatmap</span>
         </button>
       </div>
       

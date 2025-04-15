@@ -18,6 +18,7 @@ import History from "@/pages/history";
 import Account from "@/pages/account";
 import ScamNews from "@/pages/scam-news";
 import LegalHelp from "@/pages/legal-help";
+import FraudHeatmap from "@/pages/fraud-heatmap";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
@@ -89,6 +90,13 @@ function Router() {
         {() => (
           <MainLayout>
             <LegalHelp />
+          </MainLayout>
+        )}
+      </Route>
+      <Route path="/fraud-heatmap">
+        {() => (
+          <MainLayout>
+            <FraudHeatmap />
           </MainLayout>
         )}
       </Route>
