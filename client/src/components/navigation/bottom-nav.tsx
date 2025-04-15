@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { 
-  Home, MapPin, AlertTriangle, FileText, User
+  Home, Map, PlusCircle, BarChart2, User
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -21,21 +21,21 @@ export function BottomNav({ className }: BottomNavProps) {
     },
     { 
       name: 'Heatmap', 
-      path: '/heatmap', 
-      icon: MapPin,
-      active: location === '/heatmap'
+      path: '/fraud-heatmap', 
+      icon: Map,
+      active: location === '/fraud-heatmap'
     },
     {
       name: 'Report',
       path: '/report-scam',
-      icon: AlertTriangle,
+      icon: PlusCircle,
       primary: true,
       active: location === '/report-scam'
     },
     { 
-      name: 'History', 
+      name: 'Activity', 
       path: '/history', 
-      icon: FileText,
+      icon: BarChart2,
       active: location === '/history'
     },
     { 
@@ -56,18 +56,18 @@ export function BottomNav({ className }: BottomNavProps) {
           key={index} 
           href={item.path}
           className={cn(
-            "bottom-nav-button",
-            item.active ? "text-primary" : "text-gray-500"
+            "flex flex-col items-center px-4 py-2",
+            item.active ? "text-blue-600" : "text-gray-500"
           )}
         >
           {item.primary ? (
-            <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center -mt-6 shadow-lg">
-              <item.icon className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center -mt-5 shadow-lg">
+              <item.icon className="w-6 h-6 text-white" />
             </div>
           ) : (
-            <item.icon />
+            <item.icon className="w-6 h-6" />
           )}
-          <span>{item.name}</span>
+          <span className="text-xs mt-1">{item.name}</span>
         </Link>
       ))}
     </div>
