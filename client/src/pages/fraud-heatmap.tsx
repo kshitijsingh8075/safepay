@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
 import MainLayout from '@/layouts/main-layout';
-import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  ZoomableGroup,
-  Marker
-} from 'react-simple-maps';
-import { scaleLinear } from 'd3-scale';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,10 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-// Constants
-const INDIA_TOPO_JSON = "https://raw.githubusercontent.com/deldersveld/topojson/master/countries/india/india-states.json";
-
-// Sample fraud data by state (this would normally come from your API)
+// Sample fraud data by state
 const fraudData = [
   { state: 'Maharashtra', reports: 120, type: 'Fake Products' },
   { state: 'Karnataka', reports: 85, type: 'Phishing' },
@@ -41,14 +30,14 @@ const fraudData = [
   { state: 'Andhra Pradesh', reports: 45, type: 'Fake Products' },
 ];
 
-// Scam hotspot markers (major cities with high fraud reports)
+// Scam hotspot markers
 const scamHotspots = [
-  { name: "Mumbai", coordinates: [72.8777, 19.0760], reports: 89 },
-  { name: "Delhi", coordinates: [77.1025, 28.7041], reports: 132 },
-  { name: "Bengaluru", coordinates: [77.5946, 12.9716], reports: 65 },
-  { name: "Chennai", coordinates: [80.2707, 13.0827], reports: 58 },
-  { name: "Hyderabad", coordinates: [78.4867, 17.3850], reports: 46 },
-  { name: "Kolkata", coordinates: [88.3639, 22.5726], reports: 53 },
+  { name: "Mumbai", reports: 89 },
+  { name: "Delhi", reports: 132 },
+  { name: "Bengaluru", reports: 65 },
+  { name: "Chennai", reports: 58 },
+  { name: "Hyderabad", reports: 46 },
+  { name: "Kolkata", reports: 53 },
 ];
 
 // Type filter options
@@ -59,31 +48,10 @@ const timePeriods = ['Last Week', 'Last Month', 'Last 3 Months', 'Last Year', 'A
 
 export default function FraudHeatmap() {
   // State
-  const [position, setPosition] = useState({ coordinates: [78.9629, 20.5937], zoom: 4 });
   const [selectedType, setSelectedType] = useState('All Types');
   const [selectedPeriod, setSelectedPeriod] = useState('All Time');
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [showHotspots, setShowHotspots] = useState(true);
-  
-  // Color scale for heatmap
-  const colorScale = scaleLinear<string>()
-    .domain([0, 50, 100, 150])
-    .range(['#C5E8FF', '#89CFF0', '#5D9BF0', '#3573D9']);
-  
-  // Handle map zoom
-  const handleZoomIn = () => {
-    if (position.zoom >= 8) return;
-    setPosition(pos => ({ ...pos, zoom: pos.zoom * 1.5 }));
-  };
-
-  const handleZoomOut = () => {
-    if (position.zoom <= 1) return;
-    setPosition(pos => ({ ...pos, zoom: pos.zoom / 1.5 }));
-  };
-
-  const handleMoveEnd = (position: any) => {
-    setPosition(position);
-  };
   
   // Filter data based on selected type
   const filteredData = selectedType === 'All Types'
@@ -94,6 +62,22 @@ export default function FraudHeatmap() {
   const selectedRegionData = selectedRegion 
     ? fraudData.find(item => item.state === selectedRegion)
     : null;
+
+  // Colors for the risk levels
+  const riskColors = {
+    low: '#C5E8FF',
+    medium: '#89CFF0',
+    high: '#5D9BF0',
+    veryHigh: '#3573D9'
+  };
+
+  // Function to get risk color based on reports
+  const getRiskColor = (reports: number): string => {
+    if (reports <= 50) return riskColors.low;
+    if (reports <= 100) return riskColors.medium; 
+    if (reports <= 150) return riskColors.high;
+    return riskColors.veryHigh;
+  };
 
   return (
     <MainLayout>
@@ -139,34 +123,6 @@ export default function FraudHeatmap() {
               </Select>
             </div>
           </div>
-          
-          <div className="flex items-center">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mr-2"
-              onClick={() => setShowHotspots(!showHotspots)}
-            >
-              {showHotspots ? 'Hide Hotspots' : 'Show Hotspots'}
-            </Button>
-            <div className="ml-auto flex">
-              <Button onClick={handleZoomIn} size="sm" variant="outline" className="mr-1">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  <line x1="11" y1="8" x2="11" y2="14"></line>
-                  <line x1="8" y1="11" x2="14" y2="11"></line>
-                </svg>
-              </Button>
-              <Button onClick={handleZoomOut} size="sm" variant="outline">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  <line x1="8" y1="11" x2="14" y2="11"></line>
-                </svg>
-              </Button>
-            </div>
-          </div>
         </div>
         
         {/* Map and stats tabs */}
@@ -177,79 +133,17 @@ export default function FraudHeatmap() {
           </TabsList>
           
           <TabsContent value="map" className="pt-4">
-            <div style={{ height: '400px', border: '1px solid #e5e7eb', borderRadius: '0.5rem', overflow: 'hidden' }}>
-              <ComposableMap
-                projection="geoMercator"
-                projectionConfig={{
-                  scale: 1200,
-                  center: [78.9629, 22.5937]
-                }}
-                style={{ width: '100%', height: '100%' }}
-              >
-                <ZoomableGroup
-                  zoom={position.zoom}
-                  center={position.coordinates as [number, number]}
-                  onMoveEnd={handleMoveEnd}
-                >
-                  <Geographies geography={INDIA_TOPO_JSON}>
-                    {({ geographies }) =>
-                      geographies.map(geo => {
-                        const stateName = geo.properties.name;
-                        const stateData = filteredData.find(d => d.state === stateName);
-                        const reports = stateData ? stateData.reports : 0;
-                        
-                        return (
-                          <Geography
-                            key={geo.rsmKey}
-                            geography={geo}
-                            onClick={() => setSelectedRegion(stateName)}
-                            style={{
-                              default: {
-                                fill: reports ? colorScale(reports) : '#EEE',
-                                stroke: '#FFF',
-                                strokeWidth: 0.5,
-                                outline: 'none',
-                              },
-                              hover: {
-                                fill: '#5164BF',
-                                stroke: '#FFF',
-                                strokeWidth: 0.75,
-                                outline: 'none',
-                              },
-                              pressed: {
-                                fill: '#3A4C97',
-                                stroke: '#FFF',
-                                strokeWidth: 0.75,
-                                outline: 'none',
-                              },
-                            }}
-                          />
-                        );
-                      })
-                    }
-                  </Geographies>
-                  
-                  {showHotspots && scamHotspots.map(({ name, coordinates, reports }) => (
-                    <Marker key={name} coordinates={coordinates as [number, number]}>
-                      <circle r={reports / 10} fill="#FF5533" fillOpacity={0.8} />
-                      <text
-                        textAnchor="middle"
-                        y={-12}
-                        style={{
-                          fontFamily: "system-ui",
-                          fontSize: "8px",
-                          fontWeight: "bold",
-                          fill: "#333",
-                          pointerEvents: "none"
-                        }}
-                      >
-                        {name}
-                      </text>
-                    </Marker>
-                  ))}
-                </ZoomableGroup>
-              </ComposableMap>
-            </div>
+            <Card className="p-4 text-center">
+              <div className="bg-[#f0f6ff] p-6 rounded-lg mb-4 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                  <path d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium mb-2">Interactive Map</h3>
+              <p className="text-gray-500 mb-4">
+                The interactive map visualization of scam-prone regions will be available soon.
+              </p>
+            </Card>
             
             <div className="mt-4 flex justify-between text-xs text-gray-500">
               <div className="flex items-center">
@@ -290,8 +184,11 @@ export default function FraudHeatmap() {
                         </div>
                         <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
                           <div
-                            className="bg-primary h-full rounded-full"
-                            style={{ width: `${(item.reports / 150) * 100}%` }}
+                            className="h-full rounded-full"
+                            style={{ 
+                              width: `${(item.reports / 150) * 100}%`,
+                              backgroundColor: getRiskColor(item.reports)
+                            }}
                           ></div>
                         </div>
                       </div>
@@ -358,6 +255,26 @@ export default function FraudHeatmap() {
             </div>
           </Card>
         )}
+        
+        <Card className="p-4 mb-6">
+          <h3 className="font-medium mb-2">Scam Hotspots</h3>
+          <div className="space-y-2">
+            {scamHotspots
+              .sort((a, b) => b.reports - a.reports)
+              .map((hotspot, index) => (
+                <div key={index} className="flex justify-between items-center border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                  <div className="flex items-center">
+                    <div
+                      className="w-3 h-3 rounded-full mr-2"
+                      style={{ backgroundColor: getRiskColor(hotspot.reports) }}
+                    ></div>
+                    <span>{hotspot.name}</span>
+                  </div>
+                  <span className="text-sm font-medium">{hotspot.reports} reports</span>
+                </div>
+              ))}
+          </div>
+        </Card>
         
         <p className="text-xs text-gray-500 mb-4">
           Data updated hourly. The heatmap is generated based on actual user reports and fraud alerts from our database.

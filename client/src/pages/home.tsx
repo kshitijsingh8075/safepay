@@ -84,7 +84,7 @@ export default function Home() {
       {/* Quick actions */}
       <h3 className="text-lg font-bold mb-4">Quick Actions</h3>
       
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-4 mb-4">
         <button 
           onClick={() => setLocation('/scan')}
           className="flex flex-col items-center"
@@ -176,7 +176,9 @@ export default function Home() {
           </div>
           <span className="text-xs">History</span>
         </button>
-        
+      </div>
+      
+      <div className="grid grid-cols-3 gap-4 mb-4">
         <button 
           onClick={() => setLocation('/scam-news')}
           className="flex flex-col items-center"
@@ -245,7 +247,9 @@ export default function Home() {
           </div>
           <span className="text-xs">WhatsApp Scam</span>
         </button>
-        
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <button 
           onClick={() => setLocation('/legal-help')}
           className="flex flex-col items-center"
@@ -270,7 +274,7 @@ export default function Home() {
         </button>
         
         <button 
-          onClick={() => setLocation('/fraud-heatmap-basic')}
+          onClick={() => setLocation('/fraud-heatmap')}
           className="flex flex-col items-center"
         >
           <div className="w-14 h-14 bg-[#F5F6FA] rounded-xl flex items-center justify-center mb-2">
