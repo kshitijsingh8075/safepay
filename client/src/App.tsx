@@ -16,6 +16,8 @@ import VoiceCheck from "@/pages/voice-check";
 import MessageCheck from "@/pages/message-check";
 import History from "@/pages/history";
 import Account from "@/pages/account";
+import ScamNews from "@/pages/scam-news";
+import LegalHelp from "@/pages/legal-help";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
@@ -73,6 +75,20 @@ function Router() {
         {() => (
           <MainLayout>
             <Account />
+          </MainLayout>
+        )}
+      </Route>
+      <Route path="/scam-news">
+        {() => (
+          <MainLayout>
+            <ScamNews />
+          </MainLayout>
+        )}
+      </Route>
+      <Route path="/legal-help">
+        {() => (
+          <MainLayout>
+            <LegalHelp />
           </MainLayout>
         )}
       </Route>

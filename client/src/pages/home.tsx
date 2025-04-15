@@ -84,7 +84,7 @@ export default function Home() {
       {/* Quick actions */}
       <h3 className="text-lg font-bold mb-4">Quick Actions</h3>
       
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-4 mb-4">
         <button 
           onClick={() => setLocation('/scan')}
           className="flex flex-col items-center"
@@ -96,21 +96,16 @@ export default function Home() {
               viewBox="0 0 24 24" 
               strokeWidth={1.5} 
               stroke="currentColor" 
-              className="w-6 h-6 text-primary"
+              className="w-6 h-6 text-[#00D2FF]"
             >
               <path 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 
-                d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" 
-              />
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" 
+                d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" 
               />
             </svg>
           </div>
-          <span className="text-xs">Scan & Pay</span>
+          <span className="text-xs">Scan and Pay</span>
         </button>
         
         <button 
@@ -124,16 +119,87 @@ export default function Home() {
               viewBox="0 0 24 24" 
               strokeWidth={1.5} 
               stroke="currentColor" 
-              className="w-6 h-6 text-primary"
+              className="w-6 h-6 text-[#00D2FF]"
             >
               <path 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 
-                d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" 
+                d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" 
               />
             </svg>
           </div>
-          <span className="text-xs">UPI Check</span>
+          <span className="text-xs">UPI Scam Check</span>
+        </button>
+        
+        <button 
+          onClick={() => setLocation('/report-scam')}
+          className="flex flex-col items-center"
+        >
+          <div className="w-14 h-14 bg-[#F5F6FA] rounded-xl flex items-center justify-center mb-2">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              strokeWidth={1.5} 
+              stroke="currentColor" 
+              className="w-6 h-6 text-[#00D2FF]"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" 
+              />
+            </svg>
+          </div>
+          <span className="text-xs">Report Scams</span>
+        </button>
+        
+        <button 
+          onClick={() => setLocation('/history')}
+          className="flex flex-col items-center"
+        >
+          <div className="w-14 h-14 bg-[#F5F6FA] rounded-xl flex items-center justify-center mb-2">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              strokeWidth={1.5} 
+              stroke="currentColor" 
+              className="w-6 h-6 text-[#00D2FF]"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" 
+              />
+            </svg>
+          </div>
+          <span className="text-xs">History</span>
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <button 
+          onClick={() => setLocation('/scam-news')}
+          className="flex flex-col items-center"
+        >
+          <div className="w-14 h-14 bg-[#F5F6FA] rounded-xl flex items-center justify-center mb-2">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              strokeWidth={1.5} 
+              stroke="currentColor" 
+              className="w-6 h-6 text-[#00D2FF]"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" 
+              />
+            </svg>
+          </div>
+          <span className="text-xs">Scam News</span>
         </button>
         
         <button 
@@ -147,16 +213,16 @@ export default function Home() {
               viewBox="0 0 24 24" 
               strokeWidth={1.5} 
               stroke="currentColor" 
-              className="w-6 h-6 text-primary"
+              className="w-6 h-6 text-[#00D2FF]"
             >
               <path 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 
-                d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" 
+                d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" 
               />
             </svg>
           </div>
-          <span className="text-xs">Voice Check</span>
+          <span className="text-xs">Voice Scam Detect</span>
         </button>
         
         <button 
@@ -170,16 +236,39 @@ export default function Home() {
               viewBox="0 0 24 24" 
               strokeWidth={1.5} 
               stroke="currentColor" 
-              className="w-6 h-6 text-primary"
+              className="w-6 h-6 text-[#00D2FF]"
             >
               <path 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 
-                d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" 
+                d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" 
               />
             </svg>
           </div>
-          <span className="text-xs">Msg Check</span>
+          <span className="text-xs">Upload WhatsApp Scam</span>
+        </button>
+        
+        <button 
+          onClick={() => setLocation('/legal-help')}
+          className="flex flex-col items-center"
+        >
+          <div className="w-14 h-14 bg-[#F5F6FA] rounded-xl flex items-center justify-center mb-2">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              strokeWidth={1.5} 
+              stroke="currentColor" 
+              className="w-6 h-6 text-[#00D2FF]"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" 
+              />
+            </svg>
+          </div>
+          <span className="text-xs">Legal Help Screen</span>
         </button>
       </div>
       
