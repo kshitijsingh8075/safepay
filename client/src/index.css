@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-white text-foreground min-h-screen;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .screen {
+    @apply min-h-[calc(100vh-72px)] w-full pb-[72px];
+  }
+
+  .bottom-nav-button {
+    @apply flex flex-col items-center px-2 py-1;
+  }
+
+  .bottom-nav-button svg {
+    @apply w-6 h-6;
+  }
+
+  .bottom-nav-button span {
+    @apply text-xs mt-1;
+  }
+
+  .pin-button {
+    @apply w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold bg-[#F5F6FA];
+  }
+
+  .pin-dot {
+    @apply w-4 h-4 rounded-full bg-gray-300 mx-1.5;
+  }
+
+  .pin-dot.filled {
+    @apply bg-primary;
+  }
+}
+
+@layer utilities {
+  .bg-secondary {
+    @apply bg-[#F5F6FA];
+  }
+
+  .text-success {
+    @apply text-[#43A047];
+  }
+
+  .text-error {
+    @apply text-[#E53935];
+  }
+
+  .text-warning {
+    @apply text-[#FFB300];
+  }
+
+  .bg-success-light {
+    @apply bg-[#43A047]/10;
+  }
+
+  .bg-error-light {
+    @apply bg-[#E53935]/10;
+  }
+
+  .bg-warning-light {
+    @apply bg-[#FFB300]/10;
+  }
+
+  .bg-primary-light {
+    @apply bg-primary/10;
+  }
+}
