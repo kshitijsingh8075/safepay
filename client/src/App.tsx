@@ -36,7 +36,6 @@ function Router() {
         )}
       </Route>
       <Route path="/scan" component={Scan} />
-      <Route path="/fraud-heatmap" component={FraudHeatmap} />
       <Route path="/payment" component={Payment} />
       <Route path="/success" component={Success} />
       <Route path="/upi-check">
@@ -92,6 +91,13 @@ function Router() {
         {() => (
           <MainLayout>
             <LegalHelp />
+          </MainLayout>
+        )}
+      </Route>
+      <Route path="/fraud-heatmap">
+        {() => (
+          <MainLayout>
+            <FraudHeatmap />
           </MainLayout>
         )}
       </Route>
