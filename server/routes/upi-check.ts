@@ -1,0 +1,262 @@
+import { Express } from 'express';
+import { storage } from '../storage';
+import { validateUpiIdSafety } from '../services/openai';
+
+/**
+ * Validates UPI ID format
+ * @param upiId UPI ID to validate
+ * @returns true if valid format, false otherwise
+ */
+function validateUpi(upiId: string): boolean {
+  // Basic UPI ID format validation
+  const upiPattern = /^[\w.-]+@[\w]+$/;
+  if (!upiPattern.test(upiId)) {
+    return false;
+  }
+  
+  // Check for suspicious domains
+  const forbiddenDomains = ['exe', 'zip', 'app'];
+  const domain = upiId.split('@')[1];
+  
+  if (forbiddenDomains.includes(domain)) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Calculate pattern-based risk score for UPI IDs
+ * @param upiId UPI ID to analyze
+ * @returns Score between 0 and 1 where higher is more suspicious
+ */
+function calculatePatternScore(upiId: string): number {
+  if (!upiId) return 1.0; // Maximum risk for empty UPI ID
+  
+  // Suspicious patterns
+  const suspiciousPatterns = [
+    /\d{10}@/,          // Phone number pattern
+    /\.exe$/,           // Executable extensions
+    /([a-z])\1{3}/,     // Repeated characters (e.g., aaaa)
+  ];
+  
+  let score = 0;
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(upiId)) {
+      score += 0.3;
+    }
+  }
+  
+  return Math.min(score, 1.0);
+}
+
+/**
+ * Get features for ML risk calculation
+ * @param upiId UPI ID to analyze
+ * @param reports Array of scam reports
+ * @returns Feature set for risk calculation
+ */
+async function getFeatures(upiId: string, reports: any[]) {
+  // Extract unique domains from reports
+  const domains = new Set();
+  reports.forEach(report => {
+    if (report.domain) domains.add(report.domain);
+  });
+  
+  // Get days since last report
+  let daysSinceLastReport = 365; // Default to 1 year if no reports
+  if (reports.length > 0) {
+    const mostRecent = reports.reduce((latest, report) => {
+      return new Date(report.timestamp) > new Date(latest.timestamp) ? report : latest;
+    }, reports[0]);
+    
+    daysSinceLastReport = Math.floor((Date.now() - new Date(mostRecent.timestamp).getTime()) / (1000 * 60 * 60 * 24));
+  }
+  
+  return {
+    totalReports: reports.length,
+    activeDomains: domains.size,
+    daysSinceLastReport,
+    patternScore: calculatePatternScore(upiId)
+  };
+}
+
+/**
+ * Calculate ML risk score
+ * @param upiId UPI ID to analyze
+ * @param reports Array of scam reports
+ * @returns Risk score between 0 and 1
+ */
+async function calculateMlRisk(upiId: string, reports: any[]): Promise<number> {
+  const features = await getFeatures(upiId, reports);
+  
+  // Risk calculation weights
+  const weights = {
+    totalReports: 0.4,
+    activeDomains: 0.2,
+    daysSinceLastReport: 0.2,
+    patternScore: 0.2
+  };
+  
+  // Normalize and calculate scores
+  const scores = {
+    totalReports: Math.min(features.totalReports / 10, 1.0), // Max at 10+ reports
+    activeDomains: Math.min(features.activeDomains / 5, 1.0), // Max at 5+ domains
+    daysSinceLastReport: Math.max(0, 1 - (features.daysSinceLastReport / 30)), // More recent = higher risk
+    patternScore: features.patternScore
+  };
+  
+  // Calculate weighted score
+  let riskScore = 0;
+  for (const [feature, weight] of Object.entries(weights)) {
+    riskScore += scores[feature] * weight;
+  }
+  
+  return riskScore;
+}
+
+/**
+ * Generate analysis of domains involved in scam reports
+ * @param reports Array of scam reports
+ * @returns Domain breakdown with count data
+ */
+function generateDomainAnalysis(reports: any[]) {
+  const domainCounts = {};
+  reports.forEach(report => {
+    const domain = report.domain || 'unknown';
+    domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+  });
+  
+  return Object.entries(domainCounts)
+    .map(([domain, count]) => ({ domain, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/**
+ * Generate recommended actions based on risk score
+ * @param riskScore Risk score value
+ * @returns Array of recommended actions
+ */
+function generateActions(riskScore: number): string[] {
+  if (riskScore > 0.7) {
+    return [
+      "Do not proceed with this transaction",
+      "Report this UPI ID to your bank",
+      "Block this contact if received via messaging apps"
+    ];
+  } else if (riskScore > 0.4) {
+    return [
+      "Verify the recipient's identity before proceeding",
+      "Call the recipient to confirm transaction details",
+      "Start with a small test transaction"
+    ];
+  } else {
+    return [
+      "Proceed with standard verification",
+      "Keep records of all transactions",
+      "Enable notifications for all transactions"
+    ];
+  }
+}
+
+/**
+ * Register UPI check routes
+ * @param app Express application
+ */
+export function registerUpiCheckRoutes(app: Express): void {
+  app.post('/api/combined-check', async (req, res) => {
+    try {
+      const { upiId } = req.body;
+      
+      // Validate UPI format
+      if (!validateUpi(upiId)) {
+        return res.status(400).json({ error: 'Invalid UPI format' });
+      }
+      
+      // Get all reports
+      const reports = await storage.getScamReportsByUpiId(upiId);
+      
+      // Calculate ML risk score
+      const riskScore = await calculateMlRisk(upiId, reports);
+      
+      // Generate domain analysis
+      const domainAnalysis = generateDomainAnalysis(reports);
+      
+      // Get AI-enhanced UPI safety check (if available)
+      let threatData = { level: 'unknown', indicators: [] };
+      try {
+        const aiAnalysis = await validateUpiIdSafety(upiId);
+        
+        if (aiAnalysis) {
+          threatData = {
+            level: aiAnalysis.is_suspicious ? 'high' : 'low',
+            indicators: aiAnalysis.flags || []
+          };
+        }
+      } catch (error) {
+        console.error('Error with AI UPI validation:', error);
+      }
+      
+      // Get most common scam type if available
+      let mostCommonScamType = '';
+      try {
+        mostCommonScamType = await storage.getMostCommonScamType(upiId);
+      } catch (error) {
+        console.error('Error getting most common scam type:', error);
+      }
+      
+      // Prepare response
+      const response = {
+        upiId,
+        riskScore: parseFloat((riskScore * 100).toFixed(2)),
+        riskLevel: riskScore > 0.7 ? 'high' : riskScore > 0.4 ? 'medium' : 'low',
+        totalReports: reports.length,
+        activeCases: reports.filter(r => !r.resolved).length,
+        domainAnalysis,
+        threatLevel: threatData.level,
+        threatIndicators: threatData.indicators,
+        mostCommonScamType,
+        recommendedActions: generateActions(riskScore)
+      };
+      
+      res.json(response);
+    } catch (error) {
+      console.error('Error in combined check:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  app.post('/api/report-scam', async (req, res) => {
+    try {
+      const { upiId, userId, scamType, description, domain, amount } = req.body;
+      
+      // Validate UPI format
+      if (!validateUpi(upiId)) {
+        return res.status(400).json({ error: 'Invalid UPI format' });
+      }
+      
+      // Create scam report
+      const report = await storage.createScamReport({
+        upiId,
+        reporterId: userId,
+        scamType,
+        description,
+        domain: domain || '',
+        amount: amount || 0,
+        timestamp: new Date().toISOString(),
+        resolved: false
+      });
+      
+      // Update risk score for this UPI ID
+      await storage.updateUpiRiskScore(upiId);
+      
+      res.status(201).json({
+        message: 'Scam report submitted successfully',
+        reportId: report.id
+      });
+    } catch (error) {
+      console.error('Error reporting scam:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+}
