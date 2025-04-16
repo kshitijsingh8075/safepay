@@ -3,10 +3,10 @@ import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Store, AlertCircle, Shield, AlertTriangle } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Store, AlertCircle, Shield, AlertTriangle, Loader2 } from 'lucide-react';
 import { detectAdvancedFraud } from '@/lib/fraud-detection';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
 
 // For deep linking to payment apps
 function openPaymentApp(app: string, upiId: string, amount: string, note: string) {
@@ -239,7 +239,7 @@ export default function Payment() {
         <div className="w-10"></div>
       </div>
       
-      <Card className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 mb-8">
+      <Card className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 mb-4">
         <div className="flex items-center mb-4">
           <div className="w-12 h-12 bg-[#F5F6FA] rounded-full flex items-center justify-center mr-3">
             <Store className="w-6 h-6 text-primary" />
@@ -247,6 +247,32 @@ export default function Payment() {
           <div>
             <h3 className="font-semibold">{merchant}</h3>
             <p className="text-xs text-gray-500">{upiId}</p>
+          </div>
+          <div className="ml-auto">
+            {securityCheckPassed ? (
+              <div className="flex items-center text-green-600 text-sm">
+                <Shield className="h-4 w-4 mr-1" />
+                <span>Verified</span>
+              </div>
+            ) : warningShown ? (
+              <div className="flex items-center text-amber-500 text-sm">
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                <span>Caution</span>
+              </div>
+            ) : (
+              <button 
+                onClick={handleSecurityRecheck}
+                className="text-blue-600 text-sm flex items-center"
+                disabled={recheckLoading}
+              >
+                {recheckLoading ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Shield className="h-4 w-4 mr-1" />
+                )}
+                <span>Check</span>
+              </button>
+            )}
           </div>
         </div>
         
@@ -276,20 +302,122 @@ export default function Payment() {
         </div>
       </Card>
       
-      <Button
-        onClick={handlePayment}
-        className="bg-primary text-white font-semibold py-4 px-6 rounded-xl shadow-md w-full"
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          "Pay Now"
+      {/* Security Status Card */}
+      {(recheckResult || securityCheckPassed || warningShown) && (
+        <Card className="bg-white rounded-2xl p-4 shadow-md border border-gray-100 mb-4">
+          <div className="flex items-center">
+            {recheckResult && recheckResult.prediction ? (
+              <>
+                <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+                <div>
+                  <p className="font-medium text-red-600">High Risk Detected</p>
+                  <p className="text-sm text-gray-600">Our AI detected potential fraud with {(recheckResult.confidence * 100).toFixed(0)}% confidence.</p>
+                </div>
+              </>
+            ) : securityCheckPassed ? (
+              <>
+                <Shield className="h-5 w-5 text-green-600 mr-2" />
+                <div>
+                  <p className="font-medium text-green-600">Secure Transaction</p>
+                  <p className="text-sm text-gray-600">This transaction passed all security checks.</p>
+                </div>
+              </>
+            ) : warningShown && (
+              <>
+                <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
+                <div>
+                  <p className="font-medium text-amber-500">Proceed with Caution</p>
+                  <p className="text-sm text-gray-600">You're proceeding despite security warnings.</p>
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
+      )}
+      
+      <div className="flex space-x-2 mb-4">
+        {!securityCheckPassed && !warningShown && (
+          <Button 
+            onClick={handleSecurityRecheck} 
+            variant="outline" 
+            className="flex-1"
+            disabled={recheckLoading}
+          >
+            {recheckLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Shield className="h-4 w-4 mr-2" />
+            )}
+            Security Check
+          </Button>
         )}
-      </Button>
+        <Button
+          onClick={handlePayment}
+          className="bg-primary text-white font-semibold py-4 px-6 rounded-xl shadow-md flex-1"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Pay Now"
+          )}
+        </Button>
+      </div>
+      
+      {/* Security Recheck Dialog */}
+      <Dialog open={showRecheckDialog} onOpenChange={setShowRecheckDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogTitle className="flex items-center text-primary">
+            <Shield className="mr-2 h-5 w-5" />
+            Advanced Security Check
+          </DialogTitle>
+          <DialogDescription>
+            <div className="flex flex-col space-y-4">
+              {recheckLoading ? (
+                <>
+                  <p>Analyzing this transaction for potential fraud...</p>
+                  <div className="flex items-center justify-center text-amber-500 py-4">
+                    <Loader2 className="h-8 w-8 animate-spin mr-2" />
+                  </div>
+                </>
+              ) : recheckResult ? (
+                <div className="space-y-4">
+                  <div className={`p-4 rounded-md ${recheckResult.prediction ? 'bg-red-50' : 'bg-green-50'}`}>
+                    <div className="flex items-center">
+                      {recheckResult.prediction ? (
+                        <AlertCircle className="h-6 w-6 text-red-600 mr-2" />
+                      ) : (
+                        <Shield className="h-6 w-6 text-green-600 mr-2" />
+                      )}
+                      <div>
+                        <p className={`font-medium ${recheckResult.prediction ? 'text-red-800' : 'text-green-800'}`}>
+                          {recheckResult.prediction ? 'Potential Fraud Detected' : 'Transaction Appears Safe'}
+                        </p>
+                        <p className="text-sm">
+                          {recheckResult.prediction 
+                            ? `AI confidence: ${(recheckResult.confidence * 100).toFixed(0)}%` 
+                            : `Security check passed with ${(100 - recheckResult.confidence * 100).toFixed(0)}% confidence`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600">
+                    {recheckResult.prediction 
+                      ? 'We recommend canceling this transaction for your safety.' 
+                      : 'You can proceed with this transaction with confidence.'}
+                  </p>
+                </div>
+              ) : (
+                <p>Starting security check...</p>
+              )}
+            </div>
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
