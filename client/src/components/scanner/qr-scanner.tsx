@@ -173,12 +173,7 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
       const error = err as Error;
       console.error('QR scanning error:', error);
       
-      // Provide more detailed error for debugging
-      if (DEBUG_MODE) {
-        setScanError(`Error: ${error.message || 'Unknown error'}`);
-      } else {
-        setScanError('Error analyzing camera feed. Please try again.');
-      }
+      setScanError('Error analyzing camera feed');
       
       // Continue scanning despite error, with a slight delay to prevent CPU overload
       setTimeout(() => {
