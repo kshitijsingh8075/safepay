@@ -556,6 +556,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Register Scam News routes
+  registerScamNewsRoutes(app);
+  
   const httpServer = createServer(app);
   return httpServer;
 }
