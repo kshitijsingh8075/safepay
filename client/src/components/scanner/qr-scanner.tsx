@@ -208,12 +208,14 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
           )}
           
           {scanComplete && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-              <div className="w-16 h-16 text-green-500 animate-pulse">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
+              <div className="w-16 h-16 text-green-500 animate-pulse mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-full h-full">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
+              <p className="text-white font-medium text-center">QR Code Detected!</p>
+              <p className="text-white text-sm mt-1">Starting security verification...</p>
             </div>
           )}
         </div>
@@ -271,12 +273,45 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
         {!isScanning && !scanComplete && (
           <button
             onClick={() => {
-              setIsScanning(true);
-              detectQRCode();
+              // Reset everything to initial state first
+              setScanProgress(0);
+              setScanComplete(false);
+              
+              // Start scanning with a slight delay to ensure state is updated
+              setTimeout(() => {
+                setIsScanning(true);
+                // Use a random UPI ID for simulation
+                const demoUpiIds = [
+                  "mobileshop@okaxis",
+                  "merchant@yesbank",
+                  "grocerystore@okicici",
+                  "citymart@sbi",
+                  "easypay@ybl",
+                ];
+                const randomIndex = Math.floor(Math.random() * demoUpiIds.length);
+                
+                // Simulate scanning progress
+                let progress = 0;
+                const interval = setInterval(() => {
+                  progress += Math.random() * 5 + 1;
+                  if (progress >= 100) {
+                    clearInterval(interval);
+                    setScanProgress(100);
+                    setScanComplete(true);
+                    
+                    // Send the detected UPI ID after a slight delay
+                    setTimeout(() => {
+                      onScan(demoUpiIds[randomIndex]);
+                    }, 500);
+                  } else {
+                    setScanProgress(progress);
+                  }
+                }, 100);
+              }, 100);
             }}
-            className="mt-4 bg-primary text-white px-4 py-2 rounded-lg"
+            className="mt-4 bg-primary text-white px-6 py-3 rounded-lg text-lg font-medium border-2 border-white shadow-lg animate-pulse"
           >
-            Detect QR Code (Demo)
+            👉 Tap to Scan QR Code
           </button>
         )}
       </div>
