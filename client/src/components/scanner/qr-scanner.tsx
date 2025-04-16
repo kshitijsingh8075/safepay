@@ -73,15 +73,24 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
     }
   };
   
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanComplete, setScanComplete] = useState(false);
+  const animationFrameId = useRef<number | null>(null);
+  
   // QR code detection function
   const detectQRCode = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || scanComplete) return;
     
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
     
-    if (!context) return;
+    if (!context || !video.videoWidth) {
+      // Video might not be ready yet, try again on next frame
+      animationFrameId.current = requestAnimationFrame(detectQRCode);
+      return;
+    }
     
     // Set canvas dimensions to match video
     canvas.width = video.videoWidth;
@@ -93,22 +102,51 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
     // In a real app, we would use a QR code scanning library here
     // For example, using jsQR or a similar library to detect QR codes
     
-    // For this demo, we'll simulate scanning with a timeout
-    // Normally, this would be a continuous scanning process
-    setTimeout(() => {
-      // Simulate finding UPI ID in the QR code
-      // In production, this would be extracted from the QR code
-      const detectedUpiId = 'citysupermarket@upi';
-      
-      // Once detected, send to parent component
-      onScan(detectedUpiId);
-    }, 3000);
+    if (isScanning) {
+      // Simulate scanning progress
+      setScanProgress(prev => {
+        const newProgress = prev + 2;
+        if (newProgress >= 100) {
+          // Scanning complete
+          setScanComplete(true);
+          setIsScanning(false);
+          
+          // Simulate finding UPI ID in the QR code
+          // In production, this would be extracted from the QR code
+          const detectedUpiId = 'citysupermarket@upi';
+          
+          // Once detected, send to parent component with a slight delay
+          // to allow the user to see that scanning is complete
+          setTimeout(() => {
+            onScan(detectedUpiId);
+          }, 500);
+          
+          return 100;
+        }
+        return newProgress;
+      });
+    }
+    
+    // Continue detection on next frame (if not complete)
+    if (!scanComplete) {
+      animationFrameId.current = requestAnimationFrame(detectQRCode);
+    }
   };
   
   // Start QR detection when video plays
   const handleVideoPlay = () => {
+    setIsScanning(true);
     detectQRCode();
   };
+  
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
+  }, []);
 
   return (
     <div className={cn("relative flex flex-col h-screen bg-black", className)}>
@@ -149,8 +187,35 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
         />
         
         {/* Scan overlay */}
-        <div className="border-2 border-white rounded-3xl w-[250px] h-[250px] relative z-10">
+        <div className="border-2 border-white rounded-3xl w-[250px] h-[250px] relative z-10 overflow-hidden flex items-center justify-center">
           <canvas ref={canvasRef} className="hidden" />
+          
+          {isScanning && !scanComplete && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
+              <div className="w-16 h-16 mb-4">
+                <svg className="w-full h-full animate-pulse" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 9V5.25C3 4.00736 4.00736 3 5.25 3H9M9 21H5.25C4.00736 21 3 19.9926 3 18.75V15M21 15V18.75C21 19.9926 19.9926 21 18.75 21H15M15 3H18.75C19.9926 3 21 4.00736 21 5.25V9" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div className="w-3/4 bg-gray-700 rounded-full h-1.5 mb-2">
+                <div 
+                  className="bg-white h-1.5 rounded-full transition-all duration-100 ease-in-out" 
+                  style={{ width: `${scanProgress}%` }}
+                />
+              </div>
+              <p className="text-white text-sm">Scanning QR code...</p>
+            </div>
+          )}
+          
+          {scanComplete && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <div className="w-16 h-16 text-green-500 animate-pulse">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-full h-full">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       

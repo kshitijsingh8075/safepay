@@ -27,6 +27,7 @@ import LegalHelp from "@/pages/legal-help";
 import FraudHeatmap from "@/pages/fraud-heatmap";
 import FraudHeatmap2 from "@/pages/fraud-heatmap2";
 import FraudHeatmapBasic from "@/pages/fraud-heatmap-basic";
+import ConfirmTransaction from "@/pages/confirm-transaction";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
@@ -45,6 +46,7 @@ function Router() {
         )}
       </Route>
       <Route path="/scan" component={Scan} />
+      <Route path="/confirm-transaction" component={ConfirmTransaction} />
       <Route path="/payment" component={Payment} />
       <Route path="/success" component={Success} />
       <Route path="/upi-check">

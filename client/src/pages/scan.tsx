@@ -71,14 +71,14 @@ export default function Scan() {
         // Medium risk - show warning
         setShowWarning(true);
       } else {
-        // Low risk - proceed to payment
+        // Low risk - proceed to confirmation page
         toast({
           title: "Safe UPI ID",
           description: "Our AI has verified this appears to be a legitimate UPI ID.",
           variant: "default",
         });
         setTimeout(() => {
-          setLocation(`/payment?upiId=${encodeURIComponent(upiId)}&securityCheck=passed`);
+          setLocation(`/confirm-transaction?upiId=${encodeURIComponent(upiId)}&securityCheck=passed`);
         }, 1000);
       }
     } catch (error) {
@@ -106,7 +106,7 @@ export default function Scan() {
     setShowWarning(false);
     
     // Add a risk flag to indicate the user ignored warnings
-    setLocation(`/payment?upiId=${encodeURIComponent(scannedUpiId)}&riskWarningShown=true`);
+    setLocation(`/confirm-transaction?upiId=${encodeURIComponent(scannedUpiId)}&riskWarningShown=true`);
   };
 
   const handleReportScam = () => {
