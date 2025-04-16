@@ -177,7 +177,7 @@ function generateActions(riskScore: number): string[] {
  * @param upiId The UPI ID to classify
  * @returns Classification result object
  */
-function classifyUpiId(upiId: string) {
+function classifyUpiId(upiId: string): { status: 'SAFE' | 'SUSPICIOUS' | 'SCAM', reason: string, confidence_score: number, risk_factors: string[] } {
   // Normalize the UPI ID
   upiId = upiId.trim().toLowerCase();
 
@@ -261,7 +261,7 @@ export function registerUpiCheckRoutes(app: Express): void {
         category: reports.length > 0 ? await storage.getMostCommonScamType(upiId) : undefined,
         
         // Get recommendations based on status
-        recommendations: getRecommendations(result.status as 'SAFE' | 'SUSPICIOUS' | 'SCAM')
+        recommendations: getRecommendations(result.status)
       };
       
       res.json(enhancedResult);
