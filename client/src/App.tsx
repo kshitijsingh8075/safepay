@@ -31,6 +31,7 @@ import ConfirmTransaction from "@/pages/confirm-transaction";
 import QRTest from "@/pages/qr-test";
 import DebugNavigation from "@/pages/debug-navigation";
 import VoiceCheckDirect from "@/pages/voice-check-direct";
+import VoiceTest from "@/pages/voice-test";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
@@ -156,6 +157,8 @@ function Router() {
       <Route path="/debug" component={DebugNavigation} />
       
       <Route path="/voice-direct" component={VoiceCheckDirect} />
+      
+      <Route path="/voice-test" component={VoiceTest} />
 
       <Route component={NotFound} />
     </Switch>
