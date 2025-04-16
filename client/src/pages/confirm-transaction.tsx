@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { CheckCircle, ChevronLeft, Shield, AlertTriangle, Info } from 'lucide-react';
 import { detectAdvancedFraud } from '@/lib/fraud-detection';
+import { enhancedFraudDetection, validateUpiId, getSecurityTip } from '@/lib/enhanced-fraud-detection';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ConfirmTransaction() {
@@ -67,26 +68,75 @@ export default function ConfirmTransaction() {
     setIsAnalyzing(true);
     
     try {
-      // Run ML-based fraud detection
-      const mlAnalysis = await detectAdvancedFraud(upiId, parseFloat(amount));
+      // First, validate the UPI ID with AI
+      const upiValidation = await validateUpiId(upiId);
       
-      // Calculate a safety score between 0-100 based on the ML analysis
-      // Lower confidence of fraud means higher safety
-      const calculatedScore = Math.round(100 - (mlAnalysis.confidence * 100));
-      setSafetyScore(calculatedScore);
-      
-      // If the transaction is flagged as fraudulent with high confidence
-      if (mlAnalysis.prediction && mlAnalysis.confidence > 0.7) {
+      if (upiValidation.is_suspicious && upiValidation.confidence > 0.7) {
         toast({
-          title: "High Risk Detected",
-          description: "This transaction appears to be unsafe. We recommend canceling.",
+          title: "Suspicious UPI ID",
+          description: `This UPI ID appears suspicious: ${upiValidation.flags[0]}`,
           variant: "destructive",
         });
       }
+      
+      // Run enhanced AI-powered fraud detection
+      const deviceFingerprint = navigator.userAgent; // Simple fingerprint, could be more sophisticated
+      const enhancedAnalysis = await enhancedFraudDetection(
+        upiId, 
+        parseFloat(amount),
+        deviceFingerprint,
+        `Payment to ${merchant || upiId.split('@')[0]}`
+      );
+      
+      // Calculate a safety score between 0-100 based on the analysis
+      // Lower confidence of fraud means higher safety
+      const calculatedScore = Math.round(100 - (enhancedAnalysis.confidence * 100));
+      setSafetyScore(calculatedScore);
+      
+      // If the transaction is flagged as fraudulent with high confidence
+      if (enhancedAnalysis.prediction && enhancedAnalysis.confidence > 0.7) {
+        toast({
+          title: "High Risk Detected",
+          description: enhancedAnalysis.message || "This transaction appears to be unsafe. We recommend canceling.",
+          variant: "destructive",
+        });
+        
+        // Get AI-generated security tip based on user's transaction pattern
+        const mockUserActivity = {
+          recentTransactions: [
+            { amount: parseFloat(amount), recipient: upiId, timestamp: new Date() }
+          ],
+          paymentPatterns: {
+            frequentRecipients: [],
+            averageAmount: parseFloat(amount),
+            unusualActivities: enhancedAnalysis.prediction ? ['suspicious recipient'] : []
+          }
+        };
+        
+        try {
+          const securityTip = await getSecurityTip(mockUserActivity);
+          setTimeout(() => {
+            toast({
+              title: "Security Tip",
+              description: securityTip,
+              variant: "default",
+            });
+          }, 3000);
+        } catch (tipError) {
+          console.error('Error getting security tip:', tipError);
+        }
+      }
     } catch (error) {
       console.error('Error analyzing UPI safety:', error);
-      // Set a medium safety score as fallback
-      setSafetyScore(50);
+      // Fall back to standard fraud detection
+      try {
+        const mlAnalysis = await detectAdvancedFraud(upiId, parseFloat(amount));
+        const fallbackScore = Math.round(100 - (mlAnalysis.confidence * 100));
+        setSafetyScore(fallbackScore);
+      } catch (fallbackError) {
+        console.error('Error with fallback detection:', fallbackError);
+        setSafetyScore(50); // Medium safety score as last resort
+      }
     } finally {
       setIsAnalyzing(false);
     }
