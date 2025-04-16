@@ -126,7 +126,7 @@ export default function HelpSupport() {
               <AccordionTrigger>How do I add or remove payment methods?</AccordionTrigger>
               <AccordionContent>
                 <p className="text-sm text-gray-600">
-                  You can manage your payment methods by going to Account {'->'} Payment Methods. There you can add new payment methods or remove existing ones.
+                  You can manage your payment methods by going to Account &rarr; Payment Methods. There you can add new payment methods or remove existing ones.
                 </p>
                 <Button 
                   variant="link" 
