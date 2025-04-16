@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { getScamNews } from "../services/scam-news-fixed";
+import { getRealScamNews } from "../services/real-scam-news";
 
 /**
  * Register scam news related routes to the Express server
@@ -19,7 +19,7 @@ export function registerScamNewsRoutes(app: Express) {
         (typeof geo_location === 'string' ? geo_location : 'India') : 
         'India';
       
-      const scamNewsData = await getScamNews(location, upi_id);
+      const scamNewsData = await getRealScamNews(location, upi_id);
       
       res.status(200).json(scamNewsData);
     } catch (error) {

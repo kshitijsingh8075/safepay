@@ -6,6 +6,7 @@ import { generateOtp, verifyOtp } from "./services/otp";
 import { getChatResponse, generateQuickReplies } from "./services/chat";
 import { getScamNews } from "./services/scam-news-fixed";
 import { registerScamNewsRoutes } from "./routes/scam-news";
+import { registerTestOpenAIRoute } from "./routes/test-openai";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
@@ -558,6 +559,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Scam News routes
   registerScamNewsRoutes(app);
+  
+  // Register Test OpenAI route
+  registerTestOpenAIRoute(app);
   
   const httpServer = createServer(app);
   return httpServer;
