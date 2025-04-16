@@ -172,7 +172,8 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
       
       // Continue scanning
       animationFrameId.current = requestAnimationFrame(detectQRCode);
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error('QR scanning error:', error);
       
       // Provide more detailed error for debugging
