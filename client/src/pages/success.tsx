@@ -12,7 +12,7 @@ export default function Success() {
     to: 'City Supermarket',
     upiId: 'citysupermarket@upi',
     transactionId: `UPI${Date.now().toString().substring(5)}`,
-    date: new Date().toLocaleString('en-IN', {
+    date: new Date().toLocaleString('en-US', {
       day: 'numeric',
       month: 'short',
       hour: '2-digit',
@@ -97,7 +97,7 @@ export default function Success() {
       if (navigator.share) {
         navigator.share({
           title: 'Payment Receipt',
-          text: `Payment of ₹${transactionDetails.amount} to ${transactionDetails.to} (${transactionDetails.upiId}) was successful. Transaction ID: ${transactionDetails.transactionId}`
+          text: `Payment of $${transactionDetails.amount} to ${transactionDetails.to} (${transactionDetails.upiId}) was successful. Transaction ID: ${transactionDetails.transactionId}`
         });
       } else {
         // Fallback for browsers that don't support Web Share API
@@ -120,7 +120,7 @@ export default function Success() {
       <Card className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 w-full mb-8">
         <div className="flex justify-between mb-3">
           <p className="text-gray-500">Amount</p>
-          <p className="font-semibold">₹{transactionDetails.amount}</p>
+          <p className="font-semibold">${transactionDetails.amount}</p>
         </div>
         <div className="flex justify-between mb-3">
           <p className="text-gray-500">To</p>

@@ -56,7 +56,7 @@ export default function History() {
     } catch (error) {
       console.error('Error loading transaction history:', error);
       // Fallback to sample data on error
-      setTransactions(sampleTransactionHistory);
+      setTransactions(sampleTransactionHistory as Transaction[]);
     }
   }, []);
 
@@ -101,13 +101,13 @@ export default function History() {
           <div className="text-center mb-6">
             <p className={`text-2xl font-bold ${selectedTransaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
               {selectedTransaction.amount > 0 ? '+ ' : '- '}
-              ₹{Math.abs(selectedTransaction.amount).toFixed(2)}
+              ${Math.abs(selectedTransaction.amount).toFixed(2)}
             </p>
             <p className="text-sm text-gray-500 mt-1">
               {selectedTransaction.type === 'credit' ? 'Received from' : 'Paid to'} {selectedTransaction.title}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              {new Date(selectedTransaction.timestamp).toLocaleString('en-IN', {
+              {new Date(selectedTransaction.timestamp).toLocaleString('en-US', {
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric',
@@ -251,7 +251,7 @@ export default function History() {
             </div>
             <div className="flex justify-between items-center">
               <p className="text-xs text-gray-500">
-                {new Date(transaction.timestamp).toLocaleDateString('en-IN', {
+                {new Date(transaction.timestamp).toLocaleDateString('en-US', {
                   day: 'numeric',
                   month: 'short',
                   hour: '2-digit',
