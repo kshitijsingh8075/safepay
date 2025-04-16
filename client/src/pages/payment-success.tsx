@@ -94,7 +94,7 @@ export default function PaymentSuccess() {
   };
   
   const goHome = () => {
-    setLocation('/home');
+    setLocation('/');
   };
 
   return (
