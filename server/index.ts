@@ -1,10 +1,21 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import path from "path";
+import { fileURLToPath } from 'url';
+
+// Get directory path in ESM context
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Serve static test file for checking server status
+app.get('/test', (req, res) => {
+  res.sendFile(path.join(__dirname, 'static/index.html'));
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

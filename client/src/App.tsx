@@ -31,10 +31,14 @@ import FraudHeatmapBasic from "@/pages/fraud-heatmap-basic";
 import ConfirmTransaction from "@/pages/confirm-transaction";
 import MainLayout from "@/layouts/main-layout";
 
+// Import our simple home page
+import SimpleHome from "@/pages/simple-home";
+
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={PhoneLogin} />
+      <Route path="/" component={SimpleHome} />
+      <Route path="/phone-login" component={PhoneLogin} />
       <Route path="/login" component={Login} />
       <Route path="/otp" component={OTP} />
       <Route path="/pin" component={PIN} />
