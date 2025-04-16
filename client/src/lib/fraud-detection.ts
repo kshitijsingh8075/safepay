@@ -52,3 +52,50 @@ export function shouldBlockTransaction(riskPercentage: number): boolean {
 export function shouldShowWarning(riskPercentage: number): boolean {
   return riskPercentage >= 30 && riskPercentage < 75; // Warning for 30-75% risk
 }
+
+export interface FraudDetectionResponse {
+  prediction: boolean;
+  confidence: number;
+  features: {
+    hourly_reports: number;
+    tx_frequency: number;
+    amount_deviation: number;
+    device_risk: number;
+    platform_reports: number;
+  };
+  live_data: {
+    tx_frequency: number;
+    avg_amount: number;
+    device_mismatches: number;
+    recent_reports: number;
+  };
+  message: string;
+  meta: { 
+    service: string;
+    version: string;
+    latency_ms: number;
+  };
+}
+
+// Advanced ML-based fraud detection
+export async function detectAdvancedFraud(
+  upiId: string, 
+  amount: number, 
+  deviceInfo?: any
+): Promise<FraudDetectionResponse> {
+  try {
+    const res = await apiRequest('POST', '/api/fraud-check', {
+      upiId,
+      amount,
+      deviceInfo: deviceInfo || {
+        fingerprint: getDeviceFingerprint(),
+        timestamp: Date.now()
+      }
+    });
+    
+    return await res.json();
+  } catch (error) {
+    console.error('Advanced fraud detection error:', error);
+    throw error;
+  }
+}

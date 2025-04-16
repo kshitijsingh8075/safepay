@@ -506,6 +506,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Advanced Fraud Detection API (Mock Service)
+  app.post('/api/fraud-check', (req, res) => {
+    try {
+      const { upiId, amount, deviceInfo } = req.body;
+      
+      if (!upiId) {
+        return res.status(400).json({ message: 'UPI ID is required' });
+      }
+      
+      // Simulate response from Python fraud detection service
+      const mockResponse = {
+        prediction: Math.random() > 0.8, // 20% chance of fraud detection
+        confidence: parseFloat((Math.random() * 0.8 + 0.1).toFixed(2)), // Value between 0.1 and 0.9
+        features: {
+          hourly_reports: Math.floor(Math.random() * 5),
+          tx_frequency: Math.floor(Math.random() * 50),
+          amount_deviation: parseFloat((Math.random() * 2 - 1).toFixed(2)),
+          device_risk: Math.floor(Math.random() * 3),
+          platform_reports: Math.floor(Math.random() * 10)
+        },
+        live_data: {
+          tx_frequency: Math.floor(Math.random() * 30),
+          avg_amount: parseFloat((Math.random() * 5000 + 500).toFixed(2)),
+          device_mismatches: Math.floor(Math.random() * 3),
+          recent_reports: Math.floor(Math.random() * 5)
+        },
+        message: "Fraud risk assessment completed successfully",
+        meta: { 
+          service: "mock-ml-service",
+          version: "1.0.0",
+          latency_ms: Math.floor(Math.random() * 200 + 100)
+        }
+      };
+      
+      // Add a 500ms delay to simulate ML processing time
+      setTimeout(() => {
+        res.status(200).json(mockResponse);
+      }, 500);
+      
+    } catch (error: any) {
+      console.error('Fraud detection error:', error);
+      res.status(500).json({ 
+        message: 'Fraud detection service error', 
+        error: error?.message || 'Unknown error'
+      });
+    }
+  });
+  
   const httpServer = createServer(app);
   return httpServer;
 }
