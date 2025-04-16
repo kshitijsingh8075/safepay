@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertScamReportSchema, insertUserSchema, insertPaymentMethodSchema, insertChatMessageSchema, insertChatFeedbackSchema } from "@shared/schema";
 import { generateOtp, verifyOtp } from "./services/otp";
 import { getChatResponse, generateQuickReplies } from "./services/chat";
+import { getScamNews } from "./services/scam-news";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
