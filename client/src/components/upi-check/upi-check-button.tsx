@@ -31,15 +31,16 @@ interface DomainAnalysis {
 
 interface UpiCheckResponse {
   upiId: string;
-  riskScore: number;
-  riskLevel: 'low' | 'medium' | 'high';
-  totalReports: number;
-  activeCases: number;
-  domainAnalysis: DomainAnalysis[];
-  threatLevel: string;
-  threatIndicators: string[];
-  mostCommonScamType: string;
-  recommendedActions: string[];
+  status: 'SAFE' | 'SUSPICIOUS' | 'SCAM';
+  riskPercentage: number;
+  riskLevel: 'Low' | 'Medium' | 'High';
+  reports: number;
+  reason: string;
+  confidence_score: number;
+  risk_factors?: string[];
+  recommendations?: string[];
+  age?: string;
+  reportedFor?: string;
 }
 
 export default function UpiCheckButton() {
@@ -65,11 +66,39 @@ export default function UpiCheckButton() {
 
     setIsLoading(true);
     try {
-      const response = await apiRequest('POST', '/api/combined-check', { upiId });
+      // First try the new /check-scam endpoint
+      const response = await apiRequest('POST', '/api/check-scam', { upiId });
       const data = await response.json();
       
       if (response.ok) {
-        setResults(data);
+        // Get additional data from the UPI check endpoint
+        const detailsResponse = await apiRequest('GET', `/api/upi/check/${encodeURIComponent(upiId)}`);
+        const detailsData = await detailsResponse.json();
+        
+        // Combine data from both endpoints
+        setResults({
+          ...detailsData,
+          status: data.status,
+          confidence_score: data.confidence_score,
+          reason: data.reason,
+          risk_factors: data.risk_factors || [],
+          recommendations: data.recommendations || []
+        });
+        
+        // Show toast with the result
+        const statusMap = {
+          'SAFE': { title: 'Safe UPI ID', variant: 'default' },
+          'SUSPICIOUS': { title: 'Suspicious UPI ID', variant: 'warning' },
+          'SCAM': { title: 'Scam Alert!', variant: 'destructive' }
+        };
+        
+        const status = data.status as keyof typeof statusMap;
+        
+        toast({
+          title: statusMap[status].title,
+          description: data.reason,
+          variant: statusMap[status].variant as any
+        });
       } else {
         toast({
           title: "Check Failed",
@@ -164,7 +193,7 @@ export default function UpiCheckButton() {
                   <span 
                     className={`px-2 py-1 text-xs rounded-full ${getRiskColor(results.riskLevel)}`}
                   >
-                    {results.riskLevel.toUpperCase()}
+                    {results.status}
                   </span>
                 </CardTitle>
                 <CardDescription>
@@ -175,35 +204,54 @@ export default function UpiCheckButton() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Risk Score</span>
-                    <span className="font-medium">{results.riskScore}%</span>
+                    <span className="font-medium">{results.riskPercentage}%</span>
                   </div>
                   <Progress 
-                    value={results.riskScore} 
-                    className={getProgressColor(results.riskScore)}
+                    value={results.riskPercentage} 
+                    className={getProgressColor(results.riskPercentage)}
                   />
+                  
+                  <div className="bg-muted p-3 rounded text-sm mt-4">
+                    <span className="font-medium">Reason: </span>{results.reason}
+                  </div>
                   
                   <div className="grid grid-cols-2 gap-2 mt-4">
                     <div className="bg-muted p-2 rounded text-center">
                       <div className="text-sm text-muted-foreground">Reports</div>
-                      <div className="text-lg font-medium">{results.totalReports}</div>
+                      <div className="text-lg font-medium">{results.reports}</div>
                     </div>
                     <div className="bg-muted p-2 rounded text-center">
-                      <div className="text-sm text-muted-foreground">Active Cases</div>
-                      <div className="text-lg font-medium">{results.activeCases}</div>
+                      <div className="text-sm text-muted-foreground">Confidence</div>
+                      <div className="text-lg font-medium">{Math.round(results.confidence_score * 100)}%</div>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {results.recommendedActions.length > 0 && (
+            {results.risk_factors && results.risk_factors.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Risk Factors</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    {results.risk_factors.map((factor: string, index: number) => (
+                      <li key={index}>{factor}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {results.recommendations && results.recommendations.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">Recommended Actions</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="list-disc pl-5 space-y-1 text-sm">
-                    {results.recommendedActions.map((action, index) => (
+                    {results.recommendations.map((action: string, index: number) => (
                       <li key={index}>{action}</li>
                     ))}
                   </ul>
@@ -211,27 +259,9 @@ export default function UpiCheckButton() {
               </Card>
             )}
 
-            {results.domainAnalysis.length > 0 && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Domain Analysis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {results.domainAnalysis.slice(0, 3).map((domain, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span>{domain.domain}</span>
-                        <span className="font-medium">{domain.count} reports</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {results.mostCommonScamType && (
+            {results.reportedFor && results.reportedFor !== 'N/A' && (
               <div className="text-sm text-muted-foreground">
-                <span className="font-medium">Most Common Scam Type:</span> {results.mostCommonScamType}
+                <span className="font-medium">Reported For:</span> {results.reportedFor}
               </div>
             )}
           </div>
