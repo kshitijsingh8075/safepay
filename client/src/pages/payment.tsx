@@ -171,7 +171,7 @@ export default function Payment() {
         <div className="border-t border-b border-gray-100 py-4 my-4">
           <label className="block text-sm text-gray-500 mb-2">Enter Amount</label>
           <div className="flex items-center">
-            <span className="text-2xl font-semibold mr-2">₹</span>
+            <span className="text-2xl font-semibold mr-2">$</span>
             <Input
               type="text"
               value={amount}
