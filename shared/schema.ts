@@ -110,3 +110,6 @@ export type UpiRiskReport = typeof upiRiskReports.$inferSelect;
 
 export type InsertScamReport = z.infer<typeof insertScamReportSchema>;
 export type ScamReport = typeof scamReports.$inferSelect;
+
+export type InsertPaymentMethod = z.infer<typeof insertPaymentMethodSchema>;
+export type PaymentMethod = typeof paymentMethods.$inferSelect;
