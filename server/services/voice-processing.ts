@@ -1,5 +1,26 @@
 import OpenAI from 'openai';
-import { sanitizeString } from '../utils';
+
+/**
+ * Sanitize a string to prevent potential injection attacks
+ * @param input String to sanitize
+ * @returns Sanitized string
+ */
+function sanitizeString(input: string): string {
+  if (!input) return '';
+  
+  // Remove any HTML/script tags
+  let sanitized = input.replace(/<\/?[^>]+(>|$)/g, '');
+  
+  // Escape special characters
+  sanitized = sanitized
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+    
+  return sanitized;
+}
 
 if (!process.env.OPENAI_API_KEY) {
   console.warn('Warning: OPENAI_API_KEY environment variable not set. Voice processing might not work correctly.');
@@ -137,10 +158,17 @@ export function getVoiceSession(sessionId: string): any | null {
  */
 function cleanupExpiredSessions(): void {
   const now = Date.now();
+  const expired: string[] = [];
   
-  for (const [sessionId, session] of voiceSessions.entries()) {
+  // First collect the expired sessions
+  voiceSessions.forEach((session, sessionId) => {
     if (now - session.timestamp > 15 * 60 * 1000) {
-      voiceSessions.delete(sessionId);
+      expired.push(sessionId);
     }
-  }
+  });
+  
+  // Then delete them
+  expired.forEach(sessionId => {
+    voiceSessions.delete(sessionId);
+  });
 }

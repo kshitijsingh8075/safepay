@@ -564,6 +564,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register Test OpenAI route
   registerTestOpenAIRoute(app);
   
+  // Register Voice Processing routes
+  registerVoiceRoutes(app);
+  
   const httpServer = createServer(app);
   return httpServer;
 }
