@@ -33,7 +33,7 @@ export function BottomNav({ className }: BottomNavProps) {
       active: location === '/scan'
     },
     { 
-      name: 'History', 
+      name: 'Chat Support', 
       path: '/history', 
       icon: MessageCircle,
       active: location === '/history'

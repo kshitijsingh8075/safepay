@@ -1,4 +1,3 @@
-import React from "react";
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -31,14 +30,10 @@ import FraudHeatmapBasic from "@/pages/fraud-heatmap-basic";
 import ConfirmTransaction from "@/pages/confirm-transaction";
 import MainLayout from "@/layouts/main-layout";
 
-// Import our simple home page
-import SimpleHome from "@/pages/simple-home";
-
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={SimpleHome} />
-      <Route path="/phone-login" component={PhoneLogin} />
+      <Route path="/" component={PhoneLogin} />
       <Route path="/login" component={Login} />
       <Route path="/otp" component={OTP} />
       <Route path="/pin" component={PIN} />
@@ -161,47 +156,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <Router />
-      </ErrorBoundary>
+      <Router />
       <Toaster />
     </QueryClientProvider>
   );
-}
-
-// Simple error boundary component
-class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
-  constructor(props: {children: React.ReactNode}) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error) {
-    console.error("React error:", error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-8 flex flex-col items-center justify-center min-h-screen">
-          <h2 className="text-xl font-semibold mb-4">Something went wrong</h2>
-          <p className="mb-4">An error occurred in the application.</p>
-          <button 
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-            onClick={() => window.location.href = '/'}
-          >
-            Go to Home
-          </button>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
 }
 
 export default App;

@@ -28,11 +28,6 @@ async function comparePasswords(supplied: string, stored: string): Promise<boole
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Simple test route to check if server is working
-  app.get('/api/test', (req, res) => {
-    res.json({ message: 'API server is working!' });
-  });
-  
   // OTP Authentication routes
   app.post('/api/auth/request-otp', async (req, res) => {
     try {
