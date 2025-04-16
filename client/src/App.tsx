@@ -16,6 +16,7 @@ import UpiCheck from "@/pages/upi-check";
 import ReportScam from "@/pages/report-scam";
 import VoiceCheck from "@/pages/voice-check";
 import MessageCheck from "@/pages/message-check";
+import WhatsAppCheck from "@/pages/whatsapp-check";
 import ChatSupport from "@/pages/chat-support";
 import Account from "@/pages/account";
 import Profile from "@/pages/profile";

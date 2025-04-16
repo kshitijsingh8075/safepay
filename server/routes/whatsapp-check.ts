@@ -42,12 +42,22 @@ const upload = multer({
   },
 });
 
+// Define multer file type
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+  buffer: Buffer;
+}
+
 // Extended request type with file property
 interface RequestWithFile extends Request {
-  file?: {
-    path: string;
-    [key: string]: any;
-  };
+  file?: MulterFile;
 }
 
 /**

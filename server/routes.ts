@@ -9,6 +9,7 @@ import { registerScamNewsRoutes } from "./routes/scam-news";
 import { registerTestOpenAIRoute } from "./routes/test-openai";
 import { registerUpiCheckRoutes } from "./routes/upi-check";
 import { registerVoiceCheckRoutes } from "./routes/voice-check";
+import { registerWhatsAppCheckRoutes } from "./routes/whatsapp-check";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
@@ -612,6 +613,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Voice Check routes
   registerVoiceCheckRoutes(app);
+  
+  // Register WhatsApp Check routes
+  registerWhatsAppCheckRoutes(app);
   
   // No test pages anymore
   
