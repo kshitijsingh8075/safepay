@@ -123,13 +123,37 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
       if (code) {
         console.log('QR code detected:', code.data);
         
+        // Process the QR code data - parse UPI info
+        let upiId = '';
+        
+        // Check if the data is a UPI URL
+        if (code.data.startsWith('upi://')) {
+          // Extract UPI ID from UPI URL format (like upi://pay?pa=abc@bank&pn=Name)
+          const url = new URL(code.data);
+          const params = new URLSearchParams(url.search);
+          upiId = params.get('pa') || '';
+        } else if (code.data.includes('@')) {
+          // Directly a UPI ID (like abc@bank)
+          upiId = code.data;
+        } else {
+          // Try to check if the QR contains text with a UPI ID in it
+          const match = code.data.match(/([a-zA-Z0-9\.\-\_]+@[a-zA-Z0-9]+)/);
+          if (match && match[1]) {
+            upiId = match[1];
+          } else {
+            upiId = code.data; // Use as-is if nothing else works
+          }
+        }
+        
+        console.log('Extracted UPI ID:', upiId);
+        
         // Show success UI
         setScanComplete(true);
         setScanProgress(100);
         
-        // Return the detected QR code data
+        // Return the detected UPI ID
         setTimeout(() => {
-          onScan(code.data);
+          onScan(upiId);
         }, 800); // Show success animation briefly
         
         // Stop scanning

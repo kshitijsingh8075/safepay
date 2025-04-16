@@ -28,6 +28,7 @@ import FraudHeatmap from "@/pages/fraud-heatmap";
 import FraudHeatmap2 from "@/pages/fraud-heatmap2";
 import FraudHeatmapBasic from "@/pages/fraud-heatmap-basic";
 import ConfirmTransaction from "@/pages/confirm-transaction";
+import QRTest from "@/pages/qr-test";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
@@ -147,6 +148,8 @@ function Router() {
       </Route>
       
       <Route path="/fraud-heatmap-basic" component={FraudHeatmapBasic} />
+      
+      <Route path="/qr-test" component={QRTest} />
 
       <Route component={NotFound} />
     </Switch>
