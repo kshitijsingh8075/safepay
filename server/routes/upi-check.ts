@@ -246,8 +246,25 @@ export function registerUpiCheckRoutes(app: Express): void {
         });
       }
 
+      // Get basic classification
       const result = classifyUpiId(upiId);
-      res.json(result);
+      
+      // Get reports for additional context
+      const reports = await storage.getScamReportsByUpiId(upiId);
+      
+      // Add reports count to the result
+      const enhancedResult = {
+        ...result,
+        reports: reports.length,
+        
+        // Get most common scam type if available
+        category: reports.length > 0 ? await storage.getMostCommonScamType(upiId) : undefined,
+        
+        // Get recommendations based on status
+        recommendations: getRecommendations(result.status)
+      };
+      
+      res.json(enhancedResult);
     } catch (error) {
       console.error('Error in check-scam:', error);
       res.status(500).json({ 

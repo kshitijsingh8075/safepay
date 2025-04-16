@@ -66,23 +66,25 @@ export default function UpiCheckButton() {
 
     setIsLoading(true);
     try {
-      // First try the new /check-scam endpoint
+      // Use the enhanced /check-scam endpoint
       const response = await apiRequest('POST', '/api/check-scam', { upiId });
       const data = await response.json();
       
       if (response.ok) {
-        // Get additional data from the UPI check endpoint
-        const detailsResponse = await apiRequest('GET', `/api/upi/check/${encodeURIComponent(upiId)}`);
-        const detailsData = await detailsResponse.json();
-        
-        // Combine data from both endpoints
+        // Process the enhanced response format with all needed details
         setResults({
-          ...detailsData,
+          upiId: upiId,
           status: data.status,
-          confidence_score: data.confidence_score,
+          riskPercentage: Math.round((data.status === 'SCAM' ? 90 : 
+                                     data.status === 'SUSPICIOUS' ? 60 : 20)),
+          riskLevel: data.status === 'SCAM' ? 'High' : 
+                    data.status === 'SUSPICIOUS' ? 'Medium' : 'Low',
+          reports: data.reports || 0,
           reason: data.reason,
+          confidence_score: data.confidence_score,
           risk_factors: data.risk_factors || [],
-          recommendations: data.recommendations || []
+          recommendations: data.recommendations || [],
+          reportedFor: data.category || 'N/A',
         });
         
         // Show toast with the result
@@ -102,7 +104,7 @@ export default function UpiCheckButton() {
       } else {
         toast({
           title: "Check Failed",
-          description: data.error || "Failed to analyze UPI ID",
+          description: data.message || "Failed to analyze UPI ID",
           variant: "destructive"
         });
       }
