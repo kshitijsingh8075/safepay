@@ -10,7 +10,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  * @param defaultValue Default value to use if parsing fails
  * @returns Parsed JSON object
  */
-function safeJsonParse(content: string | null, defaultValue: any = {}) {
+function safeJsonParse(content: string | null | undefined, defaultValue: any = {}) {
   if (!content) return defaultValue;
   try {
     return JSON.parse(content);
@@ -166,7 +166,8 @@ export async function analyzeUpiForTrendingScams(upiId: string) {
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || '{}';
+    const result = safeJsonParse(content);
     return result;
   } catch (error) {
     console.error('Error analyzing UPI for trending scams:', error);
@@ -204,7 +205,8 @@ export async function getUserScamReportsSummary() {
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || '{}';
+    const result = safeJsonParse(content);
     return result;
   } catch (error) {
     console.error('Error getting user scam reports summary:', error);
