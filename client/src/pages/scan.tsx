@@ -107,7 +107,7 @@ export default function Scan() {
           </DialogTitle>
           <DialogDescription>
             This UPI ID has been flagged with medium risk ({riskDetails?.percentage}%)
-            {riskDetails?.reports > 0 && ` and has ${riskDetails.reports} reports from other users`}.
+            {riskDetails && riskDetails.reports > 0 && ` and has ${riskDetails.reports} reports from other users`}.
             Proceed with caution.
           </DialogDescription>
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
@@ -130,7 +130,7 @@ export default function Scan() {
           </DialogTitle>
           <DialogDescription>
             This UPI ID has a very high risk score ({riskDetails?.percentage}%)
-            {riskDetails?.reports > 0 && ` and has ${riskDetails.reports} reports from other users`}.
+            {riskDetails && riskDetails.reports > 0 && ` and has ${riskDetails.reports} reports from other users`}.
             We've blocked this transaction for your safety.
           </DialogDescription>
           <DialogFooter className="flex flex-col sm:flex-row gap-2">

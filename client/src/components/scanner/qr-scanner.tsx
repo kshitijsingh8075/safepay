@@ -60,8 +60,9 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
       const newFlashState = !flashOn;
       
       try {
-        // @ts-ignore - 'torch' is not in the TypeScript definitions but works in supported browsers
+        // The 'torch' property is not in standard TypeScript definitions but is supported in some browsers
         await track.applyConstraints({
+          // @ts-ignore - Suppressing typescript error for torch property
           advanced: [{ torch: newFlashState }]
         });
         
