@@ -1,66 +1,561 @@
-import React from 'react';
-import MainLayout from '@/layouts/main-layout';
-import { Card } from '@/components/ui/card';
-import { formatDate } from '@/lib/utils';
-import { ScamType } from '@/lib/scam-detection';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { 
+  Card, 
+  CardContent, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { 
+  AlertOctagon, 
+  AlertTriangle, 
+  Shield, 
+  Activity, 
+  MapPin, 
+  ChevronRight, 
+  ArrowUpRight, 
+  Search, 
+  Loader2, 
+  CheckCircle,
+  Info
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-// Sample scam news data
-const scamNews = [
-  {
-    id: 1,
-    title: 'New UPI QR Code Scam Alert',
-    description: 'Scammers are creating fake QR codes that redirect payments to their accounts. Always verify the merchant name before scanning.',
-    date: new Date('2023-05-10'),
-    scamType: 'Phishing' as ScamType,
-    readTime: '3 min read'
-  },
-  {
-    id: 2,
-    title: 'Voice Call Scams on the Rise',
-    description: 'Fraudsters pretending to be bank officials are tricking users into sharing OTPs. Remember that legitimate banks never ask for OTPs over calls.',
-    date: new Date('2023-05-05'),
-    scamType: 'Impersonation' as ScamType,
-    readTime: '4 min read'
-  },
-  {
-    id: 3,
-    title: 'WhatsApp Payment Fraud Increasing',
-    description: 'Be cautious of WhatsApp messages asking for money transfers - verify the sender\'s identity through alternative means before sending payments.',
-    date: new Date('2023-04-28'),
-    scamType: 'Fraud' as ScamType,
-    readTime: '2 min read'
-  }
-];
+interface ScamAlert {
+  title: string;
+  type: string;
+  description: string;
+  affected_areas: string[];
+  risk_level: 'High' | 'Medium' | 'Low';
+  date_reported: string;
+  verification_status: 'Verified' | 'Investigating' | 'Unverified';
+}
+
+interface HeatmapPoint {
+  city: string;
+  coordinates: [number, number];
+  intensity: number;
+  scam_type: string;
+  trend: 'Increasing' | 'Stable' | 'Decreasing';
+}
+
+interface PreventionTip {
+  tip: string;
+  category: string;
+}
+
+interface ReportsSummary {
+  total_reports: number;
+  most_reported: string[];
+  financial_loss: string;
+  emerging_patterns: string[];
+  hotspot_areas: string[];
+}
+
+interface UpiAnalysis {
+  risk_level: string;
+  confidence?: number;
+  analysis: string;
+  flags?: string[];
+  recommendations?: string[];
+}
+
+interface ScamNewsData {
+  alerts: ScamAlert[];
+  geo_spread: HeatmapPoint[];
+  prevention_tips: PreventionTip[];
+  reports_summary: ReportsSummary;
+  upi_analysis: UpiAnalysis | null;
+  trust_score: number;
+  last_updated: string;
+}
 
 export default function ScamNews() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  
+  const [data, setData] = useState<ScamNewsData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('alerts');
+  const [upiSearch, setUpiSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  
+  // Fetch scam news data
+  const fetchScamNews = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // Attempt to get geolocation
+      let geolocation = 'India'; // Default fallback
+      
+      try {
+        // This is just a mock - in a real app you'd use the browser's geolocation API
+        // and then do reverse geocoding to get the city/state
+        geolocation = 'Mumbai, Maharashtra'; 
+      } catch (geoError) {
+        console.error('Error getting geolocation:', geoError);
+      }
+      
+      const response = await fetch('/api/scam-news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trigger_source: 'user_button',
+          geo_location: geolocation
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch scam news');
+      }
+      
+      const result = await response.json();
+      setData(result);
+      
+      toast({
+        title: 'Scam news updated',
+        description: `Found ${result.alerts.length} alerts in your area`,
+      });
+    } catch (error) {
+      console.error('Error fetching scam news:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch scam alerts. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Search UPI ID for potential scams
+  const searchUpiId = async () => {
+    if (!upiSearch.trim() || isSearching) return;
+    
+    setIsSearching(true);
+    
+    try {
+      const response = await fetch('/api/scam-news/analyze-upi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ upi_id: upiSearch.trim() })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to analyze UPI ID');
+      }
+      
+      const result = await response.json();
+      
+      // Update the UPI analysis part of the data
+      setData(prevData => prevData ? {
+        ...prevData,
+        upi_analysis: result.upi_analysis
+      } : null);
+      
+      // Switch to UPI tab to show results
+      setActiveTab('upi');
+    } catch (error) {
+      console.error('Error analyzing UPI ID:', error);
+      toast({
+        title: 'Analysis Error',
+        description: 'Failed to analyze UPI ID. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchScamNews();
+  }, []);
+  
+  // Handle UPI search form submission
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    searchUpiId();
+  };
+  
+  // Render risk level badge with appropriate color
+  const renderRiskBadge = (level: string) => {
+    let variant: 
+      | 'default'
+      | 'secondary'
+      | 'destructive'
+      | 'outline' = 'default';
+    let icon = null;
+    
+    if (level.toLowerCase() === 'high') {
+      variant = 'destructive';
+      icon = <AlertOctagon className="h-3 w-3 mr-1" />;
+    } else if (level.toLowerCase() === 'medium') {
+      variant = 'default';
+      icon = <AlertTriangle className="h-3 w-3 mr-1" />;
+    } else {
+      variant = 'secondary';
+      icon = <Shield className="h-3 w-3 mr-1" />;
+    }
+    
+    return (
+      <Badge variant={variant} className="flex items-center">
+        {icon}
+        {level}
+      </Badge>
+    );
+  };
+  
+  // Render verification status badge
+  const renderVerificationBadge = (status: string) => {
+    if (status.toLowerCase() === 'verified') {
+      return <Badge variant="outline" className="bg-green-50 border-green-200 text-green-600 flex items-center">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Verified
+      </Badge>;
+    } else if (status.toLowerCase() === 'investigating') {
+      return <Badge variant="outline" className="bg-orange-50 border-orange-200 text-orange-600 flex items-center">
+        <Activity className="h-3 w-3 mr-1" />
+        Investigating
+      </Badge>;
+    } else {
+      return <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-600 flex items-center">
+        <Info className="h-3 w-3 mr-1" />
+        Unverified
+      </Badge>;
+    }
+  };
+  
   return (
-    <MainLayout>
-      <div className="px-6 py-6">
-        <h1 className="text-2xl font-bold mb-6">Scam News & Alerts</h1>
-        
-        <div className="flex flex-col gap-4">
-          {scamNews.map(news => (
-            <Card key={news.id} className="p-4 rounded-xl">
-              <div className="flex flex-col">
-                <div className="flex justify-between mb-2">
-                  <span className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full">
-                    {news.scamType}
-                  </span>
-                  <span className="text-xs text-gray-500">{news.readTime}</span>
-                </div>
-                
-                <h3 className="font-semibold text-lg mb-2">{news.title}</h3>
-                <p className="text-sm text-gray-600 mb-3">{news.description}</p>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">{formatDate(news.date)}</span>
-                  <button className="text-primary text-sm font-medium">Read More</button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+    <div className="flex flex-col p-6 space-y-6">
+      <div className="flex flex-col space-y-2">
+        <h2 className="text-2xl font-bold">Scam News</h2>
+        <p className="text-gray-500">Latest UPI scams and safety alerts in your area</p>
       </div>
-    </MainLayout>
+      
+      {/* UPI ID search */}
+      <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={handleSearchSubmit} className="flex space-x-2 w-full">
+            <Input
+              placeholder="Enter UPI ID to analyze..."
+              value={upiSearch}
+              onChange={(e) => setUpiSearch(e.target.value)}
+              className="flex-1"
+            />
+            <Button 
+              type="submit" 
+              disabled={!upiSearch.trim() || isSearching}
+            >
+              {isSearching ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Search className="h-4 w-4 mr-2" />
+              )}
+              Analyze
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+      
+      {/* Main content tabs */}
+      <Tabs 
+        value={activeTab} 
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
+        <TabsList className="grid grid-cols-3">
+          <TabsTrigger value="alerts">Alerts</TabsTrigger>
+          <TabsTrigger value="heatmap">Reports</TabsTrigger>
+          <TabsTrigger value="upi">UPI Analysis</TabsTrigger>
+        </TabsList>
+        
+        {/* Alerts Tab */}
+        <TabsContent value="alerts">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Recent Scam Alerts</CardTitle>
+              {data && (
+                <div className="text-sm text-gray-500">
+                  Last updated: {new Date(data.last_updated).toLocaleString()}
+                </div>
+              )}
+            </CardHeader>
+            
+            <CardContent className="pt-0">
+              {isLoading && !data ? (
+                <div className="h-60 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : data && data.alerts.length > 0 ? (
+                <ScrollArea className="h-[60vh] pr-4">
+                  <div className="space-y-4">
+                    {data.alerts.map((alert, index) => (
+                      <Card key={index} className="overflow-hidden">
+                        <div className="flex flex-col">
+                          <div className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="font-bold text-lg">{alert.title}</h3>
+                              {renderRiskBadge(alert.risk_level)}
+                            </div>
+                            
+                            <div className="flex items-center mb-3 text-sm space-x-2">
+                              <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-600">
+                                {alert.type}
+                              </Badge>
+                              {renderVerificationBadge(alert.verification_status)}
+                            </div>
+                            
+                            <p className="text-gray-700 mb-3">{alert.description}</p>
+                            
+                            <div className="flex items-center text-sm text-gray-500">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {alert.affected_areas.join(', ')}
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gray-50 px-4 py-2 text-xs text-gray-500">
+                            Reported on {new Date(alert.date_reported).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="h-40 flex items-center justify-center">
+                  <div className="text-center">
+                    <Shield className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p>No scam alerts found for your area</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+            
+            <CardFooter>
+              <Button 
+                onClick={fetchScamNews} 
+                disabled={isLoading}
+                className="w-full"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <ArrowUpRight className="h-4 w-4 mr-2" />
+                    Refresh Alerts
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        {/* Reports Tab */}
+        <TabsContent value="heatmap">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Scam Reports Summary</CardTitle>
+            </CardHeader>
+            
+            <CardContent className="pt-0">
+              {isLoading && !data ? (
+                <div className="h-60 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : data ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card className="p-4">
+                      <div className="text-3xl font-bold mb-1">{data.reports_summary.total_reports}</div>
+                      <div className="text-sm text-gray-500">Total reports this week</div>
+                    </Card>
+                    
+                    <Card className="p-4">
+                      <div className="text-lg font-medium mb-1">{data.reports_summary.financial_loss}</div>
+                      <div className="text-sm text-gray-500">Average financial loss</div>
+                    </Card>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Most Reported Scams</h3>
+                    <div className="space-y-2">
+                      {data.reports_summary.most_reported.map((scam, index) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <span>{scam}</span>
+                          <Badge variant="outline">{Math.round(100 - index * 15)}%</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="font-medium mb-3">Prevention Tips</h3>
+                    <div className="space-y-3">
+                      {data.prevention_tips.map((tip, index) => (
+                        <div key={index} className="flex space-x-2">
+                          <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-gray-800">{tip.tip}</p>
+                            <Badge className="mt-1">{tip.category}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Emerging Scam Patterns</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {data.reports_summary.emerging_patterns.map((pattern, index) => (
+                        <li key={index} className="text-gray-700">{pattern}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Hotspot Areas</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {data.reports_summary.hotspot_areas.map((area, index) => (
+                        <Badge key={index} variant="outline" className="justify-start">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {area}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-40 flex items-center justify-center">
+                  <div className="text-center">
+                    <Activity className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p>No report data available</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* UPI Analysis Tab */}
+        <TabsContent value="upi">
+          <Card>
+            <CardHeader>
+              <CardTitle>UPI ID Risk Analysis</CardTitle>
+            </CardHeader>
+            
+            <CardContent>
+              {isSearching ? (
+                <div className="h-60 flex items-center justify-center">
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary" />
+                    <p>Analyzing UPI ID...</p>
+                  </div>
+                </div>
+              ) : data && data.upi_analysis ? (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium text-lg">{upiSearch}</span>
+                      <Badge 
+                        variant={
+                          data.upi_analysis.risk_level.toLowerCase() === 'high' ? 'destructive' : 
+                          data.upi_analysis.risk_level.toLowerCase() === 'medium' ? 'default' : 
+                          'secondary'
+                        }
+                      >
+                        {data.upi_analysis.risk_level} Risk
+                      </Badge>
+                    </div>
+                    
+                    {data.upi_analysis.confidence && (
+                      <div className="text-sm text-gray-500">
+                        Confidence: {Math.round(data.upi_analysis.confidence * 100)}%
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Analysis</h3>
+                    <p className="text-gray-700">{data.upi_analysis.analysis}</p>
+                  </div>
+                  
+                  {data.upi_analysis.flags && data.upi_analysis.flags.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-2">Risk Flags</h3>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {data.upi_analysis.flags.map((flag, index) => (
+                          <li key={index} className="text-red-600">{flag}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {data.upi_analysis.recommendations && data.upi_analysis.recommendations.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-2">Recommendations</h3>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {data.upi_analysis.recommendations.map((rec, index) => (
+                          <li key={index} className="text-gray-700">{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  <div className="pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Trust Score</span>
+                      <span className="text-sm text-gray-500">
+                        {data.trust_score}%
+                      </span>
+                    </div>
+                    <Progress value={data.trust_score} className="h-2" />
+                  </div>
+                </div>
+              ) : (
+                <div className="h-60 flex items-center justify-center">
+                  <div className="text-center">
+                    <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p>Enter a UPI ID above to analyze its risk</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+            
+            {data && data.upi_analysis && (
+              <CardFooter>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setLocation('/report-scam')}
+                >
+                  <AlertOctagon className="h-4 w-4 mr-2" />
+                  Report This UPI ID
+                </Button>
+              </CardFooter>
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

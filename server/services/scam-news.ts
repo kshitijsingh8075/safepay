@@ -129,7 +129,7 @@ export async function getScamPreventionTips() {
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const result = safeJsonParse(response.choices[0].message.content, { tips: [] });
     return result.tips || [];
   } catch (error) {
     console.error('Error generating prevention tips:', error);
