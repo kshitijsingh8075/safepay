@@ -184,7 +184,7 @@ export default function Home() {
             </button>
             
             <button 
-              onClick={() => setLocation('/message-check')}
+              onClick={() => setLocation('/whatsapp-check')}
               className="flex flex-col items-center"
             >
               <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
@@ -203,7 +203,7 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center">WhatsApp</span>
+              <span className="text-[10px] text-center">WhatsApp Check</span>
             </button>
             
             <button 

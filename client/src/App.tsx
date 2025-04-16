@@ -77,6 +77,13 @@ function Router() {
           </MainLayout>
         )}
       </Route>
+      <Route path="/whatsapp-check">
+        {() => (
+          <MainLayout>
+            <WhatsAppCheck />
+          </MainLayout>
+        )}
+      </Route>
       <Route path="/history">
         {() => (
           <MainLayout>
