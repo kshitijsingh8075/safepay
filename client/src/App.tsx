@@ -25,7 +25,6 @@ import HelpSupport from "@/pages/help-support";
 import ScamNews from "@/pages/scam-news";
 import LegalHelp from "@/pages/legal-help";
 import FraudHeatmap from "@/pages/fraud-heatmap";
-import FraudHeatmap2 from "@/pages/fraud-heatmap2";
 import FraudHeatmapBasic from "@/pages/fraud-heatmap-basic";
 import ConfirmTransaction from "@/pages/confirm-transaction";
 import MainLayout from "@/layouts/main-layout";
