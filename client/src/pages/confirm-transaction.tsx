@@ -143,7 +143,8 @@ export default function ConfirmTransaction() {
   };
   
   const handleContinue = () => {
-    setShowPaymentApps(true);
+    // Navigate to payment page directly instead of showing payment apps dialog
+    setLocation(`/payment?upiId=${encodeURIComponent(upiId)}&securityCheck=passed`);
   };
   
   const handlePayWithApp = (app: string) => {
