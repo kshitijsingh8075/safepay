@@ -3,6 +3,9 @@ import { cn } from '@/lib/utils';
 import { ArrowLeft } from 'lucide-react';
 import jsQR from 'jsqr';
 
+// Enable debugging for development
+const DEBUG_MODE = true;
+
 interface QRScannerProps {
   onScan: (data: string) => void;
   onClose: () => void;
@@ -171,10 +174,18 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
       animationFrameId.current = requestAnimationFrame(detectQRCode);
     } catch (error) {
       console.error('QR scanning error:', error);
-      setScanError('Error analyzing camera feed');
       
-      // Continue scanning despite error
-      animationFrameId.current = requestAnimationFrame(detectQRCode);
+      // Provide more detailed error for debugging
+      if (DEBUG_MODE) {
+        setScanError(`Error: ${error.message || 'Unknown error'}`);
+      } else {
+        setScanError('Error analyzing camera feed. Please try again.');
+      }
+      
+      // Continue scanning despite error, with a slight delay to prevent CPU overload
+      setTimeout(() => {
+        animationFrameId.current = requestAnimationFrame(detectQRCode);
+      }, 500);
     }
   };
   
@@ -237,7 +248,7 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
         
         {/* Scan overlay */}
         <div className="border-2 border-white rounded-3xl w-[250px] h-[250px] relative z-10 overflow-hidden flex items-center justify-center">
-          <canvas ref={canvasRef} className="hidden" />
+          <canvas ref={canvasRef} className={DEBUG_MODE ? "absolute top-0 left-0 w-full h-full opacity-40 z-20" : "hidden"} />
           
           {isScanning && !scanComplete && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
@@ -253,6 +264,12 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
                 />
               </div>
               <p className="text-white text-sm">Scanning QR code...</p>
+              {DEBUG_MODE && (
+                <p className="text-white text-xs mt-4 px-2 text-center bg-black/50 rounded">
+                  Camera active: {videoRef.current?.readyState === 4 ? 'Yes' : 'No'} | 
+                  Canvas: {canvasRef.current ? 'Ready' : 'Not ready'}
+                </p>
+              )}
             </div>
           )}
           

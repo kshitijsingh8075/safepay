@@ -57,11 +57,17 @@ export const QRTestGenerator = () => {
   useEffect(() => {
     const generateQR = async () => {
       try {
-        const upiId = usingCustom ? customUpiId : selectedId;
-        const paymentString = amount ? 
+        // Make sure we have a valid UPI ID
+        const upiId = usingCustom ? (customUpiId || 'default@upi') : selectedId;
+        
+        // Format the payment string
+        const paymentString = amount && !isNaN(Number(amount)) ? 
           `upi://pay?pa=${upiId}&am=${amount}&cu=INR` : 
           `upi://pay?pa=${upiId}&cu=INR`;
         
+        console.log('Generating QR code for:', paymentString);
+        
+        // Generate QR code
         const url = await QRCode.toDataURL(paymentString, {
           width: 300,
           margin: 2,
@@ -70,13 +76,18 @@ export const QRTestGenerator = () => {
             light: '#FFFFFF'
           }
         });
+        
+        // Update state with the generated URL
         setQrDataURL(url);
       } catch (error) {
         console.error('Error generating QR code:', error);
       }
     };
     
-    generateQR();
+    // Only generate if we have a valid ID
+    if ((usingCustom && customUpiId) || (!usingCustom && selectedId)) {
+      generateQR();
+    }
   }, [selectedId, customUpiId, usingCustom, amount]);
   
   const selectedUpi = TEST_UPI_IDS.find(u => u.id === selectedId);
