@@ -29,12 +29,14 @@ import FraudHeatmap2 from "@/pages/fraud-heatmap2";
 import FraudHeatmapBasic from "@/pages/fraud-heatmap-basic";
 import ConfirmTransaction from "@/pages/confirm-transaction";
 import QRTest from "@/pages/qr-test";
+import DebugNavigation from "@/pages/debug-navigation";
+import VoiceCheckDirect from "@/pages/voice-check-direct";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={PhoneLogin} />
+      <Route path="/" component={DebugNavigation} />
       <Route path="/login" component={Login} />
       <Route path="/otp" component={OTP} />
       <Route path="/pin" component={PIN} />
@@ -150,6 +152,8 @@ function Router() {
       <Route path="/fraud-heatmap-basic" component={FraudHeatmapBasic} />
       
       <Route path="/qr-test" component={QRTest} />
+      
+      <Route path="/debug" component={DebugNavigation} />
 
       <Route component={NotFound} />
     </Switch>
