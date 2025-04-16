@@ -9,6 +9,10 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   phoneNumber: text("phone_number").notNull().unique(),
   name: text("name"),
+  email: text("email"),
+  address: text("address"),
+  dateOfBirth: text("date_of_birth"),
+  profileCompleted: boolean("profile_completed").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login"),
   useBiometric: boolean("use_biometric").default(false),
@@ -50,6 +54,24 @@ export const scamReports = pgTable("scam_reports", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
+// Payment methods
+export const paymentMethods = pgTable("payment_methods", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  type: text("type").notNull(), // 'upi', 'card', 'bank_account'
+  name: text("name").notNull(), // Card name, Bank name, etc.
+  isDefault: boolean("is_default").default(false),
+  // For UPI
+  upiId: text("upi_id"),
+  // For cards (only store last 4 digits for security)
+  cardNumber: text("card_number"), // Only last 4 digits
+  expiryDate: text("expiry_date"),
+  // For bank accounts
+  accountNumber: text("account_number"), // Only last 4 digits
+  ifscCode: text("ifsc_code"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -69,6 +91,11 @@ export const insertUpiRiskReportSchema = createInsertSchema(upiRiskReports).omit
 export const insertScamReportSchema = createInsertSchema(scamReports).omit({
   id: true,
   timestamp: true,
+});
+
+export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Export types
