@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { getScamNews } from "../services/scam-news";
+import { getScamNews } from "../services/scam-news-fixed";
 
 /**
  * Register scam news related routes to the Express server
