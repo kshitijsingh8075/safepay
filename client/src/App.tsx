@@ -17,7 +17,6 @@ import ReportScam from "@/pages/report-scam";
 import VoiceCheck from "@/pages/voice-check";
 import MessageCheck from "@/pages/message-check";
 import ChatSupport from "@/pages/chat-support";
-import History from "@/pages/history";
 import Account from "@/pages/account";
 import Profile from "@/pages/profile";
 import PaymentMethods from "@/pages/payment-methods";
@@ -81,7 +80,7 @@ function Router() {
       <Route path="/history">
         {() => (
           <MainLayout>
-            <History />
+            <ChatSupport />
           </MainLayout>
         )}
       </Route>
