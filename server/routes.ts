@@ -211,33 +211,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/upi/check/:upiId', async (req, res) => {
     try {
       const { upiId } = req.params;
+      
+      // Check UPI safety using improved algorithm
+      const { checkUpiSafety } = await import('./services/upi-check');
+      const safetyCheck = await checkUpiSafety(upiId);
+      
+      // Get additional risk data from the database
       const riskReport = await storage.getUpiRiskByUpiId(upiId);
       
-      if (!riskReport) {
-        return res.status(200).json({ 
-          upiId, 
-          riskPercentage: 0,
-          riskLevel: 'Low',
-          reports: 0,
-          age: 'Unknown',
-          reportedFor: 'N/A'
+      // Convert status to risk level
+      let riskLevel: 'Low' | 'Medium' | 'High' = 'Low';
+      switch(safetyCheck.status) {
+        case 'SCAM': riskLevel = 'High'; break;
+        case 'SUSPICIOUS': riskLevel = 'Medium'; break;
+        case 'SAFE': riskLevel = 'Low'; break;
+      }
+      
+      // Calculate risk percentage based on confidence score
+      let riskPercentage = 0;
+      if (safetyCheck.status === 'SCAM') {
+        riskPercentage = Math.round(safetyCheck.confidence_score * 100);
+      } else if (safetyCheck.status === 'SUSPICIOUS') {
+        riskPercentage = Math.round(safetyCheck.confidence_score * 70);
+      } else {
+        riskPercentage = Math.round((1 - safetyCheck.confidence_score) * 30); // Low risk is inverse of safe confidence
+      }
+      
+      // Combine data and send response
+      res.status(200).json({
+        upiId,
+        status: safetyCheck.status,
+        riskPercentage,
+        riskLevel,
+        reports: riskReport ? riskReport.reportCount : 0,
+        reason: safetyCheck.reason,
+        confidence_score: safetyCheck.confidence_score,
+        risk_factors: safetyCheck.risk_factors || [],
+        recommendations: safetyCheck.recommendations || [],
+        age: riskReport ? calculateUpiAge(riskReport.firstReportDate) : 'Unknown',
+        reportedFor: riskReport ? await storage.getMostCommonScamType(upiId) : 'N/A'
+      });
+    } catch (error) {
+      console.error('Error checking UPI risk:', error);
+      res.status(500).json({ message: 'Error checking UPI risk', error });
+    }
+  });
+  
+  // Simple check-scam API
+  app.post('/api/check-scam', async (req, res) => {
+    try {
+      const { upiId } = req.body;
+      
+      if (!upiId) {
+        return res.status(400).json({
+          error: "Missing UPI ID",
+          message: "Please provide a UPI ID to check",
         });
       }
       
-      let riskLevel: 'Low' | 'Medium' | 'High' = 'Low';
-      if (riskReport.riskScore >= 70) riskLevel = 'High';
-      else if (riskReport.riskScore >= 30) riskLevel = 'Medium';
+      // Check UPI safety using improved algorithm
+      const { checkUpiSafety } = await import('./services/upi-check');
+      const result = await checkUpiSafety(upiId);
       
-      res.status(200).json({
-        upiId: riskReport.upiId,
-        riskPercentage: riskReport.riskScore,
-        riskLevel,
-        reports: riskReport.reportCount,
-        age: calculateUpiAge(riskReport.firstReportDate),
-        reportedFor: await storage.getMostCommonScamType(upiId)
-      });
+      res.status(200).json(result);
     } catch (error) {
-      res.status(500).json({ message: 'Error checking UPI risk', error });
+      console.error('Error in /check-scam:', error);
+      res.status(500).json({
+        error: "Server error",
+        message: "An error occurred while checking the UPI ID"
+      });
     }
   });
 
