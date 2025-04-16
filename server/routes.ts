@@ -7,6 +7,7 @@ import { getChatResponse, generateQuickReplies } from "./services/chat";
 import { getScamNews } from "./services/scam-news-fixed";
 import { registerScamNewsRoutes } from "./routes/scam-news";
 import { registerTestOpenAIRoute } from "./routes/test-openai";
+import { registerVoiceRoutes } from "./routes/voice";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
