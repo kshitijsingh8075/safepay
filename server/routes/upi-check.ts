@@ -1,6 +1,11 @@
 import { Express } from 'express';
 import { storage } from '../storage';
 import { validateUpiIdSafety } from '../services/openai';
+import { 
+  SAFE_UPI_IDS, 
+  SCAM_UPI_IDS,
+  getRecommendations
+} from '../services/upi-check';
 
 /**
  * Validates UPI ID format
@@ -30,16 +35,26 @@ function validateUpi(upiId: string): boolean {
 function calculatePatternScore(upiId: string): number {
   if (!upiId) return 1.0; // Maximum risk for empty UPI ID
   
-  // Suspicious patterns
+  // Suspicious patterns - based on known scam patterns
   const suspiciousPatterns = [
-    /\d{10}@/,          // Phone number pattern
-    /\.exe$/,           // Executable extensions
-    /([a-z])\1{3}/,     // Repeated characters (e.g., aaaa)
+    /^\d{10}@\w+/,              // Mobile number based UPI IDs
+    /^[a-z]+\d+@ok\w+/,         // Alpha-numeric suspicious patterns
+    /(support|helpdesk)@/,       // Fake customer support
+    /@(fakemail|fakebank)/,      // Domains known for frauds
+    /verify@/,                   // Verification scams
+    /refund@/,                   // Refund scams
+    /lottery@/,                  // Lottery scams
+    /winning@/,                  // Winning scams
+    /kyc@/,                      // KYC scams
+    /officer@/,                  // Officer scams
+    /reward@/,                   // Reward scams
+    /\.exe$/,                    // Executable extensions
+    /([a-z])\1{3}/,              // Repeated characters (e.g., aaaa)
   ];
   
   let score = 0;
   for (const pattern of suspiciousPatterns) {
-    if (pattern.test(upiId)) {
+    if (pattern.test(upiId.toLowerCase())) {
       score += 0.3;
     }
   }
@@ -157,10 +172,90 @@ function generateActions(riskScore: number): string[] {
 }
 
 /**
- * Register UPI check routes
- * @param app Express application
+ * Classify UPI ID based on whitelist, blacklist, and patterns
+ * Implements the approach from the scam_classifier.py example
+ * @param upiId The UPI ID to classify
+ * @returns Classification result object
  */
+function classifyUpiId(upiId: string) {
+  // Normalize the UPI ID
+  upiId = upiId.trim().toLowerCase();
+
+  // Check if in safe list
+  if (SAFE_UPI_IDS.includes(upiId)) {
+    return {
+      status: "SAFE",
+      reason: "This UPI ID is whitelisted and verified.",
+      confidence_score: 0.95,
+      risk_factors: []
+    };
+  }
+
+  // Check if in scam list
+  if (SCAM_UPI_IDS.includes(upiId)) {
+    return {
+      status: "SCAM",
+      reason: "This UPI ID is blacklisted due to scam reports.",
+      confidence_score: 0.99,
+      risk_factors: ["Known scam UPI ID"]
+    };
+  }
+
+  // Pattern-based suspicion
+  const suspiciousPatterns = [
+    { regex: /^\d{10}@\w+/, reason: "Mobile number based UPI ID" },
+    { regex: /^[a-z]+\d+@ok\w+/, reason: "Suspicious alphanumeric pattern" },
+    { regex: /(support|helpdesk)@/, reason: "Possible fake customer support" },
+    { regex: /@(fakemail|fakebank)/, reason: "Known fraudulent domain" },
+    { regex: /verify@/, reason: "Possible verification scam" },
+    { regex: /refund@/, reason: "Possible refund scam" },
+    { regex: /lottery@/, reason: "Possible lottery scam" },
+    { regex: /winning@/, reason: "Possible winning notification scam" }
+  ];
+
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.regex.test(upiId)) {
+      return {
+        status: "SUSPICIOUS",
+        reason: `UPI ID matches suspicious pattern: ${pattern.reason}`,
+        confidence_score: 0.75,
+        risk_factors: [pattern.reason]
+      };
+    }
+  }
+
+  // Unknown - caution
+  return {
+    status: "SUSPICIOUS",
+    reason: "This UPI ID is not verified in known databases.",
+    confidence_score: 0.6,
+    risk_factors: ["Unverified UPI ID"]
+  };
+}
+
 export function registerUpiCheckRoutes(app: Express): void {
+  // New simplified endpoint following the example
+  app.post('/api/check-scam', async (req, res) => {
+    try {
+      const { upiId } = req.body;
+      
+      if (!upiId || upiId.trim() === '') {
+        return res.status(400).json({
+          status: "error",
+          message: "UPI ID is required"
+        });
+      }
+
+      const result = classifyUpiId(upiId);
+      res.json(result);
+    } catch (error) {
+      console.error('Error in check-scam:', error);
+      res.status(500).json({ 
+        status: "error",
+        message: "Internal server error"
+      });
+    }
+  });
   app.post('/api/combined-check', async (req, res) => {
     try {
       const { upiId } = req.body;

@@ -3,11 +3,17 @@ import { storage } from '../storage';
 /**
  * Lists of known safe UPI IDs
  */
-const SAFE_UPI_IDS = [
+export const SAFE_UPI_IDS = [
   // Common payment services
   'pay@paytm',
   'payment@paytm',
   'merchant@paytm',
+  'merchant@axis',
+  'paytm@upi',
+  'googlepay@okicici',
+  'flipkart@icici',
+  'zomato@upi',
+  'bookmyshow@hdfcbank',
   'gpay@okicici',
   'payments@phonepe',
   'transaction@phonepe',
@@ -32,7 +38,12 @@ const SAFE_UPI_IDS = [
 /**
  * Lists of known scam UPI IDs
  */
-const SCAM_UPI_IDS = [
+export const SCAM_UPI_IDS = [
+  'fraudpay@upi',
+  'scammer123@okhdfc',
+  'fakepaytm@upi',
+  '1234567890@ybl',
+  'helpdesk@fakebank',
   'verify@paytm', // Scammer pretending to be verification service
   'refund@phonepe', // Fake refund scam
   'helpdesk@upi',
