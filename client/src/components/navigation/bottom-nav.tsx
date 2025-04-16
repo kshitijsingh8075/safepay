@@ -48,7 +48,7 @@ export function BottomNav({ className }: BottomNavProps) {
 
   return (
     <div className={cn(
-      "fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 flex justify-between items-center z-10",
+      "fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-2 flex justify-between items-center z-50 max-w-screen",
       className
     )}>
       {navItems.map((item, index) => (
@@ -56,18 +56,18 @@ export function BottomNav({ className }: BottomNavProps) {
           key={index} 
           href={item.path}
           className={cn(
-            "flex flex-col items-center px-4 py-2",
+            "flex flex-col items-center px-2 py-2",
             item.active ? "text-blue-600" : "text-gray-500"
           )}
         >
           {item.primary ? (
             <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center -mt-5 shadow-lg">
-              <item.icon className="w-6 h-6 text-white" />
+              <item.icon className="w-5 h-5 text-white" />
             </div>
           ) : (
-            <item.icon className="w-6 h-6" />
+            <item.icon className="w-5 h-5" />
           )}
-          <span className="text-xs mt-1">{item.name}</span>
+          <span className="text-[10px] mt-1">{item.name}</span>
         </Link>
       ))}
     </div>
