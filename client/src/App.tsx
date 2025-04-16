@@ -33,13 +33,7 @@ import MainLayout from "@/layouts/main-layout";
 function Router() {
   return (
     <Switch>
-      <Route path="/">
-        {() => (
-          <MainLayout>
-            <Home />
-          </MainLayout>
-        )}
-      </Route>
+      <Route path="/" component={PhoneLogin} />
       <Route path="/login" component={Login} />
       <Route path="/otp" component={OTP} />
       <Route path="/pin" component={PIN} />
