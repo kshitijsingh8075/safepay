@@ -143,3 +143,9 @@ export type ScamReport = typeof scamReports.$inferSelect;
 
 export type InsertPaymentMethod = z.infer<typeof insertPaymentMethodSchema>;
 export type PaymentMethod = typeof paymentMethods.$inferSelect;
+
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+
+export type InsertChatFeedback = z.infer<typeof insertChatFeedbackSchema>;
+export type ChatFeedback = typeof chatFeedbacks.$inferSelect;

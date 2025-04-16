@@ -3,7 +3,9 @@ import {
   Transaction, InsertTransaction,
   UpiRiskReport, InsertUpiRiskReport,
   ScamReport, InsertScamReport,
-  PaymentMethod, InsertPaymentMethod
+  PaymentMethod, InsertPaymentMethod,
+  ChatMessage, InsertChatMessage,
+  ChatFeedback, InsertChatFeedback
 } from "@shared/schema";
 
 export interface IStorage {
@@ -34,6 +36,11 @@ export interface IStorage {
   updatePaymentMethod(id: number, data: Partial<InsertPaymentMethod>): Promise<PaymentMethod | undefined>;
   deletePaymentMethod(id: number): Promise<boolean>;
   setDefaultPaymentMethod(userId: number, methodId: number): Promise<boolean>;
+  
+  // Chat methods
+  getChatHistoryByUserId(userId: number): Promise<ChatMessage[]>;
+  saveChatMessage(userId: number, message: { role: string; content: string }): Promise<ChatMessage>;
+  saveChatFeedback(userId: number, messageId: number, feedback: { rating?: number; feedback?: string }): Promise<ChatFeedback>;
 }
 
 export class MemStorage implements IStorage {
@@ -42,12 +49,16 @@ export class MemStorage implements IStorage {
   private upiRiskReports: Map<number, UpiRiskReport>;
   private scamReports: Map<number, ScamReport>;
   private paymentMethods: Map<number, PaymentMethod>;
+  private chatMessages: Map<number, ChatMessage>;
+  private chatFeedbacks: Map<number, ChatFeedback>;
   
   private userIdCounter: number;
   private transactionIdCounter: number;
   private upiRiskIdCounter: number;
   private scamReportIdCounter: number;
   private paymentMethodIdCounter: number;
+  private chatMessageIdCounter: number;
+  private chatFeedbackIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -55,12 +66,16 @@ export class MemStorage implements IStorage {
     this.upiRiskReports = new Map();
     this.scamReports = new Map();
     this.paymentMethods = new Map();
+    this.chatMessages = new Map();
+    this.chatFeedbacks = new Map();
     
     this.userIdCounter = 1;
     this.transactionIdCounter = 1;
     this.upiRiskIdCounter = 1;
     this.scamReportIdCounter = 1;
     this.paymentMethodIdCounter = 1;
+    this.chatMessageIdCounter = 1;
+    this.chatFeedbackIdCounter = 1;
     
     // Add some initial data
     this.seedData();
@@ -369,6 +384,47 @@ export class MemStorage implements IStorage {
     return true;
   }
   
+  // Chat methods
+  async getChatHistoryByUserId(userId: number): Promise<ChatMessage[]> {
+    return Array.from(this.chatMessages.values())
+      .filter(message => message.userId === userId)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+
+  async saveChatMessage(userId: number, message: { role: string; content: string }): Promise<ChatMessage> {
+    const id = this.chatMessageIdCounter++;
+    const timestamp = new Date();
+    
+    const chatMessage: ChatMessage = {
+      id,
+      userId,
+      role: message.role,
+      content: message.content,
+      timestamp,
+      metadata: null
+    };
+    
+    this.chatMessages.set(id, chatMessage);
+    return chatMessage;
+  }
+
+  async saveChatFeedback(userId: number, messageId: number, feedback: { rating?: number; feedback?: string }): Promise<ChatFeedback> {
+    const id = this.chatFeedbackIdCounter++;
+    const timestamp = new Date();
+    
+    const chatFeedback: ChatFeedback = {
+      id,
+      userId,
+      messageId,
+      rating: feedback.rating || null,
+      feedback: feedback.feedback || null,
+      timestamp
+    };
+    
+    this.chatFeedbacks.set(id, chatFeedback);
+    return chatFeedback;
+  }
+  
   // Seed data for demo purposes
   private seedData() {
     // Add a user
@@ -489,6 +545,28 @@ export class MemStorage implements IStorage {
     ];
     
     paymentMethods.forEach(method => this.createPaymentMethod(method));
+    
+    // Add some initial chat messages
+    const welcomeMessage = {
+      userId: 1,
+      role: 'system',
+      content: 'Welcome to UPI SafeGuard Chat Support! How can I help you today?'
+    };
+    this.saveChatMessage(1, welcomeMessage);
+    
+    const userMessage = {
+      userId: 1, 
+      role: 'user',
+      content: 'How can I check if a UPI ID is safe?'
+    };
+    this.saveChatMessage(1, userMessage);
+    
+    const assistantMessage = {
+      userId: 1,
+      role: 'assistant',
+      content: 'To check if a UPI ID is safe, you can use our "Scan QR" feature to scan the QR code or enter the UPI ID manually. Our system will analyze it and show you a risk level (Low, Medium, or High) along with any reports from other users. If the UPI ID has been reported multiple times, we recommend avoiding making payments to it.'
+    };
+    this.saveChatMessage(1, assistantMessage);
   }
 }
 
