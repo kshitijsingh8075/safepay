@@ -70,15 +70,29 @@ export default function PhoneLogin() {
     },
     onSuccess: (data) => {
       console.log("OTP verification response:", data);
+      
+      // Save userId for future use
+      if (data.userId) {
+        localStorage.setItem('userId', data.userId.toString());
+      }
+      
       toast({
         title: "Login Successful",
         description: "You have successfully logged in.",
       });
 
-      // Redirect to home page
-      setTimeout(() => {
-        setLocation("/home");
-      }, 1000);
+      // Check if it's a new user who needs to set up security
+      if (data.isNewUser) {
+        // Redirect to security setup
+        setTimeout(() => {
+          setLocation(`/setup-security?userId=${data.userId}`);
+        }, 1000);
+      } else {
+        // Redirect to home page for existing users
+        setTimeout(() => {
+          setLocation("/home");
+        }, 1000);
+      }
     },
     onError: (error: Error) => {
       console.error("OTP verification error:", error);

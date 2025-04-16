@@ -18,8 +18,11 @@ export default function SetupSecurity() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // In a real app, you would get this from authentication context
-  const userId = 1; // Mock user ID
+  // Get userId from URL query parameter or local storage
+  // For example, after OTP verification, we'll redirect with userId in the URL
+  const [location] = useLocation();
+  const params = new URLSearchParams(location.split('?')[1]);
+  const userId = params.get('userId') || localStorage.getItem('userId') || '';
 
   // Setup PIN mutation
   const setupPinMutation = useMutation({

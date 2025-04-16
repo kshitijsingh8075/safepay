@@ -72,7 +72,20 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
     const createdAt = new Date();
-    const user: User = { ...insertUser, id, createdAt };
+    
+    // Create user with all required fields, providing default values for optional fields
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      createdAt,
+      name: insertUser.name || null,
+      lastLogin: null,
+      useBiometric: false,
+      usePin: false,
+      pin: null,
+      deviceId: null
+    };
+    
     this.users.set(id, user);
     return user;
   }
@@ -138,7 +151,13 @@ export class MemStorage implements IStorage {
   async createScamReport(insertReport: InsertScamReport): Promise<ScamReport> {
     const id = this.scamReportIdCounter++;
     const timestamp = new Date();
-    const report: ScamReport = { ...insertReport, id, timestamp };
+    const report: ScamReport = { 
+      ...insertReport, 
+      id, 
+      timestamp,
+      description: insertReport.description || null,
+      amountLost: insertReport.amountLost || null
+    };
     this.scamReports.set(id, report);
     return report;
   }

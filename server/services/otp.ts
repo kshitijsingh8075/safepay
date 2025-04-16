@@ -13,6 +13,9 @@ interface OtpRecord {
 // Map to store OTPs by phone number or user identifier
 const otpStore = new Map<string, OtpRecord>();
 
+// Rate limiting for OTP generation (max 3 requests per phone per hour)
+const otpRateLimits = new Map<string, { count: number, resetAt: Date }>();
+
 /**
  * Generate a random numeric OTP of specified length
  */
@@ -31,9 +34,33 @@ function generateOtpCode(length = 6): string {
  * Generate and store an OTP for a given identifier (phone/email)
  * @param identifier User identifier (phone/email)
  * @param expiryMinutes How long the OTP should be valid (in minutes)
- * @returns The generated OTP code
+ * @returns The generated OTP code or throws an error if rate limit exceeded
  */
 export function generateOtp(identifier: string, expiryMinutes = 10): string {
+  // Check rate limit (max 3 requests per hour)
+  const now = new Date();
+  const rateLimit = otpRateLimits.get(identifier);
+  
+  if (rateLimit) {
+    // Reset rate limit if reset time has passed
+    if (now > rateLimit.resetAt) {
+      otpRateLimits.set(identifier, { count: 1, resetAt: new Date(now.getTime() + 60 * 60 * 1000) });
+    } 
+    // Otherwise check if rate limit exceeded
+    else if (rateLimit.count >= 3) {
+      const minutesToReset = Math.ceil((rateLimit.resetAt.getTime() - now.getTime()) / (60 * 1000));
+      throw new Error(`Rate limit exceeded. Try again in ${minutesToReset} minutes.`);
+    } 
+    // Increment count if not exceeded
+    else {
+      rateLimit.count += 1;
+      otpRateLimits.set(identifier, rateLimit);
+    }
+  } else {
+    // First request, set initial rate limit
+    otpRateLimits.set(identifier, { count: 1, resetAt: new Date(now.getTime() + 60 * 60 * 1000) });
+  }
+  
   // Generate a 6-digit OTP
   const code = generateOtpCode(6);
   
@@ -49,7 +76,14 @@ export function generateOtp(identifier: string, expiryMinutes = 10): string {
     attempts: 0
   });
   
-  // In a production app, this would be sent via SMS
+  // In a production app, this would be sent via SMS using services like Twilio
+  // For example:
+  // await twilioClient.messages.create({
+  //   body: `Your verification code is: ${code}`,
+  //   from: TWILIO_PHONE_NUMBER,
+  //   to: identifier
+  // });
+  
   // For now, we just return it (will be displayed in console/response)
   return code;
 }
