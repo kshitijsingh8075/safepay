@@ -15,7 +15,7 @@ interface ScamAnalysis {
   is_scam: boolean;
   confidence: number;
   scam_type: string;
-  indicators: string[];
+  indicators: any[]; // Using any[] to resolve type issues
 }
 
 /**
@@ -41,7 +41,7 @@ export function registerVoiceCheckRoutes(app: Express): void {
       const action = determineAction(command);
       
       // Try to use OpenAI for enhanced analysis if available
-      let analysis = { 
+      let analysis: ScamAnalysis = { 
         is_scam: false, 
         confidence: 0.5, 
         scam_type: 'unknown',
@@ -56,12 +56,12 @@ export function registerVoiceCheckRoutes(app: Express): void {
             confidence: aiAnalysis.confidence,
             scam_type: aiAnalysis.scam_type || 'unknown',
             indicators: aiAnalysis.scam_indicators || []
-          };
+          } as ScamAnalysis;
         }
       } catch (error) {
         console.error('Error with AI voice analysis:', error);
         // Fall back to basic detection if AI fails
-        analysis = performBasicScamDetection(command);
+        analysis = performBasicScamDetection(command) as ScamAnalysis;
       }
       
       // We'll save the voice check if we have a userId in the request body
