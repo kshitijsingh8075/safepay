@@ -89,7 +89,7 @@ export default function Scan() {
         variant: "destructive",
       });
       setTimeout(() => {
-        setLocation(`/payment?upiId=${encodeURIComponent(upiId)}`);
+        setLocation(`/confirm-transaction?upiId=${encodeURIComponent(upiId)}`);
       }, 1500);
     } finally {
       setIsAnalyzing(false);

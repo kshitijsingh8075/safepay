@@ -78,72 +78,72 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
   const [scanComplete, setScanComplete] = useState(false);
   const animationFrameId = useRef<number | null>(null);
   
-  // QR code detection function
+  // QR code detection function for demo purposes
   const detectQRCode = () => {
-    if (!videoRef.current || !canvasRef.current || scanComplete) return;
+    if (scanComplete) return;
     
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
+    // For demo purposes, we'll use predefined UPI IDs
+    const demoUpiIds = [
+      "mobileshop@okaxis",
+      "merchant@yesbank",
+      "grocerystore@okicici",
+      "citymart@sbi",
+      "easypay@ybl",
+    ];
     
-    if (!context || !video.videoWidth) {
-      // Video might not be ready yet, try again on next frame
-      animationFrameId.current = requestAnimationFrame(detectQRCode);
-      return;
-    }
-    
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Draw current video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // In a real app, we would use a QR code scanning library here
-    // For example, using jsQR or a similar library to detect QR codes
-    
+    // Simulate scanning progress
     if (isScanning) {
-      // Simulate scanning progress
+      // Simulate scanning progress with a more natural incremental pattern
       setScanProgress(prev => {
-        const newProgress = prev + 2;
+        // Random increment between 1-4
+        const increment = Math.random() * 3 + 1;
+        const newProgress = Math.min(prev + increment, 100);
+        
+        // When scan reaches 100%, complete the process
         if (newProgress >= 100) {
           // Scanning complete
           setScanComplete(true);
-          setIsScanning(false);
           
-          // Simulate finding UPI ID in the QR code
-          // In production, this would be extracted from the QR code
-          const detectedUpiId = 'citysupermarket@upi';
+          // Select a random UPI ID from the demo list
+          const randomIndex = Math.floor(Math.random() * demoUpiIds.length);
+          const detectedUpiId = demoUpiIds[randomIndex];
           
           // Once detected, send to parent component with a slight delay
           // to allow the user to see that scanning is complete
           setTimeout(() => {
             onScan(detectedUpiId);
-          }, 500);
+          }, 1000); // Longer delay to see the success animation
           
           return 100;
         }
+        
         return newProgress;
       });
-    }
-    
-    // Continue detection on next frame (if not complete)
-    if (!scanComplete) {
-      animationFrameId.current = requestAnimationFrame(detectQRCode);
+      
+      // Continue scanning animation at appropriate intervals if not complete
+      if (!scanComplete) {
+        animationFrameId.current = setTimeout(() => {
+          requestAnimationFrame(detectQRCode);
+        }, 100) as unknown as number;
+      }
     }
   };
   
-  // Start QR detection when video plays
+  // Start QR detection when video plays - disabled in demo mode
   const handleVideoPlay = () => {
-    setIsScanning(true);
-    detectQRCode();
+    // In a real app, we would automatically start scanning
+    // For demo purposes, we'll use the button instead
+    // setIsScanning(true);
+    // detectQRCode();
   };
   
-  // Cleanup animation frame on unmount
+  // Cleanup animation frame or timer on unmount
   useEffect(() => {
     return () => {
       if (animationFrameId.current) {
+        // Clean up either requestAnimationFrame or setTimeout
         cancelAnimationFrame(animationFrameId.current);
+        clearTimeout(animationFrameId.current);
       }
     };
   }, []);
@@ -220,50 +220,65 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
       </div>
       
       {/* Controls */}
-      <div className="w-full p-6 flex justify-center">
-        {hasFlash && (
-          <button 
-            onClick={toggleFlash}
-            className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-4"
-          >
+      <div className="w-full p-6 flex flex-col items-center">
+        <div className="flex justify-center mb-4">
+          {hasFlash && (
+            <button 
+              onClick={toggleFlash}
+              className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-4"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                strokeWidth={1.5} 
+                stroke="currentColor" 
+                className="w-6 h-6 text-white"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" 
+                />
+              </svg>
+            </button>
+          )}
+          
+          <button className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
               fill="none" 
               viewBox="0 0 24 24" 
               strokeWidth={1.5} 
               stroke="currentColor" 
-              className="w-6 h-6 text-white"
+              className="w-6 h-6 text-black"
             >
               <path 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 
-                d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" 
+                d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" 
+              />
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" 
               />
             </svg>
           </button>
-        )}
+        </div>
         
-        <button className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            strokeWidth={1.5} 
-            stroke="currentColor" 
-            className="w-6 h-6 text-black"
+        {/* Demo mode button - for testing/demo purposes */}
+        {!isScanning && !scanComplete && (
+          <button
+            onClick={() => {
+              setIsScanning(true);
+              detectQRCode();
+            }}
+            className="mt-4 bg-primary text-white px-4 py-2 rounded-lg"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" 
-            />
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" 
-            />
-          </svg>
-        </button>
+            Detect QR Code (Demo)
+          </button>
+        )}
       </div>
     </div>
   );
