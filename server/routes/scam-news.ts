@@ -41,7 +41,7 @@ export function registerScamNewsRoutes(app: Express) {
       }
       
       // Get scam news with detailed UPI analysis
-      const scamNewsWithUpiAnalysis = await getScamNews('India', upi_id);
+      const scamNewsWithUpiAnalysis = await getRealScamNews('India', upi_id);
       
       res.status(200).json({
         upi_analysis: scamNewsWithUpiAnalysis.upi_analysis
@@ -59,7 +59,7 @@ export function registerScamNewsRoutes(app: Express) {
   app.get("/api/scam-news/alerts/:location?", async (req, res) => {
     try {
       const location = req.params.location || 'India';
-      const scamNewsData = await getScamNews(location);
+      const scamNewsData = await getRealScamNews(location);
       
       res.status(200).json({
         alerts: scamNewsData.alerts,
