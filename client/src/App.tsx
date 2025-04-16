@@ -154,6 +154,8 @@ function Router() {
       <Route path="/qr-test" component={QRTest} />
       
       <Route path="/debug" component={DebugNavigation} />
+      
+      <Route path="/voice-direct" component={VoiceCheckDirect} />
 
       <Route component={NotFound} />
     </Switch>
