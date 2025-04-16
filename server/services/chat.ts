@@ -22,6 +22,19 @@ const systemPrompt: ChatMessage = {
 };
 
 /**
+ * Safely parse JSON with fallback for null response
+ */
+function safeJsonParse(jsonString: string | null | undefined): any {
+  if (!jsonString) return {};
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error('Error parsing JSON:', error);
+    return {};
+  }
+}
+
+/**
  * Process a user message and generate an assistant response using OpenAI
  * @param messages Previous chat history
  * @param userMessage New message from the user
@@ -118,7 +131,7 @@ export async function generateQuickReplies(messages: ChatMessage[]): Promise<str
       max_tokens: 150
     });
     
-    const result = JSON.parse(response.choices[0].message.content);
+    const result = safeJsonParse(response.choices[0].message.content);
     return result.quick_replies || result.replies || [];
   } catch (error) {
     console.error('Error generating quick replies:', error);

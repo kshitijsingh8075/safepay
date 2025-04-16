@@ -12,6 +12,19 @@ const openai = new OpenAI({
 });
 
 /**
+ * Safely parse JSON with fallback for null response
+ */
+function safeJsonParse(jsonString: string | null | undefined): any {
+  if (!jsonString) return {};
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error('Error parsing JSON:', error);
+    return {};
+  }
+}
+
+/**
  * Enhanced fraud detection using OpenAI
  * Analyzes transaction context for potential fraud
  */
@@ -32,7 +45,7 @@ export async function analyzeTransactionContextWithAI(description: string, amoun
       response_format: { type: "json_object" }
     });
     
-    return JSON.parse(response.choices[0].message.content);
+    return safeJsonParse(response.choices[0].message.content);
   } catch (error) {
     console.error("OpenAI API error:", error);
     return {
@@ -65,7 +78,7 @@ export async function generateSecurityAlert(fraudType: string, riskLevel: number
       ]
     });
     
-    return response.choices[0].message.content;
+    return response.choices[0].message.content || "Security Alert: Please verify this transaction's details before proceeding.";
   } catch (error) {
     console.error("OpenAI API error:", error);
     return `Security Alert: This transaction to ${transaction.recipient} for ₹${transaction.amount} has unusual characteristics. Please verify before proceeding.`;
@@ -95,7 +108,7 @@ export async function validateUpiIdSafety(upiId: string) {
       response_format: { type: "json_object" }
     });
     
-    return JSON.parse(response.choices[0].message.content);
+    return safeJsonParse(response.choices[0].message.content);
   } catch (error) {
     console.error("OpenAI API error:", error);
     return {
@@ -127,7 +140,7 @@ export async function analyzeChatSentiment(message: string) {
       response_format: { type: "json_object" }
     });
     
-    return JSON.parse(response.choices[0].message.content);
+    return safeJsonParse(response.choices[0].message.content);
   } catch (error) {
     console.error("OpenAI API error:", error);
     return {
@@ -159,7 +172,7 @@ export async function generateSecurityTip(userActivity: any) {
       ]
     });
     
-    return response.choices[0].message.content;
+    return response.choices[0].message.content || "Security Tip: Always verify the recipient's UPI ID before confirming any transaction.";
   } catch (error) {
     console.error("OpenAI API error:", error);
     return "Security Tip: Always verify the recipient's UPI ID before confirming any transaction. Never share your UPI PIN with anyone.";
@@ -192,7 +205,7 @@ export async function analyzeQRCodeImage(base64Image: string) {
       response_format: { type: "json_object" }
     });
     
-    return JSON.parse(response.choices[0].message.content);
+    return safeJsonParse(response.choices[0].message.content);
   } catch (error) {
     console.error("OpenAI API error:", error);
     return {
@@ -226,7 +239,7 @@ export async function analyzeVoiceTranscript(transcript: string) {
       response_format: { type: "json_object" }
     });
     
-    return JSON.parse(response.choices[0].message.content);
+    return safeJsonParse(response.choices[0].message.content);
   } catch (error) {
     console.error("OpenAI API error:", error);
     return {
@@ -243,15 +256,26 @@ export async function analyzeVoiceTranscript(transcript: string) {
  */
 export async function transcribeAudio(audioBuffer: Buffer) {
   try {
+    // Create a temporary file path for the audio
+    const tempFilePath = `/tmp/audio-${Date.now()}.mp3`;
+    require('fs').writeFileSync(tempFilePath, audioBuffer);
+    
     const transcription = await openai.audio.transcriptions.create({
-      file: new File([audioBuffer], "audio.mp3", { type: "audio/mp3" }),
+      file: require('fs').createReadStream(tempFilePath),
       model: "whisper-1",
     });
     
-    return transcription.text;
+    // Clean up the temporary file
+    try {
+      require('fs').unlinkSync(tempFilePath);
+    } catch (cleanupError) {
+      console.error('Error cleaning up temp file:', cleanupError);
+    }
+    
+    return transcription.text || "";
   } catch (error) {
     console.error("OpenAI API error:", error);
-    return null;
+    return "";
   }
 }
 

@@ -1,291 +1,511 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Send, 
-  ArrowLeft, 
-  AlertTriangle, 
-  ThumbsUp, 
-  ThumbsDown 
-} from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { queryClient, apiRequest } from '@/lib/queryClient';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Send, Mic, AlertTriangle, MicOff, User, Bot } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import MainLayout from '@/layouts/main-layout';
 
-// Types
-interface ChatMessage {
-  id: number;
-  userId: number;
-  role: 'user' | 'assistant' | 'system';
+// Import the Voice Analysis for scam detection
+import { analyzeTranscriptForScams, startVoiceRecording, getAudioFromRecorder } from '@/lib/voice-analysis';
+
+interface Message {
+  id: string;
   content: string;
-  timestamp: string;
-  metadata: string | null;
+  role: 'user' | 'assistant' | 'system';
+  timestamp: Date;
+  isLoading?: boolean;
 }
 
-interface MessageFeedback {
-  messageId: number;
-  rating?: number;
-  feedback?: string;
+interface QuickReply {
+  id: string;
+  text: string;
 }
 
 export default function ChatSupport() {
   const [, setLocation] = useLocation();
-  const [message, setMessage] = useState('');
-  const [quickReplies, setQuickReplies] = useState<string[]>([]);
-  const [activeFeedback, setActiveFeedback] = useState<number | null>(null);
-  const [feedbackText, setFeedbackText] = useState('');
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   
-  // Mock user ID (in a real app, this would come from auth state)
-  const userId = 1;
-
-  // Fetch chat history
-  const { 
-    data: messages = [], 
-    isLoading, 
-    error 
-  } = useQuery({
-    queryKey: ['/api/chat', userId, 'history'],
-    queryFn: async () => {
-      const res = await fetch(`/api/chat/${userId}/history`);
-      if (!res.ok) throw new Error('Failed to fetch chat history');
-      return res.json();
-    },
-  });
-
-  // Send message mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async (content: string) => {
-      const res = await apiRequest('POST', `/api/chat/${userId}/message`, { content });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat', userId, 'history'] });
-      setQuickReplies(data.quickReplies || []);
-      setMessage('');
-    },
-    onError: (error) => {
-      console.error('Error sending message:', error);
-    },
-  });
-
-  // Send feedback mutation
-  const sendFeedbackMutation = useMutation({
-    mutationFn: async (feedback: MessageFeedback) => {
-      const res = await apiRequest('POST', `/api/chat/${userId}/feedback`, feedback);
-      return res.json();
-    },
-    onSuccess: () => {
-      setActiveFeedback(null);
-      setFeedbackText('');
-    },
-    onError: (error) => {
-      console.error('Error sending feedback:', error);
-    },
-  });
-
-  // Auto-scroll to bottom when new messages appear
+  // Messages state
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'welcome',
+      content: 'Hello! I\'m your UPI safety assistant. How can I help you today?',
+      role: 'assistant',
+      timestamp: new Date()
+    }
+  ]);
+  
+  // Input state
+  const [input, setInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Quick replies
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([
+    { id: '1', text: 'How do I verify if a UPI ID is safe?' },
+    { id: '2', text: 'I think I sent money to a scammer' },
+    { id: '3', text: 'How do I report a UPI scam?' },
+    { id: '4', text: 'What are common UPI scams I should know about?' }
+  ]);
+  
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingTimerRef = useRef<number | null>(null);
+  
+  // Auto-scroll chat to bottom
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, activeFeedback]);
-
+    scrollToBottom();
+  }, [messages]);
+  
+  // Clean up recording timer on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, [isRecording]);
+  
   // Handle message submission
-  const handleSendMessage = (content = message) => {
-    if (!content.trim()) return;
-    sendMessageMutation.mutate(content);
-  };
-
-  // Handle feedback submission
-  const handleSendFeedback = (messageId: number, rating: number) => {
-    if (activeFeedback === messageId && !feedbackText) {
-      // Just send the rating
-      sendFeedbackMutation.mutate({ messageId, rating });
-    } else if (activeFeedback === messageId) {
-      // Send both rating and feedback text
-      sendFeedbackMutation.mutate({ messageId, rating, feedback: feedbackText });
-    } else {
-      // Set active feedback mode
-      setActiveFeedback(messageId);
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    if (!input.trim() && !isRecording) return;
+    
+    // Create user message
+    const userMessageContent = input.trim();
+    const userMessageId = Date.now().toString();
+    
+    // Clear input
+    setInput('');
+    
+    // Add user message to state
+    setMessages(prev => [
+      ...prev,
+      {
+        id: userMessageId,
+        content: userMessageContent,
+        role: 'user',
+        timestamp: new Date()
+      }
+    ]);
+    
+    // Add loading message
+    const loadingMessageId = `loading-${Date.now()}`;
+    setMessages(prev => [
+      ...prev,
+      {
+        id: loadingMessageId,
+        content: '',
+        role: 'assistant',
+        timestamp: new Date(),
+        isLoading: true
+      }
+    ]);
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Get mock user ID (in a real app, this would come from auth)
+      const userId = 1;
+      
+      // Call the server to get AI response
+      const response = await fetch('/api/chat/1/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: userMessageContent
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+      
+      const data = await response.json();
+      
+      // Replace loading message with actual response
+      setMessages(prev => 
+        prev.filter(msg => msg.id !== loadingMessageId).concat({
+          id: Date.now().toString(),
+          content: data.assistantMessage.content,
+          role: 'assistant',
+          timestamp: new Date(data.assistantMessage.timestamp)
+        })
+      );
+      
+      // Update quick replies
+      if (data.quickReplies && data.quickReplies.length > 0) {
+        setQuickReplies(
+          data.quickReplies.map((text: string, index: number) => ({
+            id: `qr-${Date.now()}-${index}`,
+            text
+          }))
+        );
+      }
+    } catch (error) {
+      console.error('Error getting chat response:', error);
+      
+      // Remove loading message
+      setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
+      
+      // Add error message
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          content: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.",
+          role: 'assistant',
+          timestamp: new Date()
+        }
+      ]);
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to get response from AI assistant',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+  
+  // Handle selecting a quick reply
+  const handleQuickReply = (text: string) => {
+    setInput(text);
+    setTimeout(() => handleSubmit(), 100);
+  };
+  
+  // Start voice recording
+  const startRecording = async () => {
+    try {
+      const recorder = await startVoiceRecording();
+      mediaRecorderRef.current = recorder;
+      
+      // Start recording
+      recorder.start();
+      setIsRecording(true);
+      
+      // Set up timer to show recording duration
+      let duration = 0;
+      recordingTimerRef.current = window.setInterval(() => {
+        duration += 1;
+        setRecordingDuration(duration);
+        
+        // Auto-stop after 30 seconds
+        if (duration >= 30) {
+          stopRecording();
+        }
+      }, 1000);
+      
+      toast({
+        title: 'Recording started',
+        description: 'Speak clearly into your microphone'
+      });
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      toast({
+        title: 'Microphone access denied',
+        description: 'Please allow microphone access to use voice input',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  // Stop voice recording and process audio
+  const stopRecording = async () => {
+    if (!mediaRecorderRef.current || !isRecording) return;
+    
+    // Stop the timer
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    
+    // Get the recorder
+    const recorder = mediaRecorderRef.current;
+    
+    // Stop recording and get audio data
+    recorder.stop();
+    setIsRecording(false);
+    setRecordingDuration(0);
+    
+    try {
+      // Get audio blob
+      const audioBlob = await getAudioFromRecorder(recorder);
+      
+      // Create a file for upload
+      const audioFile = new File([audioBlob], 'voice-message.mp3', { type: 'audio/mp3' });
+      
+      // Show processing message
+      toast({
+        title: 'Processing voice',
+        description: 'Analyzing your voice message...'
+      });
+      
+      // Add user message placeholder
+      const userMessageId = Date.now().toString();
+      setMessages(prev => [
+        ...prev,
+        {
+          id: userMessageId,
+          content: '🎤 Voice message (transcribing...)',
+          role: 'user',
+          timestamp: new Date()
+        }
+      ]);
+      
+      // Add loading message
+      const loadingMessageId = `loading-${Date.now()}`;
+      setMessages(prev => [
+        ...prev,
+        {
+          id: loadingMessageId,
+          content: '',
+          role: 'assistant',
+          timestamp: new Date(),
+          isLoading: true
+        }
+      ]);
+      
+      // For demo purposes, we'll simulate the transcription and analysis
+      // In a real app, you would upload the audio to the server
+      
+      // Simulate a response delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Simulated transcription (in production this would come from the server)
+      const transcription = "I received a call saying my UPI account needs verification and they asked me to transfer Rs. 1 to verify my account. Is this legitimate?";
+      
+      // Update the user message with the transcription
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === userMessageId 
+            ? { ...msg, content: `🎤 ${transcription}` } 
+            : msg
+        )
+      );
+      
+      // Analyze the transcript for scams
+      const analysis = await analyzeTranscriptForScams(transcription);
+      
+      // Generate AI response based on scam analysis
+      let aiResponse = "";
+      if (analysis.isScam) {
+        aiResponse = `⚠️ This appears to be a scam! 
+        
+What you described is a classic verification scam. Legitimate banks and UPI services NEVER ask you to transfer money to verify your account.
 
+I detected these red flags:
+${analysis.scamIndicators.map(indicator => `- ${indicator}`).join('\n')}
+
+What to do:
+1. Do not transfer any money
+2. Block and report the number that called you
+3. Report this to cybercrime.gov.in or call 1930
+        
+Stay safe!`;
+      } else {
+        // Call the chat API for a response
+        const response = await fetch('/api/chat/1/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: transcription
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to get response');
+        }
+        
+        const data = await response.json();
+        aiResponse = data.assistantMessage.content;
+        
+        // Update quick replies
+        if (data.quickReplies && data.quickReplies.length > 0) {
+          setQuickReplies(
+            data.quickReplies.map((text: string, index: number) => ({
+              id: `qr-${Date.now()}-${index}`,
+              text
+            }))
+          );
+        }
+      }
+      
+      // Replace loading message with actual response
+      setMessages(prev => 
+        prev.filter(msg => msg.id !== loadingMessageId).concat({
+          id: Date.now().toString(),
+          content: aiResponse,
+          role: 'assistant',
+          timestamp: new Date()
+        })
+      );
+      
+    } catch (error) {
+      console.error('Error processing voice recording:', error);
+      
+      // Update user message to indicate error
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === 'voice-processing' 
+            ? { ...msg, content: '🎤 Voice message (processing failed)' } 
+            : msg
+        )
+      );
+      
+      toast({
+        title: 'Voice processing failed',
+        description: 'Unable to process your voice message. Please try again or use text input.',
+        variant: 'destructive'
+      });
+    }
+  };
+  
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setLocation('/home')}
-            className="mr-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-lg font-bold">Chat Support</h1>
-        </div>
-        <Badge variant="outline" className="bg-primary/10 text-primary">
-          AI-Powered
-        </Badge>
-      </div>
-
-      {/* Messages area */}
-      <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto">
-        {isLoading ? (
-          // Loading skeletons
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <Skeleton className="w-3/4 h-20 rounded-lg" />
-            </div>
-            <div className="flex justify-start">
-              <Skeleton className="w-3/4 h-32 rounded-lg" />
-            </div>
-            <div className="flex justify-end">
-              <Skeleton className="w-3/4 h-16 rounded-lg" />
-            </div>
-          </div>
-        ) : error ? (
-          // Error state
-          <Card className="p-4 bg-red-50 border-red-200 text-red-800 flex items-center">
-            <AlertTriangle className="w-5 h-5 mr-2 text-red-600" />
-            <p>Could not load chat history. Please try again.</p>
-          </Card>
-        ) : (
-          // Message bubbles
-          <div className="space-y-4">
-            {messages.map((msg: ChatMessage) => (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+    <MainLayout className="flex flex-col p-0">
+      <Card className="flex flex-col h-full border-0 rounded-none">
+        <CardHeader className="border-b bg-card px-4 py-3">
+          <CardTitle className="text-lg flex items-center justify-between">
+            <div>AI Safety Assistant</div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setLocation('/home')}
+            >
+              Close
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 p-0 overflow-hidden">
+          <ScrollArea className="h-[calc(100vh-13rem)]">
+            <div className="flex flex-col p-4 gap-4">
+              {messages.map((message) => (
                 <div 
-                  className={`max-w-[80%] rounded-2xl p-3 ${
-                    msg.role === 'user' 
-                      ? 'bg-primary text-white rounded-tr-none' 
-                      : msg.role === 'system'
-                        ? 'bg-gray-100 text-gray-800 rounded-tl-none'
-                        : 'bg-[#F0F4FF] text-gray-800 rounded-tl-none border border-[#E2E8F0]'
-                  }`}
+                  key={message.id} 
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  <div className="flex justify-end items-center mt-1 text-xs text-gray-500">
-                    <span className={msg.role === 'user' ? 'text-gray-300' : ''}>
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-
-                  {/* Feedback options (only for assistant messages) */}
-                  {msg.role === 'assistant' && (
-                    <div className="mt-2">
-                      <div className="flex justify-end space-x-2">
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="h-7 px-2 text-gray-600"
-                          onClick={() => handleSendFeedback(msg.id, 1)}
-                        >
-                          <ThumbsUp className={`w-4 h-4 ${activeFeedback === msg.id ? 'text-green-600' : ''}`} />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="h-7 px-2 text-gray-600"
-                          onClick={() => handleSendFeedback(msg.id, -1)}
-                        >
-                          <ThumbsDown className={`w-4 h-4 ${activeFeedback === msg.id && feedbackText ? 'text-red-600' : ''}`} />
-                        </Button>
-                      </div>
-                      
-                      {/* Feedback text area */}
-                      {activeFeedback === msg.id && (
-                        <div className="mt-2">
-                          <Textarea
-                            placeholder="Tell us why this response was not helpful..."
-                            className="text-sm resize-none"
-                            value={feedbackText}
-                            onChange={(e) => setFeedbackText(e.target.value)}
-                          />
-                          <div className="flex justify-end mt-2">
-                            <Button 
-                              size="sm" 
-                              variant="default" 
-                              onClick={() => handleSendFeedback(msg.id, -1)}
-                              className="h-7 text-xs"
-                            >
-                              Send Feedback
-                            </Button>
-                          </div>
+                  <div 
+                    className={`flex gap-2 max-w-[80%] ${
+                      message.role === 'user' 
+                        ? 'flex-row-reverse' 
+                        : 'flex-row'
+                    }`}
+                  >
+                    <div 
+                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                        message.role === 'user' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted'
+                      }`}
+                    >
+                      {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                    </div>
+                    <div 
+                      className={`rounded-lg p-3 ${
+                        message.role === 'user' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted'
+                      }`}
+                    >
+                      {message.isLoading ? (
+                        <div className="flex items-center gap-2 h-6">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">Thinking...</span>
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap">
+                          {message.content}
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* Loading indicator for sending message */}
-            {sendMessageMutation.isPending && (
-              <div className="flex justify-start">
-                <div className="bg-[#F0F4FF] text-gray-800 rounded-2xl rounded-tl-none p-3 max-w-[80%]">
-                  <div className="flex space-x-2 items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                   </div>
                 </div>
-              </div>
-            )}
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+        </CardContent>
+        
+        {quickReplies.length > 0 && (
+          <div className="px-4 pb-2">
+            <div className="flex flex-wrap gap-2">
+              {quickReplies.map((reply) => (
+                <Button
+                  key={reply.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickReply(reply.text)}
+                  disabled={isSubmitting}
+                >
+                  {reply.text}
+                </Button>
+              ))}
+            </div>
           </div>
         )}
-      </div>
-
-      {/* Quick replies */}
-      {quickReplies.length > 0 && (
-        <div className="px-4 py-2 border-t border-gray-100 overflow-x-auto whitespace-nowrap">
-          <div className="flex space-x-2">
-            {quickReplies.map((reply, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                onClick={() => handleSendMessage(reply)}
+        
+        <CardFooter className="p-4 pt-2 border-t">
+          {isRecording ? (
+            <div className="w-full flex items-center gap-4">
+              <div className="flex-1 bg-muted rounded-lg p-3 flex items-center">
+                <div className="flex-1 flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                  <span>Recording... {recordingDuration}s</span>
+                </div>
+              </div>
+              <Button 
+                variant="destructive"
+                size="icon"
+                onClick={stopRecording}
               >
-                {reply}
+                <MicOff size={18} />
               </Button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Message input */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex items-center space-x-2">
-          <Input
-            type="text"
-            placeholder="Type your message..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-            className="flex-1"
-            disabled={sendMessageMutation.isPending}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!message.trim() || sendMessageMutation.isPending}
-            onClick={() => handleSendMessage()}
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
-        <p className="text-xs text-gray-500 mt-2 text-center">
-          UPI SafeGuard uses AI to provide fraud prevention assistance
-        </p>
-      </div>
-    </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="w-full flex items-center gap-2">
+              <Input 
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your message..."
+                disabled={isSubmitting}
+                className="flex-1"
+              />
+              <Button 
+                variant="default"
+                size="icon"
+                type="submit"
+                disabled={!input.trim() || isSubmitting}
+              >
+                <Send size={18} />
+              </Button>
+              <Button 
+                variant="outline"
+                size="icon"
+                type="button"
+                onClick={startRecording}
+                disabled={isSubmitting}
+              >
+                <Mic size={18} />
+              </Button>
+            </form>
+          )}
+        </CardFooter>
+      </Card>
+    </MainLayout>
   );
 }
