@@ -6,6 +6,8 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import OTP from "@/pages/otp";
 import PIN from "@/pages/pin";
+import PhoneLogin from "@/pages/phone-login";
+import SetupSecurity from "@/pages/setup-security";
 import Home from "@/pages/home";
 import Scan from "@/pages/scan";
 import Payment from "@/pages/payment";
@@ -26,9 +28,11 @@ import MainLayout from "@/layouts/main-layout";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Login} />
+      <Route path="/" component={PhoneLogin} />
+      <Route path="/login" component={Login} />
       <Route path="/otp" component={OTP} />
       <Route path="/pin" component={PIN} />
+      <Route path="/setup-security" component={SetupSecurity} />
       <Route path="/home">
         {() => (
           <MainLayout>
