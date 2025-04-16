@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertScamReportSchema, insertUserSchema, insertPaymentMethodSchema } from "@shared/schema";
+import { insertScamReportSchema, insertUserSchema, insertPaymentMethodSchema, insertChatMessageSchema, insertChatFeedbackSchema } from "@shared/schema";
 import { generateOtp, verifyOtp } from "./services/otp";
+import { getChatResponse, generateQuickReplies } from "./services/chat";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
@@ -399,6 +400,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: 'Default payment method updated successfully' });
     } catch (error) {
       res.status(500).json({ message: 'Error updating default payment method', error });
+    }
+  });
+
+  // Chat routes
+  app.get('/api/chat/:userId/history', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const messages = await storage.getChatHistoryByUserId(parseInt(userId));
+      res.status(200).json(messages);
+    } catch (error) {
+      console.error('Error fetching chat history:', error);
+      res.status(500).json({ message: 'Error fetching chat history', error });
+    }
+  });
+  
+  app.post('/api/chat/:userId/message', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { content } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ message: 'Message content is required' });
+      }
+      
+      // Save user message
+      const userMessage = await storage.saveChatMessage(parseInt(userId), {
+        role: 'user',
+        content
+      });
+      
+      // Get chat history for context
+      const chatHistory = await storage.getChatHistoryByUserId(parseInt(userId));
+      
+      // Convert DB messages to service-compatible format
+      const serviceMessages = chatHistory.slice(-10).map(msg => ({
+        role: msg.role as 'user' | 'assistant' | 'system',
+        content: msg.content
+      }));
+      
+      // Process with AI service
+      const assistantResponse = await getChatResponse(
+        serviceMessages,
+        content
+      );
+      
+      // Save assistant response
+      const assistantMessage = await storage.saveChatMessage(parseInt(userId), {
+        role: 'assistant',
+        content: assistantResponse
+      });
+      
+      // Generate quick replies
+      const updatedServiceMessages = [...serviceMessages, {
+        role: 'assistant' as const,
+        content: assistantResponse
+      }, {
+        role: 'user' as const,
+        content
+      }];
+      
+      const quickReplies = await generateQuickReplies(updatedServiceMessages);
+      
+      res.status(200).json({
+        userMessage,
+        assistantMessage,
+        quickReplies
+      });
+    } catch (error) {
+      console.error('Error processing chat message:', error);
+      res.status(500).json({ 
+        message: 'Error processing chat message', 
+        error,
+        fallbackResponse: "I apologize, but I'm having trouble connecting to my knowledge base. Please try again later."
+      });
+    }
+  });
+  
+  app.post('/api/chat/:userId/feedback', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { messageId, rating, feedback } = req.body;
+      
+      if (!messageId) {
+        return res.status(400).json({ message: 'Message ID is required' });
+      }
+      
+      // At least one of rating or feedback should be provided
+      if (rating === undefined && !feedback) {
+        return res.status(400).json({ message: 'Rating or feedback is required' });
+      }
+      
+      const savedFeedback = await storage.saveChatFeedback(parseInt(userId), parseInt(messageId), {
+        rating: rating !== undefined ? parseInt(rating) : undefined,
+        feedback
+      });
+      
+      res.status(200).json({
+        message: 'Feedback saved successfully',
+        feedback: savedFeedback
+      });
+    } catch (error) {
+      console.error('Error saving chat feedback:', error);
+      res.status(500).json({ message: 'Error saving chat feedback', error });
     }
   });
 
