@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ArrowLeft } from 'lucide-react';
+import jsQR from 'jsqr';
 
 interface QRScannerProps {
   onScan: (data: string) => void;
@@ -11,8 +12,10 @@ interface QRScannerProps {
 export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
   const [hasFlash, setHasFlash] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scanIntervalRef = useRef<number | null>(null);
   
   // Setup camera when component mounts
   useEffect(() => {
@@ -79,63 +82,84 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
   const [scanComplete, setScanComplete] = useState(false);
   const animationFrameId = useRef<number | null>(null);
   
-  // QR code detection function for demo purposes
+  // Real QR code detection function
   const detectQRCode = () => {
-    if (scanComplete) return;
+    if (scanComplete || !isScanning || !videoRef.current || !canvasRef.current) return;
     
-    // For demo purposes, we'll use predefined UPI IDs
-    const demoUpiIds = [
-      "mobileshop@okaxis",
-      "merchant@yesbank",
-      "grocerystore@okicici",
-      "citymart@sbi",
-      "easypay@ybl",
-    ];
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
     
-    // Simulate scanning progress
-    if (isScanning) {
-      // Simulate scanning progress with a more natural incremental pattern
-      setScanProgress(prev => {
-        // Random increment between 1-4
-        const increment = Math.random() * 3 + 1;
-        const newProgress = Math.min(prev + increment, 100);
-        
-        // When scan reaches 100%, complete the process
-        if (newProgress >= 100) {
-          // Scanning complete
-          setScanComplete(true);
-          
-          // Select a random UPI ID from the demo list
-          const randomIndex = Math.floor(Math.random() * demoUpiIds.length);
-          const detectedUpiId = demoUpiIds[randomIndex];
-          
-          // Once detected, send to parent component with a slight delay
-          // to allow the user to see that scanning is complete
-          setTimeout(() => {
-            onScan(detectedUpiId);
-          }, 1000); // Longer delay to see the success animation
-          
-          return 100;
-        }
-        
-        return newProgress;
+    // Set canvas dimensions to match video
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    
+    if (width === 0 || height === 0) {
+      // Video dimensions not yet available, try again shortly
+      animationFrameId.current = requestAnimationFrame(detectQRCode);
+      return;
+    }
+    
+    canvas.width = width;
+    canvas.height = height;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('Could not get canvas context');
+      return;
+    }
+    
+    // Draw the current video frame to the canvas
+    ctx.drawImage(video, 0, 0, width, height);
+    
+    try {
+      // Get image data for QR code analysis
+      const imageData = ctx.getImageData(0, 0, width, height);
+      
+      // Process with jsQR
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert", // QR codes in well-lit conditions are dark on light background
       });
       
-      // Continue scanning animation at appropriate intervals if not complete
-      if (!scanComplete) {
-        animationFrameId.current = setTimeout(() => {
-          requestAnimationFrame(detectQRCode);
-        }, 100) as unknown as number;
+      if (code) {
+        console.log('QR code detected:', code.data);
+        
+        // Show success UI
+        setScanComplete(true);
+        setScanProgress(100);
+        
+        // Return the detected QR code data
+        setTimeout(() => {
+          onScan(code.data);
+        }, 800); // Show success animation briefly
+        
+        // Stop scanning
+        return;
       }
+      
+      // No QR code found, update progress and continue scanning
+      setScanProgress(prev => {
+        // Make progress pulsate a bit to indicate active scanning
+        const fluctuation = Math.sin(Date.now() / 300) * 5; // Oscillate between -5 and +5
+        return Math.min(Math.max(50 + fluctuation, 40), 60); // Keep between 40-60%
+      });
+      
+      // Continue scanning
+      animationFrameId.current = requestAnimationFrame(detectQRCode);
+    } catch (error) {
+      console.error('QR scanning error:', error);
+      setScanError('Error analyzing camera feed');
+      
+      // Continue scanning despite error
+      animationFrameId.current = requestAnimationFrame(detectQRCode);
     }
   };
   
-  // Start QR detection when video plays - disabled in demo mode
+  // Start QR detection when video plays
   const handleVideoPlay = () => {
-    // In a real app, we would automatically start scanning
-    // For demo purposes, we'll use the button instead
-    // setIsScanning(true);
-    // detectQRCode();
+    if (!isScanning) {
+      setIsScanning(true);
+      detectQRCode();
+    }
   };
   
   // Cleanup animation frame or timer on unmount
@@ -270,51 +294,43 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
           </button>
         </div>
         
-        {/* Demo and Manual Entry buttons */}
+        {/* QR Code scanning and Manual Entry buttons */}
         <div className="flex flex-col gap-3 w-full">
           {!isScanning && !scanComplete && (
             <button
               onClick={() => {
-                // Reset everything to initial state first
+                // Reset everything to initial state
                 setScanProgress(0);
                 setScanComplete(false);
+                setScanError(null);
                 
-                // Start scanning with a slight delay to ensure state is updated
+                // Start scanning
+                setIsScanning(true);
+                
+                // Give a small delay for UI to update, then start detection cycle
                 setTimeout(() => {
-                  setIsScanning(true);
-                  // Use a random UPI ID for simulation
-                  const demoUpiIds = [
-                    "mobileshop@okaxis",
-                    "merchant@yesbank",
-                    "grocerystore@okicici",
-                    "citymart@sbi",
-                    "easypay@ybl",
-                  ];
-                  const randomIndex = Math.floor(Math.random() * demoUpiIds.length);
-                  
-                  // Simulate scanning progress
-                  let progress = 0;
-                  const interval = setInterval(() => {
-                    progress += Math.random() * 5 + 1;
-                    if (progress >= 100) {
-                      clearInterval(interval);
-                      setScanProgress(100);
-                      setScanComplete(true);
-                      
-                      // Send the detected UPI ID after a slight delay
-                      setTimeout(() => {
-                        onScan(demoUpiIds[randomIndex]);
-                      }, 500);
-                    } else {
-                      setScanProgress(progress);
-                    }
-                  }, 100);
+                  detectQRCode();
                 }, 100);
               }}
               className="mt-4 bg-primary text-white px-6 py-3 rounded-lg text-lg font-medium border-2 border-white shadow-lg animate-pulse"
             >
               👉 Tap to Scan QR Code
             </button>
+          )}
+          
+          {scanError && (
+            <div className="bg-red-500/70 text-white px-4 py-2 rounded-lg text-center mt-2">
+              {scanError} 
+              <button 
+                className="underline ml-2"
+                onClick={() => {
+                  setScanError(null);
+                  setIsScanning(false);
+                }}
+              >
+                Retry
+              </button>
+            </div>
           )}
           
           {/* Manual UPI entry option */}
