@@ -10,6 +10,11 @@ export const users = pgTable("users", {
   phoneNumber: text("phone_number").notNull().unique(),
   name: text("name"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastLogin: timestamp("last_login"),
+  useBiometric: boolean("use_biometric").default(false),
+  usePin: boolean("use_pin").default(false),
+  pin: text("pin"),
+  deviceId: text("device_id"),
 });
 
 // Transaction table
