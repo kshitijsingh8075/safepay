@@ -38,11 +38,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For development, we'll return it in the response
       console.log(`Generated OTP for ${phoneNumber}: ${otp}`);
       
-      res.status(200).json({
-        message: 'OTP sent successfully',
-        // Only in development:
-        otp: process.env.NODE_ENV === 'development' ? otp : undefined
-      });
+      // In development, always include the OTP in the response
+      // In production, this would only log the OTP on the server
+      if (process.env.NODE_ENV === 'development') {
+        res.status(200).json({
+          message: 'OTP sent successfully',
+          otp: otp
+        });
+      } else {
+        res.status(200).json({
+          message: 'OTP sent successfully'
+        });
+      }
     } catch (error) {
       console.error('Error generating OTP:', error);
       res.status(500).json({ message: 'Failed to generate OTP' });

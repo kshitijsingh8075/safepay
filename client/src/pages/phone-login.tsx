@@ -19,15 +19,27 @@ export default function PhoneLogin() {
   // Request OTP mutation
   const requestOtpMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/auth/request-otp", { phoneNumber });
-      return await res.json();
+      try {
+        const res = await apiRequest("POST", "/api/auth/request-otp", { phoneNumber });
+        const data = await res.json();
+        return data;
+      } catch (error) {
+        console.error("Error requesting OTP:", error);
+        throw new Error("Failed to send OTP. Please try again.");
+      }
     },
     onSuccess: (data) => {
       // In development, we show the OTP in a toast for ease of testing
-      if (data.otp) {
+      console.log("OTP response:", data);
+      if (data?.otp) {
         toast({
           title: "OTP Generated",
           description: `Your OTP is: ${data.otp}`,
+        });
+      } else {
+        toast({
+          title: "OTP Sent",
+          description: "An OTP has been sent to your phone number",
         });
       }
       setStep("otp");
@@ -44,13 +56,20 @@ export default function PhoneLogin() {
   // Verify OTP mutation
   const verifyOtpMutation = useMutation({
     mutationFn: async (otp: string) => {
-      const res = await apiRequest("POST", "/api/auth/verify-otp", { 
-        phoneNumber, 
-        otp 
-      });
-      return await res.json();
+      try {
+        const res = await apiRequest("POST", "/api/auth/verify-otp", { 
+          phoneNumber, 
+          otp 
+        });
+        const data = await res.json();
+        return data;
+      } catch (error) {
+        console.error("Error verifying OTP:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      console.log("OTP verification response:", data);
       toast({
         title: "Login Successful",
         description: "You have successfully logged in.",
@@ -62,6 +81,7 @@ export default function PhoneLogin() {
       }, 1000);
     },
     onError: (error: Error) => {
+      console.error("OTP verification error:", error);
       toast({
         title: "Authentication Failed",
         description: error.message || "Invalid OTP. Please try again.",
