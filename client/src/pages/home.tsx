@@ -33,20 +33,6 @@ export default function Home() {
           </Button>
         </div>
         
-        {/* UPI Scam Check Banner */}
-        <div className="px-4 mb-6">
-          <div className="bg-blue-50 p-4 rounded-xl">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">New Feature</h3>
-            <p className="text-xs text-blue-700 mb-3">Check any UPI ID instantly for potential scams with our AI-powered fraud detection.</p>
-            <Button 
-              className="w-full text-sm py-2 bg-primary text-white"
-              onClick={() => setLocation('/upi-check')}
-            >
-              Try UPI Scam Check
-            </Button>
-          </div>
-        </div>
-        
         {/* Menu header */}
         <div className="px-4 mb-2">
           <h2 className="text-lg font-medium">Menu</h2>
