@@ -59,11 +59,11 @@ export async function processVoiceCommand(text: string): Promise<any> {
       messages: [
         {
           role: "system",
-          content: `Convert voice commands to UPI actions:
+          content: `Convert voice commands to UPI actions as JSON objects:
           - "Send 500 to john@upi" → {"action": "payment", "amount": 500, "upi": "john@upi"}
           - "Check recent transactions" → {"action": "history"}
           - "Check if xyz@upi is safe" → {"action": "verify_upi", "upi": "xyz@upi"}
-          Respond only with JSON`
+          Respond only with a valid JSON object`
         },
         {
           role: "user",
@@ -98,7 +98,7 @@ export async function analyzeCommandRisk(command: string): Promise<{ score: numb
           - Unusual amounts
           - Requests to verify personal info
           
-          Respond with:
+          Respond with a JSON object in this format:
           {"score": 0-1, "type": "phishing|fake_merchant|social_engineering|unusual_payment|unknown"}`
         },
         {
