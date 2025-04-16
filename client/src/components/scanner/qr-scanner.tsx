@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { ArrowLeft } from 'lucide-react';
 
 interface QRScannerProps {
   onScan: (data: string) => void;
@@ -269,51 +270,62 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
           </button>
         </div>
         
-        {/* Demo mode button - for testing/demo purposes */}
-        {!isScanning && !scanComplete && (
-          <button
-            onClick={() => {
-              // Reset everything to initial state first
-              setScanProgress(0);
-              setScanComplete(false);
-              
-              // Start scanning with a slight delay to ensure state is updated
-              setTimeout(() => {
-                setIsScanning(true);
-                // Use a random UPI ID for simulation
-                const demoUpiIds = [
-                  "mobileshop@okaxis",
-                  "merchant@yesbank",
-                  "grocerystore@okicici",
-                  "citymart@sbi",
-                  "easypay@ybl",
-                ];
-                const randomIndex = Math.floor(Math.random() * demoUpiIds.length);
+        {/* Demo and Manual Entry buttons */}
+        <div className="flex flex-col gap-3 w-full">
+          {!isScanning && !scanComplete && (
+            <button
+              onClick={() => {
+                // Reset everything to initial state first
+                setScanProgress(0);
+                setScanComplete(false);
                 
-                // Simulate scanning progress
-                let progress = 0;
-                const interval = setInterval(() => {
-                  progress += Math.random() * 5 + 1;
-                  if (progress >= 100) {
-                    clearInterval(interval);
-                    setScanProgress(100);
-                    setScanComplete(true);
-                    
-                    // Send the detected UPI ID after a slight delay
-                    setTimeout(() => {
-                      onScan(demoUpiIds[randomIndex]);
-                    }, 500);
-                  } else {
-                    setScanProgress(progress);
-                  }
+                // Start scanning with a slight delay to ensure state is updated
+                setTimeout(() => {
+                  setIsScanning(true);
+                  // Use a random UPI ID for simulation
+                  const demoUpiIds = [
+                    "mobileshop@okaxis",
+                    "merchant@yesbank",
+                    "grocerystore@okicici",
+                    "citymart@sbi",
+                    "easypay@ybl",
+                  ];
+                  const randomIndex = Math.floor(Math.random() * demoUpiIds.length);
+                  
+                  // Simulate scanning progress
+                  let progress = 0;
+                  const interval = setInterval(() => {
+                    progress += Math.random() * 5 + 1;
+                    if (progress >= 100) {
+                      clearInterval(interval);
+                      setScanProgress(100);
+                      setScanComplete(true);
+                      
+                      // Send the detected UPI ID after a slight delay
+                      setTimeout(() => {
+                        onScan(demoUpiIds[randomIndex]);
+                      }, 500);
+                    } else {
+                      setScanProgress(progress);
+                    }
+                  }, 100);
                 }, 100);
-              }, 100);
-            }}
-            className="mt-4 bg-primary text-white px-6 py-3 rounded-lg text-lg font-medium border-2 border-white shadow-lg animate-pulse"
+              }}
+              className="mt-4 bg-primary text-white px-6 py-3 rounded-lg text-lg font-medium border-2 border-white shadow-lg animate-pulse"
+            >
+              👉 Tap to Scan QR Code
+            </button>
+          )}
+          
+          {/* Manual UPI entry option */}
+          <button
+            onClick={onClose}
+            className="text-white flex items-center justify-center gap-2 mt-2"
           >
-            👉 Tap to Scan QR Code
+            <ArrowLeft size={16} />
+            <span>Go Back</span>
           </button>
-        )}
+        </div>
       </div>
     </div>
   );

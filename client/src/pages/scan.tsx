@@ -8,8 +8,9 @@ import {
   detectAdvancedFraud,
   FraudDetectionResponse
 } from '@/lib/fraud-detection';
-import { AlertTriangle, AlertCircle, CheckCircle, Shield, AlertOctagon, Loader2 } from 'lucide-react';
+import { AlertTriangle, AlertCircle, CheckCircle, Shield, AlertOctagon, Loader2, ChevronLeft, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
@@ -126,12 +127,84 @@ export default function Scan() {
     setLocation('/home');
   };
 
+  const [manualUpiMode, setManualUpiMode] = useState(false);
+  const [manualUpiInput, setManualUpiInput] = useState('');
+  
+  const handleManualUpiSubmit = () => {
+    if (manualUpiInput && manualUpiInput.includes('@')) {
+      handleScan(manualUpiInput);
+    } else {
+      toast({
+        title: "Invalid UPI ID",
+        description: "Please enter a valid UPI ID in the format username@provider",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Toggle to manual UPI entry mode
+  const toggleManualMode = () => {
+    setManualUpiMode(!manualUpiMode);
+  };
+  
   return (
     <>
-      <QRScanner 
-        onScan={handleScan}
-        onClose={handleClose}
-      />
+      {!manualUpiMode ? (
+        <>
+          <QRScanner 
+            onScan={handleScan}
+            onClose={handleClose}
+          />
+          
+          {/* Floating button to switch to manual entry */}
+          <button
+            onClick={toggleManualMode}
+            className="fixed bottom-28 right-6 bg-white text-primary font-medium px-4 py-2 rounded-lg shadow-lg z-50"
+          >
+            Manual Entry
+          </button>
+        </>
+      ) : (
+        <div className="relative flex flex-col h-screen bg-black p-6">
+          <div className="w-full flex justify-between items-center mb-8">
+            <button 
+              onClick={() => setManualUpiMode(false)}
+              className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center"
+            >
+              <ChevronLeft className="h-6 w-6 text-white" />
+            </button>
+            <p className="text-white font-medium">Manual UPI Entry</p>
+            <div className="w-10"></div>
+          </div>
+          
+          <div className="flex-1 flex flex-col items-center justify-center p-6">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md">
+              <h2 className="font-bold text-lg mb-4">Enter UPI ID</h2>
+              <Input
+                value={manualUpiInput}
+                onChange={(e) => setManualUpiInput(e.target.value)}
+                placeholder="username@provider"
+                className="mb-4"
+              />
+              <Button 
+                onClick={handleManualUpiSubmit}
+                className="w-full bg-primary"
+              >
+                Verify & Proceed
+              </Button>
+              
+              <div className="mt-4 text-sm text-gray-500">
+                <p>Examples:</p>
+                <ul className="list-disc ml-5 mt-2">
+                  <li>merchant@yesbank</li>
+                  <li>myshop@okaxis</li>
+                  <li>businessname@okicici</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Warning Dialog - Medium Risk */}
       <Dialog open={showWarning} onOpenChange={setShowWarning}>
