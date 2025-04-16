@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertScamReportSchema, insertUserSchema } from "@shared/schema";
+import { insertScamReportSchema, insertUserSchema, insertPaymentMethodSchema } from "@shared/schema";
 import { generateOtp, verifyOtp } from "./services/otp";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -123,8 +123,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash the PIN for security
       const hashedPin = await hashPassword(pin);
       
-      // Update user's PIN in a real app with proper database
-      // For now, we'll just respond with success
+      // Update user's PIN
+      const updatedUser = await storage.updateUser(parseInt(userId), {
+        pin: hashedPin,
+        usePin: true
+      });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: 'Failed to update user' });
+      }
       
       res.status(200).json({
         message: 'PIN setup successful'
@@ -150,8 +157,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'User not found' });
       }
       
-      // Update biometric settings in a real app with proper database
-      // For now, we'll just respond with success
+      // Update biometric settings
+      const updatedUser = await storage.updateUser(parseInt(userId), {
+        useBiometric: enable === true,
+        deviceId: deviceId || user.deviceId
+      });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: 'Failed to update user' });
+      }
       
       res.status(200).json({
         message: enable ? 'Biometric authentication enabled' : 'Biometric authentication disabled'
@@ -245,6 +259,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json(transactions);
     } catch (error) {
       res.status(500).json({ message: 'Error fetching transactions', error });
+    }
+  });
+  
+  // User profile routes
+  app.get('/api/users/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const user = await storage.getUser(parseInt(userId));
+      
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Exclude sensitive information
+      const { password, pin, ...safeUser } = user;
+      
+      res.status(200).json(safeUser);
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching user data', error });
+    }
+  });
+  
+  app.patch('/api/users/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const updates = req.body;
+      
+      // Never allow password updates through this endpoint for security
+      if (updates.password) {
+        delete updates.password;
+      }
+      
+      const updatedUser = await storage.updateUser(parseInt(userId), updates);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Exclude sensitive information
+      const { password, pin, ...safeUser } = updatedUser;
+      
+      res.status(200).json(safeUser);
+    } catch (error) {
+      res.status(500).json({ message: 'Error updating user data', error });
+    }
+  });
+  
+  // Payment method routes
+  app.get('/api/payment-methods/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const methods = await storage.getPaymentMethodsByUserId(parseInt(userId));
+      
+      // Mask sensitive data for extra security
+      const maskedMethods = methods.map(method => {
+        // Only return last 4 digits for card numbers and account numbers
+        return {
+          ...method,
+          cardNumber: method.cardNumber ? `xxxx-xxxx-xxxx-${method.cardNumber}` : null,
+          accountNumber: method.accountNumber ? `xxxx-xxxx-${method.accountNumber}` : null
+        };
+      });
+      
+      res.status(200).json(maskedMethods);
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching payment methods', error });
+    }
+  });
+  
+  app.post('/api/payment-methods', async (req, res) => {
+    try {
+      const methodData = insertPaymentMethodSchema.parse(req.body);
+      const method = await storage.createPaymentMethod(methodData);
+      
+      // Mask sensitive data for response
+      const { cardNumber, accountNumber, ...safeMethod } = method;
+      const maskedMethod = {
+        ...safeMethod,
+        cardNumber: cardNumber ? `xxxx-xxxx-xxxx-${cardNumber}` : null,
+        accountNumber: accountNumber ? `xxxx-xxxx-${accountNumber}` : null
+      };
+      
+      res.status(201).json(maskedMethod);
+    } catch (error) {
+      res.status(400).json({ message: 'Invalid payment method data', error });
+    }
+  });
+  
+  app.patch('/api/payment-methods/:methodId', async (req, res) => {
+    try {
+      const { methodId } = req.params;
+      const updates = req.body;
+      
+      const updatedMethod = await storage.updatePaymentMethod(parseInt(methodId), updates);
+      
+      if (!updatedMethod) {
+        return res.status(404).json({ message: 'Payment method not found' });
+      }
+      
+      // Mask sensitive data for response
+      const { cardNumber, accountNumber, ...safeMethod } = updatedMethod;
+      const maskedMethod = {
+        ...safeMethod,
+        cardNumber: cardNumber ? `xxxx-xxxx-xxxx-${cardNumber}` : null,
+        accountNumber: accountNumber ? `xxxx-xxxx-${accountNumber}` : null
+      };
+      
+      res.status(200).json(maskedMethod);
+    } catch (error) {
+      res.status(500).json({ message: 'Error updating payment method', error });
+    }
+  });
+  
+  app.delete('/api/payment-methods/:methodId', async (req, res) => {
+    try {
+      const { methodId } = req.params;
+      const success = await storage.deletePaymentMethod(parseInt(methodId));
+      
+      if (!success) {
+        return res.status(404).json({ message: 'Payment method not found' });
+      }
+      
+      res.status(200).json({ message: 'Payment method deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ message: 'Error deleting payment method', error });
+    }
+  });
+  
+  app.post('/api/payment-methods/:userId/set-default/:methodId', async (req, res) => {
+    try {
+      const { userId, methodId } = req.params;
+      const success = await storage.setDefaultPaymentMethod(parseInt(userId), parseInt(methodId));
+      
+      if (!success) {
+        return res.status(404).json({ message: 'User or payment method not found' });
+      }
+      
+      res.status(200).json({ message: 'Default payment method updated successfully' });
+    } catch (error) {
+      res.status(500).json({ message: 'Error updating default payment method', error });
     }
   });
 
