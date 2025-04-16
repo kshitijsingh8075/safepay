@@ -3,7 +3,8 @@ import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Store, AlertCircle } from 'lucide-react';
+import { Store, AlertCircle, Shield, AlertTriangle } from 'lucide-react';
+import { detectAdvancedFraud } from '@/lib/fraud-detection';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -47,12 +48,36 @@ export default function Payment() {
   const [upiId, setUpiId] = useState('citysupermarket@upi');
   const [merchant, setMerchant] = useState('City Supermarket');
   const [isLoading, setIsLoading] = useState(false);
+  const [securityCheckPassed, setSecurityCheckPassed] = useState(false);
+  const [warningShown, setWarningShown] = useState(false);
+  const [showRecheckDialog, setShowRecheckDialog] = useState(false);
+  const [recheckLoading, setRecheckLoading] = useState(false);
+  const [recheckResult, setRecheckResult] = useState<{
+    prediction: boolean;
+    confidence: number;
+  } | null>(null);
   const { toast } = useToast();
   
-  // Get UPI ID from URL parameters
+  // Get UPI ID and security info from URL parameters
   useEffect(() => {
     const params = new URLSearchParams(location.split('?')[1]);
     const urlUpiId = params.get('upiId');
+    const securityCheck = params.get('securityCheck');
+    const riskWarning = params.get('riskWarningShown');
+    
+    if (securityCheck === 'passed') {
+      setSecurityCheckPassed(true);
+    }
+    
+    if (riskWarning === 'true') {
+      setWarningShown(true);
+      
+      toast({
+        title: "Warning Acknowledged",
+        description: "You're proceeding despite security warnings. Please be extra cautious.",
+        variant: "destructive",
+      });
+    }
     
     if (urlUpiId) {
       setUpiId(urlUpiId);
@@ -70,7 +95,7 @@ export default function Payment() {
         setMerchant(formattedName);
       }
     }
-  }, [location]);
+  }, [location, toast]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow numbers and one decimal point
@@ -90,7 +115,41 @@ export default function Payment() {
     setAmount(value);
   };
 
-  const handlePayment = () => {
+  // Function to handle advanced security recheck based on amount
+  const handleSecurityRecheck = async () => {
+    setRecheckLoading(true);
+    setShowRecheckDialog(true);
+    
+    try {
+      // Call ML fraud detection service with actual amount
+      const mlAnalysis = await detectAdvancedFraud(upiId, parseFloat(amount));
+      
+      setRecheckResult({
+        prediction: mlAnalysis.prediction,
+        confidence: mlAnalysis.confidence
+      });
+      
+      // If transaction is flagged as fraud by ML
+      if (mlAnalysis.prediction) {
+        toast({
+          title: "High Fraud Risk Detected",
+          description: `Our AI has flagged this transaction as suspicious with ${(mlAnalysis.confidence * 100).toFixed(0)}% confidence.`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error during security recheck:', error);
+      toast({
+        title: "Security Check Failed",
+        description: "We couldn't complete the advanced security check. Proceed with caution.",
+        variant: "destructive",
+      });
+    } finally {
+      setRecheckLoading(false);
+    }
+  };
+
+  const handlePayment = async () => {
     setIsLoading(true);
     
     // Check if amount is valid
@@ -102,6 +161,29 @@ export default function Payment() {
       });
       setIsLoading(false);
       return;
+    }
+    
+    // If amount is large (>1000) and no security check or warning was shown,
+    // suggest a security recheck for maximum protection
+    if (parseFloat(amount) > 1000 && !securityCheckPassed && !warningShown && !recheckResult) {
+      toast({
+        title: "Large Transaction Detected",
+        description: "For transactions over ₹1000, we recommend an additional security check.",
+        variant: "default",
+      });
+      handleSecurityRecheck();
+      setIsLoading(false);
+      return;
+    }
+    
+    // If a recheck was performed and it detected fraud, warn again
+    if (recheckResult && recheckResult.prediction) {
+      if (window.confirm("This transaction has been flagged as potentially fraudulent. Are you absolutely sure you want to proceed?")) {
+        // Continue with payment despite warning
+      } else {
+        setIsLoading(false);
+        return;
+      }
     }
     
     try {

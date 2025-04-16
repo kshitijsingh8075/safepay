@@ -1,31 +1,43 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { QRScanner } from '@/components/scanner/qr-scanner';
-import { analyzeUpiRisk, shouldBlockTransaction, shouldShowWarning } from '@/lib/fraud-detection';
-import { AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react';
+import { 
+  analyzeUpiRisk, 
+  shouldBlockTransaction, 
+  shouldShowWarning,
+  detectAdvancedFraud,
+  FraudDetectionResponse
+} from '@/lib/fraud-detection';
+import { AlertTriangle, AlertCircle, CheckCircle, Shield, AlertOctagon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Progress } from '@/components/ui/progress';
 
 export default function Scan() {
   const [, setLocation] = useLocation();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [showBlocked, setShowBlocked] = useState(false);
+  const [showMlAnalysis, setShowMlAnalysis] = useState(false);
   const [scannedUpiId, setScannedUpiId] = useState('');
+  const [analysisProgress, setAnalysisProgress] = useState(0);
   const [riskDetails, setRiskDetails] = useState<{
     percentage: number;
     level: string;
     reports: number;
   } | null>(null);
+  const [mlRiskDetails, setMlRiskDetails] = useState<FraudDetectionResponse | null>(null);
   const { toast } = useToast();
 
   const handleScan = async (upiId: string) => {
     setScannedUpiId(upiId);
     setIsAnalyzing(true);
+    setAnalysisProgress(10);
     
     try {
-      // Analyze the UPI ID for risk
+      // Step 1: Initial UPI risk analysis
+      setAnalysisProgress(30);
       const riskAnalysis = await analyzeUpiRisk(upiId);
       
       // Store risk details
@@ -35,29 +47,45 @@ export default function Scan() {
         reports: riskAnalysis.reports
       });
       
-      // Determine what to do based on risk level
-      if (shouldBlockTransaction(riskAnalysis.riskPercentage)) {
-        // High risk - show blocking screen
+      // Step 2: Advanced ML-based fraud detection
+      setAnalysisProgress(50);
+      setShowMlAnalysis(true);
+      
+      // Use a default test amount for analysis (will be changed by user later)
+      const testAmount = 500; 
+      
+      // Call our ML-powered fraud detection service
+      const mlAnalysis = await detectAdvancedFraud(upiId, testAmount);
+      setMlRiskDetails(mlAnalysis);
+      setAnalysisProgress(100);
+      
+      // Determine what to do based on risk assessment
+      // Priority to ML result if available, otherwise fall back to basic risk analysis
+      if (mlAnalysis.prediction) {
+        // ML model predicts this is likely fraud
         setShowBlocked(true);
-      } else if (shouldShowWarning(riskAnalysis.riskPercentage)) {
+      } else if (shouldBlockTransaction(riskAnalysis.riskPercentage)) {
+        // High risk from basic analysis - show blocking screen
+        setShowBlocked(true);
+      } else if (shouldShowWarning(riskAnalysis.riskPercentage) || mlAnalysis.confidence > 0.3) {
         // Medium risk - show warning
         setShowWarning(true);
       } else {
         // Low risk - proceed to payment
         toast({
           title: "Safe UPI ID",
-          description: "This appears to be a legitimate UPI ID.",
+          description: "Our AI has verified this appears to be a legitimate UPI ID.",
           variant: "default",
         });
         setTimeout(() => {
-          setLocation(`/payment?upiId=${encodeURIComponent(upiId)}`);
+          setLocation(`/payment?upiId=${encodeURIComponent(upiId)}&securityCheck=passed`);
         }, 1000);
       }
     } catch (error) {
       console.error('Error analyzing UPI:', error);
       toast({
         title: "Error",
-        description: "Could not analyze UPI safety. Proceed with caution.",
+        description: "Could not complete security analysis. Proceed with caution.",
         variant: "destructive",
       });
       setTimeout(() => {
@@ -65,6 +93,7 @@ export default function Scan() {
       }, 1500);
     } finally {
       setIsAnalyzing(false);
+      setShowMlAnalysis(false);
     }
   };
 
@@ -75,19 +104,25 @@ export default function Scan() {
   const handleProceedAnyway = () => {
     // User chose to continue despite warning
     setShowWarning(false);
-    setLocation(`/payment?upiId=${encodeURIComponent(scannedUpiId)}`);
+    
+    // Add a risk flag to indicate the user ignored warnings
+    setLocation(`/payment?upiId=${encodeURIComponent(scannedUpiId)}&riskWarningShown=true`);
   };
 
   const handleReportScam = () => {
     // User chose to report the blocked UPI
     setShowBlocked(false);
-    setLocation(`/report-scam?upiId=${encodeURIComponent(scannedUpiId)}`);
+    
+    // Include ML risk confidence in the report if available
+    const mlConfidence = mlRiskDetails ? `&mlConfidence=${mlRiskDetails.confidence}` : '';
+    setLocation(`/report-scam?upiId=${encodeURIComponent(scannedUpiId)}${mlConfidence}`);
   };
 
   const handleCancel = () => {
     // User chose to cancel the transaction
     setShowWarning(false);
     setShowBlocked(false);
+    setShowMlAnalysis(false);
     setLocation('/home');
   };
 
@@ -141,6 +176,53 @@ export default function Scan() {
               Report Scam
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* ML Analysis Dialog */}
+      <Dialog open={showMlAnalysis} onOpenChange={setShowMlAnalysis}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogTitle className="flex items-center text-primary">
+            <Shield className="mr-2 h-5 w-5" />
+            Advanced Security Check
+          </DialogTitle>
+          <DialogDescription>
+            <div className="flex flex-col space-y-4">
+              <p>Our AI is analyzing this transaction for potential fraud...</p>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Progress</span>
+                  <span>{analysisProgress}%</span>
+                </div>
+                <Progress value={analysisProgress} className="h-2" />
+              </div>
+              
+              {mlRiskDetails && (
+                <div className="mt-4 space-y-2 bg-gray-50 p-3 rounded-md">
+                  <h4 className="font-medium">AI Analysis Results:</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>Transaction Frequency:</div>
+                    <div className="font-medium">{mlRiskDetails.live_data.tx_frequency}/day</div>
+                    
+                    <div>Recent Reports:</div>
+                    <div className="font-medium">{mlRiskDetails.live_data.recent_reports}</div>
+                    
+                    <div>Average Amount:</div>
+                    <div className="font-medium">₹{mlRiskDetails.live_data.avg_amount.toFixed(2)}</div>
+                    
+                    <div>Confidence Score:</div>
+                    <div className="font-medium">{(mlRiskDetails.confidence * 100).toFixed(1)}%</div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center justify-center text-amber-500">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span>Please wait while we complete the security check...</span>
+              </div>
+            </div>
+          </DialogDescription>
         </DialogContent>
       </Dialog>
     </>
