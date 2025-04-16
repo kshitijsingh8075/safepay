@@ -279,4 +279,78 @@ export async function transcribeAudio(audioBuffer: Buffer) {
   }
 }
 
+/**
+ * Analyze WhatsApp messages for potential scam indicators
+ * @param imageBase64 Base64 encoded image of WhatsApp screenshot (optional)
+ * @param description Text description of message content (optional)
+ * @returns Analysis results with scam detection
+ */
+export async function analyzeWhatsAppMessage(imageBase64: string | null, description: string) {
+  try {
+    // Prepare messages array
+    const messages: any[] = [
+      {
+        role: "system",
+        content: "You are an expert in detecting fraudulent messages, scams, and phishing attempts in WhatsApp messages. Analyze the provided content and identify if it's likely to be a scam. Consider common patterns like urgency, threats, suspicious links, requests for money or personal information, grammatical errors, impersonation, and unusual offers. Return your analysis as structured JSON with fields: is_scam (boolean), confidence (number between 0-1), scam_type (string, if is_scam is true), and scam_indicators (array of strings describing the warning signs, if is_scam is true). Return json format output."
+      }
+    ];
+
+    // Build the prompt based on available inputs
+    let userContent = "Please analyze this WhatsApp message for potential scams or fraud. Return the results in JSON format.\n\n";
+    
+    if (description) {
+      userContent += `Message content: "${description}"\n\n`;
+    }
+    
+    // If image is provided, add it as content
+    if (imageBase64) {
+      messages.push({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: userContent + "I've also included a screenshot of the WhatsApp message."
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:image/jpeg;base64,${imageBase64}`
+            }
+          }
+        ]
+      });
+    } else {
+      // Text-only analysis
+      messages.push({
+        role: "user",
+        content: userContent
+      });
+    }
+    
+    const response = await openai.chat.completions.create({
+      model: GPT_MODEL, // Using the global model constant
+      messages: messages,
+      response_format: { type: "json_object" },
+    });
+
+    const result = safeJsonParse(response.choices[0].message.content);
+    
+    return result || {
+      is_scam: false,
+      confidence: 0.5,
+      scam_type: null,
+      scam_indicators: []
+    };
+  } catch (error) {
+    console.error("OpenAI API error:", error);
+    // Return a default response in case of error
+    return {
+      is_scam: false,
+      confidence: 0.5,
+      scam_type: "Unknown",
+      scam_indicators: ["Analysis failed due to technical error"]
+    };
+  }
+}
+
 export default openai;
