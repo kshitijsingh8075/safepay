@@ -261,7 +261,7 @@ export function registerUpiCheckRoutes(app: Express): void {
         category: reports.length > 0 ? await storage.getMostCommonScamType(upiId) : undefined,
         
         // Get recommendations based on status
-        recommendations: getRecommendations(result.status)
+        recommendations: getRecommendations(result.status as 'SAFE' | 'SUSPICIOUS' | 'SCAM')
       };
       
       res.json(enhancedResult);
