@@ -59,22 +59,54 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
       const track = tracks[0];
       const newFlashState = !flashOn;
       
-      await track.applyConstraints({
-        advanced: [{ torch: newFlashState }]
-      });
-      
-      setFlashOn(newFlashState);
+      try {
+        // @ts-ignore - 'torch' is not in the TypeScript definitions but works in supported browsers
+        await track.applyConstraints({
+          advanced: [{ torch: newFlashState }]
+        });
+        
+        setFlashOn(newFlashState);
+      } catch (error) {
+        console.error('Error toggling flash:', error);
+      }
     }
   };
   
-  // Simulate a scan for demo purposes
-  // In a real app, we would use a QR scanning library
-  const simulateScan = () => {
-    // This would be where the QR code detection would happen
-    // For demo, just return a dummy UPI ID after 3 seconds
+  // QR code detection function
+  const detectQRCode = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    if (!context) return;
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw current video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // In a real app, we would use a QR code scanning library here
+    // For example, using jsQR or a similar library to detect QR codes
+    
+    // For this demo, we'll simulate scanning with a timeout
+    // Normally, this would be a continuous scanning process
     setTimeout(() => {
-      onScan('citysupermarket@upi');
+      // Simulate finding UPI ID in the QR code
+      // In production, this would be extracted from the QR code
+      const detectedUpiId = 'citysupermarket@upi';
+      
+      // Once detected, send to parent component
+      onScan(detectedUpiId);
     }, 3000);
+  };
+  
+  // Start QR detection when video plays
+  const handleVideoPlay = () => {
+    detectQRCode();
   };
 
   return (
@@ -112,7 +144,7 @@ export function QRScanner({ onScan, onClose, className }: QRScannerProps) {
           playsInline 
           muted 
           className="absolute inset-0 w-full h-full object-cover"
-          onPlay={simulateScan}
+          onPlay={handleVideoPlay}
         />
         
         {/* Scan overlay */}

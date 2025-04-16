@@ -1,14 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Store } from 'lucide-react';
+import { Store, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+
+// For deep linking to payment apps
+function openPaymentApp(app: string, upiId: string, amount: string, note: string) {
+  const amountInRupees = parseFloat(amount);
+  const amountInPaise = Math.round(amountInRupees * 100);
+  
+  let url = '';
+  
+  switch(app.toLowerCase()) {
+    case 'gpay':
+      url = `tez://upi/pay?pa=${upiId}&am=${amountInRupees}&pn=Payment&tn=${encodeURIComponent(note)}`;
+      break;
+    case 'phonepe':
+      url = `phonepe://pay?pa=${upiId}&am=${amountInRupees}&pn=Payment&tn=${encodeURIComponent(note)}`;
+      break;
+    case 'paytm':
+      url = `paytmmp://pay?pa=${upiId}&am=${amountInRupees}&pn=Payment&tn=${encodeURIComponent(note)}`;
+      break;
+    default:
+      // Default UPI intent
+      url = `upi://pay?pa=${upiId}&am=${amountInRupees}&pn=Payment&tn=${encodeURIComponent(note)}`;
+  }
+  
+  // Open the URL
+  window.open(url, '_blank');
+  
+  // Fallback if deep linking fails
+  setTimeout(() => {
+    // If we're still here, the app may not be installed or deep linking failed
+    // We could show a fallback or open the web version
+    console.log('Deep linking may have failed, providing fallback...');
+  }, 1000);
+}
 
 export default function Payment() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [amount, setAmount] = useState('850.00');
   const [note, setNote] = useState('');
+  const [upiId, setUpiId] = useState('citysupermarket@upi');
+  const [merchant, setMerchant] = useState('City Supermarket');
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  
+  // Get UPI ID from URL parameters
+  useEffect(() => {
+    const params = new URLSearchParams(location.split('?')[1]);
+    const urlUpiId = params.get('upiId');
+    
+    if (urlUpiId) {
+      setUpiId(urlUpiId);
+      
+      // Extract merchant name from UPI ID (e.g., merchantname@upi)
+      const merchantFromUpi = urlUpiId.split('@')[0];
+      if (merchantFromUpi) {
+        // Convert camelCase or snake_case to Title Case with spaces
+        const formattedName = merchantFromUpi
+          .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+          .replace(/_/g, ' ') // Replace underscores with spaces
+          .replace(/^\w/, c => c.toUpperCase()) // Capitalize first letter
+          .trim(); // Remove leading/trailing spaces
+          
+        setMerchant(formattedName);
+      }
+    }
+  }, [location]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow numbers and one decimal point
@@ -29,8 +91,44 @@ export default function Payment() {
   };
 
   const handlePayment = () => {
-    // In a real app, we would process the payment
-    setLocation('/success');
+    setIsLoading(true);
+    
+    // Check if amount is valid
+    if (!amount || parseFloat(amount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount greater than 0.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      // In a real app, we would process the payment through UPI deep linking
+      // For demo purposes, we'll simulate success after a delay
+      
+      // Get user's preferred payment app (could be stored in settings)
+      // Default to generic UPI intent which will let user choose
+      const preferredApp = localStorage.getItem('preferredPaymentApp') || 'upi';
+      
+      // Try to open the payment app with deep linking
+      openPaymentApp(preferredApp, upiId, amount, note || 'Payment');
+      
+      // Show success after a brief delay (simulate payment completion)
+      setTimeout(() => {
+        setLocation('/success');
+        setIsLoading(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Failed",
+        description: "There was an error processing your payment. Please try again.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -65,8 +163,8 @@ export default function Payment() {
             <Store className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold">City Supermarket</h3>
-            <p className="text-xs text-gray-500">citysupermarket@upi</p>
+            <h3 className="font-semibold">{merchant}</h3>
+            <p className="text-xs text-gray-500">{upiId}</p>
           </div>
         </div>
         
@@ -99,8 +197,16 @@ export default function Payment() {
       <Button
         onClick={handlePayment}
         className="bg-primary text-white font-semibold py-4 px-6 rounded-xl shadow-md w-full"
+        disabled={isLoading}
       >
-        Pay Now
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          "Pay Now"
+        )}
       </Button>
     </div>
   );
