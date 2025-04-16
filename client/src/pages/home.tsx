@@ -231,15 +231,8 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Scan QR button */}
-        <div className="flex justify-center mt-4">
-          <Button 
-            onClick={() => setLocation('/scan')}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-full px-12 py-3"
-          >
-            Scan QR
-          </Button>
-        </div>
+        {/* Space for bottom nav - removed Scan QR button */}
+        <div className="h-16"></div>
       </div>
       
       {/* Bottom Navigation */}

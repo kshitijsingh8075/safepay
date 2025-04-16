@@ -26,11 +26,11 @@ export function BottomNav({ className }: BottomNavProps) {
       active: location === '/fraud-heatmap'
     },
     {
-      name: 'Report',
-      path: '/report-scam',
+      name: 'Scan QR',
+      path: '/scan',
       icon: PlusCircle,
       primary: true,
-      active: location === '/report-scam'
+      active: location === '/scan'
     },
     { 
       name: 'Activity', 
