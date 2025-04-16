@@ -1,0 +1,388 @@
+1. System Architecture
+mermaid
+Copy
+graph TD
+    A[Frontend] --> B{History Icon Click}
+    B --> C[API Request]
+    C --> D[Backend Server]
+    D --> E[(SQLite Database)]
+    D --> F[External API Integration]
+    E --> G[Transaction Data]
+    F --> G
+    G --> H[Risk Analysis]
+    H --> I[UI Display]
+2. Database Design
+2.1 SQLite Schema (transactions.db)
+
+sql
+Copy
+CREATE TABLE payment_history (
+    id INTEGER PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    transaction_id TEXT UNIQUE,
+    app_name TEXT CHECK(app_name IN ('PhonePe', 'GPay', 'Paytm', 'Other')),
+    amount REAL NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status TEXT CHECK(status IN ('Success', 'Failed', 'Pending')),
+    risk_score REAL CHECK(risk_score BETWEEN 0 AND 1),
+    receiver_upi TEXT,
+    metadata TEXT,
+    is_sample BOOLEAN DEFAULT 0
+);
+
+CREATE INDEX idx_user ON payment_history(user_id);
+CREATE INDEX idx_timestamp ON payment_history(timestamp DESC);
+2.2 Sample Data Insertion
+
+python
+Copy
+def initialize_sample_data(user_id='default_user'):
+    sample_transactions = [
+        {
+            'transaction_id': f'SAMPLE_{uuid.uuid4()}',
+            'app_name': 'PhonePe',
+            'amount': 150.0,
+            'status': 'Success',
+            'risk_score': 0.2,
+            'receiver_upi': 'sample@ybl',
+            'metadata': '{"type":"mobile_recharge"}',
+            'is_sample': 1
+        },
+        {
+            'transaction_id': f'SAMPLE_{uuid.uuid4()}',
+            'app_name': 'GPay',
+            'amount': 2500.0,
+            'status': 'Failed',
+            'risk_score': 0.7,
+            'receiver_upi': 'risky@okaxis',
+            'metadata': '{"type":"merchant_payment"}',
+            'is_sample': 1
+        }
+    ]
+    
+    with sqlite3.connect('transactions.db') as conn:
+        conn.executemany('''
+            INSERT INTO payment_history 
+            (user_id, transaction_id, app_name, amount, status, risk_score, receiver_upi, metadata, is_sample)
+            VALUES (?,?,?,?,?,?,?,?,?)
+        ''', [(user_id, *tx.values()) for tx in sample_transactions])
+3. Backend Implementation
+3.1 Flask API Endpoints
+
+python
+Copy
+from flask import Flask, jsonify, request
+import sqlite3
+import hashlib
+
+app = Flask(_name_)
+
+def get_user_id():
+    """Get authenticated user ID (simplified for example)"""
+    return hashlib.sha256(request.remote_addr.encode()).hexdigest()
+
+@app.route('/payment-history', methods=['GET'])
+def get_payment_history():
+    user_id = get_user_id()
+    show_samples = True
+    
+    with sqlite3.connect('transactions.db') as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Check for real transactions
+        real_tx_count = cursor.execute(
+            'SELECT COUNT(*) FROM payment_history WHERE user_id=? AND is_sample=0',
+            (user_id,)
+        ).fetchone()[0]
+        
+        # Get transactions
+        query = '''
+            SELECT * FROM payment_history 
+            WHERE user_id=? 
+            AND (is_sample=0 OR ?=1)
+            ORDER BY timestamp DESC
+        '''
+        transactions = cursor.execute(query, (user_id, real_tx_count == 0)).fetchall()
+    
+    return jsonify([dict(tx) for tx in transactions])
+
+@app.route('/add-transaction', methods=['POST'])
+def add_transaction():
+    # Implementation for real transaction addition
+    pass
+4. Frontend Implementation
+4.1 History Icon Component (history.html)
+
+html
+Copy
+<div class="history-container">
+  <div class="history-header">
+    <h2><i class="fas fa-history"></i> Payment History</h2>
+    <div class="risk-summary">
+      <div class="risk-meter">
+        <div class="fill" :style="riskMeterStyle"></div>
+      </div>
+      <span class="risk-score">{{ overallRisk }}</span>
+    </div>
+  </div>
+
+  <div v-if="loading" class="loading">
+    <i class="fas fa-spinner fa-spin"></i> Loading transactions...
+  </div>
+
+  <div v-else>
+    <div v-if="transactions.length === 0" class="no-data">
+      No transaction history available
+    </div>
+
+    <div class="transaction-list">
+      <div v-for="tx in transactions" 
+           :class="['transaction-card', riskClass(tx.risk_score)]">
+        <div class="app-icon">
+          <img :src="/icons/${tx.app_name.toLowerCase()}.png">
+        </div>
+        <div class="tx-details">
+          <h3>{{ tx.app_name }}</h3>
+          <p class="amount">₹{{ tx.amount.toFixed(2) }}</p>
+          <p class="receiver">To: {{ tx.receiver_upi }}</p>
+          <div class="tx-meta">
+            <span class="status">{{ tx.status }}</span>
+            <span class="time">{{ formatDate(tx.timestamp) }}</span>
+          </div>
+        </div>
+        <div class="risk-indicator">
+          Risk: {{ (tx.risk_score * 100).toFixed(0) }}%
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+Run HTML
+4.2 Vue.js Controller (history.js)
+
+javascript
+Copy
+new Vue({
+  el: '#history-container',
+  data: {
+    transactions: [],
+    loading: true,
+    overallRisk: 0
+  },
+  computed: {
+    riskMeterStyle() {
+      return { width: ${this.overallRisk}% };
+    }
+  },
+  methods: {
+    async fetchHistory() {
+      try {
+        const response = await fetch('/payment-history');
+        const data = await response.json();
+        
+        this.transactions = data.filter(tx => !tx.is_sample);
+        this.overallRisk = this.calculateOverallRisk();
+        
+      } catch (error) {
+        console.error('Error fetching history:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    calculateOverallRisk() {
+      if (this.transactions.length === 0) return 0;
+      return (this.transactions.reduce((sum, tx) => sum + tx.risk_score, 0) /
+             this.transactions.length) * 100;
+    },
+    riskClass(score) {
+      return score > 0.7 ? 'high-risk' : score > 0.4 ? 'medium-risk' : 'low-risk';
+    },
+    formatDate(timestamp) {
+      return new Date(timestamp).toLocaleString();
+    }
+  },
+  mounted() {
+    this.fetchHistory();
+  }
+});
+5. Security Implementation
+5.1 Data Encryption
+
+python
+Copy
+from cryptography.fernet import Fernet
+
+class DataEncryptor:
+    def _init_(self):
+        self.key = Fernet.generate_key()
+        self.cipher = Fernet(self.key)
+    
+    def encrypt_transaction(self, tx_data):
+        return {
+            'transaction_id': self.cipher.encrypt(tx_data['transaction_id'].encode()).decode(),
+            'receiver_upi': self.cipher.encrypt(tx_data['receiver_upi'].encode()).decode(),
+            'metadata': self.cipher.encrypt(tx_data['metadata'].encode()).decode()
+        }
+    
+    def decrypt_transaction(self, encrypted_tx):
+        return {
+            'transaction_id': self.cipher.decrypt(encrypted_tx['transaction_id'].encode()).decode(),
+            'receiver_upi': self.cipher.decrypt(encrypted_tx['receiver_upi'].encode()).decode(),
+            'metadata': self.cipher.decrypt(encrypted_tx['metadata'].encode()).decode()
+        }
+5.2 Authentication Middleware
+
+python
+Copy
+from functools import wraps
+
+def auth_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth_token = request.headers.get('Authorization')
+        if not validate_token(auth_token):
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+6. Sample Data Handling
+6.1 Conditional Sample Display
+
+python
+Copy
+# Modified query in /payment-history endpoint
+query = '''
+    SELECT * FROM payment_history 
+    WHERE user_id=? 
+    AND (is_sample=0 OR 
+        (is_sample=1 AND NOT EXISTS (
+            SELECT 1 FROM payment_history 
+            WHERE user_id=? AND is_sample=0
+        ))
+    ORDER BY timestamp DESC
+'''
+6.2 Auto-Purge Sample Data
+
+python
+Copy
+def purge_samples(user_id):
+    with sqlite3.connect('transactions.db') as conn:
+        conn.execute('''
+            DELETE FROM payment_history 
+            WHERE user_id=? AND is_sample=1
+        ''', (user_id,))
+7. Replit Configuration
+7.1 .replit File
+
+bash
+Copy
+[run]
+command = "python app.py && cd frontend && npm run serve"
+
+[packages]
+python3 = ">=3.9"
+flask = "*"
+cryptography = "*"
+
+[env]
+FLASK_ENV = "development"
+SECRET_KEY = "your_secret_key_here"
+7.2 Required Dependencies
+
+bash
+Copy
+# Frontend
+npm install vue axios font-awesome
+8. Testing Protocol
+8.1 Test Cases
+
+Fresh Installation
+
+Verify sample data appears
+
+Confirm "No real transactions" message
+
+Real Transaction Addition
+
+Add transaction via /add-transaction
+
+Verify samples disappear
+
+Mixed Data Scenario
+
+Add real transaction
+
+Verify only real data shows
+
+Security Tests
+
+Verify encrypted fields
+
+Test unauthorized access
+
+8.2 Sample Data Preview
+
+json
+Copy
+[
+  {
+    "app_name": "PhonePe",
+    "amount": 150.00,
+    "status": "Success",
+    "risk_score": 0.2,
+    "receiver_upi": "sample@ybl",
+    "timestamp": "2023-08-20 14:30:00"
+  },
+  {
+    "app_name": "GPay",
+    "amount": 2500.00,
+    "status": "Failed",
+    "risk_score": 0.7,
+    "receiver_upi": "risky@okaxis",
+    "timestamp": "2023-08-19 09:15:00"
+  }
+]
+9. Implementation Roadmap
+Database Setup
+
+Create SQLite schema
+
+Initialize sample data
+
+Backend Development
+
+Implement API endpoints
+
+Add encryption middleware
+
+Frontend Integration
+
+Build history UI components
+
+Add risk visualization
+
+Security Implementation
+
+Configure authentication
+
+Setup data encryption
+
+Testing & Deployment
+
+Validate all test cases
+
+Deploy to Replit
+
+Final System Features:
+
+📜 Unified payment history from multiple apps
+
+🔍 Real-time risk analysis
+
+🔒 Military-grade encryption
+
+📊 Interactive visualization
+
+🧩 Automatic sample data management
+
+📱 Mobile-responsive design

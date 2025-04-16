@@ -1,275 +1,319 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { Search, ArrowLeft, ReceiptText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Card, 
+  CardContent,
+} from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { History as HistoryIcon, AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react';
 
-// Sample fallback transaction data (will only be used if localStorage is empty)
-const sampleTransactionHistory = [
-  {
-    id: '1',
-    title: 'City Supermarket',
-    upiId: 'citysupermarket@upi',
-    amount: -850,
-    timestamp: new Date('2023-05-15T11:30:00').toISOString(),
-    status: 'Completed',
-    type: 'debit',
-    app: 'UPI App'
-  }
-];
-
+// Transaction interface based on the database schema
 interface Transaction {
-  id: string;
-  title: string;
-  upiId: string;
+  id: number;
+  transaction_id: string;
+  app_name: 'PhonePe' | 'GPay' | 'Paytm' | 'Other';
   amount: number;
   timestamp: string;
-  status: string;
-  type: 'credit' | 'debit';
-  app?: string;
+  status: 'Success' | 'Failed' | 'Pending';
+  risk_score: number;
+  receiver_upi: string;
+  metadata?: string;
+  is_sample?: boolean;
 }
 
 export default function History() {
-  const [, setLocation] = useLocation();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  
-  // Load transaction history from localStorage
+  const [loading, setLoading] = useState(true);
+  const [overallRisk, setOverallRisk] = useState(0);
+  const [activeTab, setActiveTab] = useState('all');
+
+  // Fetch transaction history
   useEffect(() => {
-    try {
-      const historyString = localStorage.getItem('transactionHistory');
-      if (historyString) {
-        const parsedHistory = JSON.parse(historyString);
-        // Ensure type is correct by explicitly mapping
-        const typedTransactions = parsedHistory.map((tx: any) => ({
-          ...tx,
-          type: tx.type === 'credit' || tx.type === 'debit' ? tx.type : 'debit'
-        })) as Transaction[];
-        setTransactions(typedTransactions);
-      } else {
-        // If no history in localStorage, use sample data
-        setTransactions(sampleTransactionHistory as Transaction[]);
+    const fetchHistory = async () => {
+      try {
+        setLoading(true);
+        
+        // For demo purposes using sample data
+        // In production, this would be an API call to the backend
+        setTimeout(() => {
+          const sampleTransactions: Transaction[] = [
+            {
+              id: 1,
+              transaction_id: 'TX123456789',
+              app_name: 'PhonePe',
+              amount: 150.0,
+              status: 'Success',
+              risk_score: 0.2,
+              receiver_upi: 'merchant@ybl',
+              timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+              metadata: JSON.stringify({ type: 'mobile_recharge' })
+            },
+            {
+              id: 2,
+              transaction_id: 'TX987654321',
+              app_name: 'GPay',
+              amount: 2500.0,
+              status: 'Success',
+              risk_score: 0.1,
+              receiver_upi: 'shop@okaxis',
+              timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+              metadata: JSON.stringify({ type: 'merchant_payment' })
+            },
+            {
+              id: 3,
+              transaction_id: 'TX567891234',
+              app_name: 'Paytm',
+              amount: 750.0,
+              status: 'Failed',
+              risk_score: 0.7,
+              receiver_upi: 'suspicious@okicici',
+              timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+              metadata: JSON.stringify({ type: 'merchant_payment', error: 'suspicious_activity' })
+            },
+            {
+              id: 4,
+              transaction_id: 'TX135792468',
+              app_name: 'PhonePe',
+              amount: 1200.0,
+              status: 'Success',
+              risk_score: 0.3,
+              receiver_upi: 'store@paytm',
+              timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+              metadata: JSON.stringify({ type: 'bill_payment' })
+            },
+            {
+              id: 5,
+              transaction_id: 'TX246813579',
+              app_name: 'GPay',
+              amount: 300.0,
+              status: 'Pending',
+              risk_score: 0.4,
+              receiver_upi: 'friend@okaxis',
+              timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
+              metadata: JSON.stringify({ type: 'p2p_transfer' })
+            }
+          ];
+          
+          setTransactions(sampleTransactions);
+          
+          // Calculate overall risk score
+          const avgRisk = sampleTransactions.reduce((sum, tx) => sum + tx.risk_score, 0) / 
+                         sampleTransactions.length;
+          setOverallRisk(avgRisk * 100);
+          
+          setLoading(false);
+        }, 1000);
+      } catch (error) {
+        console.error('Error fetching history:', error);
+        toast({
+          title: 'Error',
+          description: 'Could not load transaction history',
+          variant: 'destructive',
+        });
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading transaction history:', error);
-      // Fallback to sample data on error
-      setTransactions(sampleTransactionHistory as Transaction[]);
+    };
+    
+    fetchHistory();
+  }, [toast]);
+  
+  // Filter transactions based on active tab
+  const filteredTransactions = transactions.filter(tx => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'high-risk') return tx.risk_score > 0.6;
+    if (activeTab === 'medium-risk') return tx.risk_score > 0.3 && tx.risk_score <= 0.6;
+    if (activeTab === 'low-risk') return tx.risk_score <= 0.3;
+    return true;
+  });
+  
+  // Format date for display
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+  
+  // Determine risk class for styling
+  const getRiskClass = (score: number) => {
+    if (score > 0.6) return 'high-risk';
+    if (score > 0.3) return 'medium-risk';
+    return 'low-risk';
+  };
+  
+  // Get risk indicator color
+  const getRiskColor = (score: number) => {
+    if (score > 0.6) return 'text-red-500';
+    if (score > 0.3) return 'text-amber-500';
+    return 'text-green-500';
+  };
+  
+  // Get risk indicator icon
+  const getRiskIcon = (score: number) => {
+    if (score > 0.6) return <AlertCircle className="h-4 w-4 text-red-500" />;
+    if (score > 0.3) return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+    return <CheckCircle className="h-4 w-4 text-green-500" />;
+  };
+  
+  // Get app logo/icon
+  const getAppIcon = (appName: string) => {
+    switch (appName) {
+      case 'PhonePe':
+        return (
+          <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center">
+            <span className="text-xs font-bold text-purple-700">PP</span>
+          </div>
+        );
+      case 'GPay':
+        return (
+          <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+            <span className="text-xs font-bold text-blue-700">GP</span>
+          </div>
+        );
+      case 'Paytm':
+        return (
+          <div className="w-9 h-9 rounded-full bg-cyan-100 flex items-center justify-center">
+            <span className="text-xs font-bold text-cyan-700">PT</span>
+          </div>
+        );
+      default:
+        return (
+          <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+            <span className="text-xs font-bold text-gray-700">UPI</span>
+          </div>
+        );
     }
-  }, []);
-
-  // Filter transactions based on search query
-  const filteredTransactions = transactions.filter(tx => 
-    tx.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.upiId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.app?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleTransactionClick = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
   };
-
-  const handleBackToList = () => {
-    setSelectedTransaction(null);
-  };
-
-  // Transaction detail view
-  if (selectedTransaction) {
-    return (
-      <div className="flex flex-col px-6 py-8">
-        <div className="flex items-center mb-6">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleBackToList}
-            className="p-2 mr-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Transaction Details</h1>
+  
+  return (
+    <div className="container px-4 py-6 max-w-md mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <HistoryIcon className="h-6 w-6 text-primary mr-2" />
+          <h1 className="text-xl font-semibold">Payment History</h1>
         </div>
         
-        <Card className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 w-full mb-8">
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 rounded-full bg-[#F5F6FA] flex items-center justify-center">
-              <ReceiptText className="w-8 h-8 text-primary" />
+        <div className="flex items-center">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">Risk Level</span>
+            <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full ${
+                  overallRisk > 60 ? 'bg-red-500' : 
+                  overallRisk > 30 ? 'bg-amber-500' : 'bg-green-500'
+                }`}
+                style={{ width: `${Math.min(100, overallRisk)}%` }}
+              ></div>
             </div>
           </div>
-          
-          <div className="text-center mb-6">
-            <p className={`text-2xl font-bold ${selectedTransaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {selectedTransaction.amount > 0 ? '+ ' : '- '}
-              ₹{Math.abs(selectedTransaction.amount).toFixed(2)}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {selectedTransaction.type === 'credit' ? 'Received from' : 'Paid to'} {selectedTransaction.title}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              {new Date(selectedTransaction.timestamp).toLocaleString('en-US', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-              })}
-            </p>
-          </div>
-          
-          <div className="border-t border-gray-100 pt-4">
-            <div className="flex justify-between py-2">
-              <p className="text-gray-500">Status</p>
-              <p className="font-medium text-green-600">{selectedTransaction.status}</p>
-            </div>
-            <div className="flex justify-between py-2">
-              <p className="text-gray-500">Transaction ID</p>
-              <p className="font-medium text-sm">{selectedTransaction.id}</p>
-            </div>
-            <div className="flex justify-between py-2">
-              <p className="text-gray-500">UPI ID</p>
-              <p className="font-medium text-sm">{selectedTransaction.upiId}</p>
-            </div>
-            {selectedTransaction.app && (
-              <div className="flex justify-between py-2">
-                <p className="text-gray-500">Payment App</p>
-                <p className="font-medium">{selectedTransaction.app}</p>
+        </div>
+      </div>
+      
+      <Tabs 
+        defaultValue="all" 
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="mb-6"
+      >
+        <TabsList className="grid grid-cols-4 mb-4">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="high-risk" className="text-red-500">High Risk</TabsTrigger>
+          <TabsTrigger value="medium-risk" className="text-amber-500">Medium</TabsTrigger>
+          <TabsTrigger value="low-risk" className="text-green-500">Low Risk</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all" className="mt-0">
+          {renderTransactionList()}
+        </TabsContent>
+        <TabsContent value="high-risk" className="mt-0">
+          {renderTransactionList()}
+        </TabsContent>
+        <TabsContent value="medium-risk" className="mt-0">
+          {renderTransactionList()}
+        </TabsContent>
+        <TabsContent value="low-risk" className="mt-0">
+          {renderTransactionList()}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+  
+  function renderTransactionList() {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-500">Loading transaction history...</p>
+        </div>
+      );
+    }
+    
+    if (filteredTransactions.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <HistoryIcon className="h-12 w-12 text-gray-300 mb-2" />
+          <p className="text-gray-500">No transactions found</p>
+          <p className="text-sm text-gray-400 mt-1">Your transaction history will appear here</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-4">
+        {filteredTransactions.map((tx) => (
+          <Card 
+            key={tx.id}
+            className={`overflow-hidden border-l-4 ${
+              tx.risk_score > 0.6 ? 'border-l-red-500' : 
+              tx.risk_score > 0.3 ? 'border-l-amber-500' : 'border-l-green-500'
+            }`}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 mr-3">
+                  {getAppIcon(tx.app_name)}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium truncate">{tx.receiver_upi}</p>
+                      <p className="text-sm text-gray-500">{formatDate(tx.timestamp)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold">₹{tx.amount.toFixed(2)}</p>
+                      <p className={`text-xs ${
+                        tx.status === 'Success' ? 'text-green-500' : 
+                        tx.status === 'Failed' ? 'text-red-500' : 'text-amber-500'
+                      }`}>
+                        {tx.status}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+                    <div className="flex items-center text-xs">
+                      <span className="mr-1">{tx.app_name}</span>
+                      <span className="text-gray-400">• {tx.transaction_id.slice(-6)}</span>
+                    </div>
+                    
+                    <div className={`flex items-center text-xs ${getRiskColor(tx.risk_score)}`}>
+                      {getRiskIcon(tx.risk_score)}
+                      <span className="ml-1">Risk: {Math.round(tx.risk_score * 100)}%</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        </Card>
-        
-        <Button
-          variant="outline"
-          className="w-full mb-4"
-          onClick={() => {
-            if (navigator.share) {
-              navigator.share({
-                title: 'Transaction Receipt',
-                text: `${selectedTransaction.type === 'credit' ? 'Received' : 'Paid'} ₹${Math.abs(selectedTransaction.amount).toFixed(2)} ${selectedTransaction.type === 'credit' ? 'from' : 'to'} ${selectedTransaction.title} (${selectedTransaction.upiId}). Transaction ID: ${selectedTransaction.id}`
-              });
-            } else {
-              alert('Share functionality not supported on this browser');
-            }
-          }}
-        >
-          Share Receipt
-        </Button>
-        
-        <Button
-          variant="default"
-          className="w-full bg-primary"
-          onClick={() => setLocation('/home')}
-        >
-          Done
-        </Button>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     );
   }
-
-  // Transaction list view
-  return (
-    <div className="flex flex-col px-6 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">Transaction History</h1>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => setLocation('/home')}
-          className="p-2"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-      </div>
-      
-      <div className="bg-[#F5F6FA] rounded-xl px-4 py-3 flex items-center mb-6">
-        <Search className="w-5 h-5 text-gray-500 mr-2" />
-        <Input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 bg-transparent border-none focus:ring-0"
-          placeholder="Search transactions"
-        />
-      </div>
-      
-      {filteredTransactions.length === 0 ? (
-        <div className="text-center text-gray-500 py-8">
-          <p>No transactions found</p>
-          {searchQuery && (
-            <Button 
-              variant="link" 
-              onClick={() => setSearchQuery('')}
-              className="mt-2"
-            >
-              Clear search
-            </Button>
-          )}
-        </div>
-      ) : (
-        filteredTransactions.map(transaction => (
-          <Card 
-            key={transaction.id}
-            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-3 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => handleTransactionClick(transaction)}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center">
-                <div className={`w-10 h-10 rounded-full ${transaction.amount > 0 ? 'bg-green-50' : 'bg-[#F5F6FA]'} flex items-center justify-center mr-3`}>
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    strokeWidth={1.5} 
-                    stroke="currentColor" 
-                    className={`w-5 h-5 ${transaction.amount > 0 ? 'text-green-600' : 'text-primary'}`}
-                  >
-                    {transaction.type === 'credit' ? (
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" 
-                      />
-                    ) : (
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" 
-                      />
-                    )}
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-medium">{transaction.title}</h4>
-                  <p className="text-xs text-gray-500">{transaction.upiId}</p>
-                </div>
-              </div>
-              <p className={`font-semibold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {transaction.amount > 0 ? '+ ' : '- '}₹{Math.abs(transaction.amount).toFixed(2)}
-              </p>
-            </div>
-            <div className="flex justify-between items-center">
-              <p className="text-xs text-gray-500">
-                {new Date(transaction.timestamp).toLocaleDateString('en-US', {
-                  day: 'numeric',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                })}
-              </p>
-              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                transaction.status === 'Completed' ? 'text-green-600 bg-green-50' : 
-                transaction.status === 'Failed' ? 'text-red-600 bg-red-50' :
-                'text-amber-600 bg-amber-50'
-              }`}>
-                {transaction.status}
-              </span>
-            </div>
-          </Card>
-        ))
-      )}
-    </div>
-  );
 }

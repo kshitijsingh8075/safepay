@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { 
-  Home, Map, PlusCircle, MessageCircle, User
+  Home, Map, PlusCircle, History, User
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -33,9 +33,9 @@ export function BottomNav({ className }: BottomNavProps) {
       active: location === '/scan'
     },
     { 
-      name: 'Chat Support', 
+      name: 'History', 
       path: '/history', 
-      icon: MessageCircle,
+      icon: History,
       active: location === '/history'
     },
     { 
