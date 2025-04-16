@@ -72,6 +72,26 @@ export const paymentMethods = pgTable("payment_methods", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Chat messages
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  role: text("role").notNull(), // 'user', 'assistant', 'system'
+  content: text("content").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  metadata: text("metadata"),
+});
+
+// Chat feedback
+export const chatFeedbacks = pgTable("chat_feedbacks", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  messageId: integer("message_id").references(() => chatMessages.id),
+  rating: integer("rating"), // 1-5 star rating
+  feedback: text("feedback"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -96,6 +116,16 @@ export const insertScamReportSchema = createInsertSchema(scamReports).omit({
 export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit({
   id: true,
   createdAt: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertChatFeedbackSchema = createInsertSchema(chatFeedbacks).omit({
+  id: true,
+  timestamp: true,
 });
 
 // Export types
