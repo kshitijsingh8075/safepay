@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
-import { QRScanner } from '@/components/scanner/qr-scanner';
+import { EnhancedQRScanner } from '@/components/scanner/enhanced-qr-scanner';
 import { 
   analyzeUpiRisk, 
   shouldBlockTransaction, 
@@ -151,7 +151,7 @@ export default function Scan() {
     <>
       {!manualUpiMode ? (
         <>
-          <QRScanner 
+          <EnhancedQRScanner 
             onScan={handleScan}
             onClose={handleClose}
           />
