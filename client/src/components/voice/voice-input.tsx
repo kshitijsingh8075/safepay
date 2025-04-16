@@ -101,7 +101,7 @@ export function VoiceInput() {
         toast({
           title: 'Medium Risk Detected',
           description: `Please verify this command carefully`,
-          variant: 'default',
+          variant: 'warning',
         });
       } else {
         toast({

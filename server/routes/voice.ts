@@ -1,12 +1,6 @@
 import { Express, Request, Response } from 'express';
 import { processVoiceCommand, analyzeCommandRisk, sanitizeVoiceCommand, createVoiceSession, getVoiceSession } from '../services/voice-processing';
-
-/**
- * Generate a unique session ID for voice processing
- */
-function generateSessionId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-}
+import { generateSessionId } from '../utils';
 
 /**
  * Register voice processing routes to the Express server
