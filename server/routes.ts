@@ -8,6 +8,7 @@ import { getScamNews } from "./services/scam-news-fixed";
 import { registerScamNewsRoutes } from "./routes/scam-news";
 import { registerTestOpenAIRoute } from "./routes/test-openai";
 import { registerUpiCheckRoutes } from "./routes/upi-check";
+import { registerVoiceCheckRoutes } from "./routes/voice-check";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
@@ -608,6 +609,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register UPI Check routes
   registerUpiCheckRoutes(app);
+  
+  // Register Voice Check routes
+  registerVoiceCheckRoutes(app);
   
   const httpServer = createServer(app);
   return httpServer;

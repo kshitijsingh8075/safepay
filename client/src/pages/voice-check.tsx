@@ -1,181 +1,282 @@
-import React, { useState, useRef } from 'react';
-import { useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import React, { useState, useRef, useEffect } from 'react';
 import { VoiceWave } from '@/components/ui/voice-wave';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Mic, MicOff, AlertTriangle, ShieldCheck, Shield, AlarmClock } from 'lucide-react';
 import { formatTime } from '@/lib/utils';
-import { VoiceAnalysisResult, analyzeVoiceForScam } from '@/lib/scam-detection';
+import { processVoiceCommand, VoiceCommandResult } from '@/lib/scam-detection';
+import { Progress } from '@/components/ui/progress';
 
-export default function VoiceCheck() {
-  const [, setLocation] = useLocation();
+const VoiceCheck: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [result, setResult] = useState<VoiceAnalysisResult | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [transcript, setTranscript] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<VoiceCommandResult | null>(null);
+  
+  // SpeechRecognition setup
+  const recognition = useRef<SpeechRecognition | null>(null);
+  const recordingTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
+  useEffect(() => {
+    // Initialize speech recognition
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition.current = new SpeechRecognition();
+      recognition.current.continuous = true;
+      recognition.current.interimResults = true;
+      recognition.current.lang = 'en-US';
+
+      recognition.current.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join(' ');
+        setTranscript(transcript);
+      };
+
+      recognition.current.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        stopRecording();
+      };
+
+      recognition.current.onend = () => {
+        if (isRecording) {
+          recognition.current?.start();
+        }
+      };
     } else {
-      startRecording();
+      console.error('Speech recognition not supported in this browser');
     }
-  };
+
+    return () => {
+      stopRecording();
+    };
+  }, []);
 
   const startRecording = () => {
+    if (!recognition.current) {
+      alert('Speech recognition is not supported in your browser.');
+      return;
+    }
+
     setIsRecording(true);
+    setTranscript('');
+    setAnalysisResult(null);
+    setRecordingTime(0);
     
-    // Start timer
-    timerRef.current = setInterval(() => {
-      setRecordingTime(prev => prev + 1);
+    recognition.current.start();
+    
+    // Setup timer to track recording duration
+    recordingTimer.current = setInterval(() => {
+      setRecordingTime(time => time + 1);
     }, 1000);
-    
-    // Simulate recording for 5 seconds
-    setTimeout(() => {
-      stopRecording();
-    }, 5000);
   };
 
   const stopRecording = () => {
-    setIsRecording(false);
-    
-    // Clear timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+    if (isRecording) {
+      recognition.current?.stop();
+      setIsRecording(false);
+      
+      if (recordingTimer.current) {
+        clearInterval(recordingTimer.current);
+        recordingTimer.current = null;
+      }
     }
-    
-    // Process the recording (in a real app, this would process actual audio)
-    const transcript = "Hello, I'm calling from your bank. We've detected suspicious activity on your account. To secure your account, we need your UPI PIN immediately...";
-    
-    // Analyze the transcript for scam indicators
-    const analysisResult = analyzeVoiceForScam(transcript);
-    setResult(analysisResult);
   };
 
-  const reportCall = () => {
-    setLocation('/report-scam');
+  const analyzeVoice = async () => {
+    if (!transcript.trim()) {
+      alert('Please record a voice message first');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      const result = await processVoiceCommand(transcript);
+      setAnalysisResult(result);
+    } catch (error) {
+      console.error('Error analyzing voice:', error);
+      alert('Failed to analyze voice input. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getRiskLevel = (score?: number): 'low' | 'medium' | 'high' => {
+    if (!score) return 'low';
+    if (score < 0.3) return 'low';
+    if (score < 0.7) return 'medium';
+    return 'high';
+  };
+
+  const getRiskColor = (level: 'low' | 'medium' | 'high'): string => {
+    switch (level) {
+      case 'low': return 'bg-green-500';
+      case 'medium': return 'bg-yellow-500';
+      case 'high': return 'bg-red-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getRiskIcon = (level: 'low' | 'medium' | 'high') => {
+    switch (level) {
+      case 'low': return <ShieldCheck className="w-6 h-6 text-green-500" />;
+      case 'medium': return <Shield className="w-6 h-6 text-yellow-500" />;
+      case 'high': return <AlertTriangle className="w-6 h-6 text-red-500" />;
+      default: return null;
+    }
   };
 
   return (
-    <div className="flex flex-col px-6 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <button
-          onClick={() => setLocation('/home')}
-          className="w-10 h-10 bg-[#F5F6FA] rounded-full flex items-center justify-center"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-6 h-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15.75 19.5L8.25 12l7.5-7.5"
-            />
-          </svg>
-        </button>
-        <h1 className="text-xl font-bold">Voice Scam Check</h1>
-        <div className="w-10"></div>
-      </div>
+    <div className="container mx-auto py-6 max-w-md">
+      <h1 className="text-2xl font-bold mb-6 text-center">Voice Fraud Detection</h1>
       
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <p className="text-gray-500 text-center mb-8">
-          Record a call or conversation to check if it's a scam
-        </p>
-        
-        <button
-          onClick={toggleRecording}
-          className={`w-20 h-20 ${isRecording ? 'bg-error' : 'bg-primary'} rounded-full flex items-center justify-center mb-8`}
-        >
-          {isRecording ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-10 h-10 text-white"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5.25 7.5A2.25 2.25 0 017.5 5.25h9a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25h-9a2.25 2.25 0 01-2.25-2.25v-9z"
-              />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-10 h-10 text-white"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
-              />
-            </svg>
-          )}
-        </button>
-        
-        <VoiceWave isRecording={isRecording} />
-        
-        {isRecording && (
-          <p className="text-primary font-medium mb-12">
-            Recording... {formatTime(recordingTime)}
-          </p>
-        )}
-        
-        {result && (
-          <Card className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 w-full mb-6">
-            <h3 className="text-xl font-bold text-error mb-4 text-center">
-              High Risk - Suspicious Call
-            </h3>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Record Voice</CardTitle>
+          <CardDescription>Speak clearly to analyze for potential scams</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center">
+            <VoiceWave isRecording={isRecording} />
             
-            <div className="bg-[#F5F6FA] rounded-xl p-4 mb-4">
-              <p className="text-sm mb-2 text-gray-500">Transcript:</p>
-              <p className="text-sm">{result.transcript}</p>
-            </div>
-            
-            <div className="border-t border-gray-100 pt-4">
-              {result.scamIndicators.map((indicator, index) => (
-                <div key={index} className="flex items-start mb-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-5 h-5 text-error mt-0.5 mr-2 flex-shrink-0"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                    />
-                  </svg>
-                  <p className="text-sm">{indicator}</p>
+            <div className="text-center mb-4">
+              {isRecording && (
+                <div className="flex items-center justify-center mb-2">
+                  <AlarmClock className="w-4 h-4 mr-2" />
+                  <span>{formatTime(recordingTime)}</span>
                 </div>
-              ))}
+              )}
+              
+              <div className="flex space-x-4">
+                {!isRecording ? (
+                  <Button 
+                    onClick={startRecording}
+                    className="flex items-center"
+                  >
+                    <Mic className="w-4 h-4 mr-2" />
+                    Start Recording
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={stopRecording}
+                    variant="destructive"
+                    className="flex items-center"
+                  >
+                    <MicOff className="w-4 h-4 mr-2" />
+                    Stop Recording
+                  </Button>
+                )}
+                
+                <Button 
+                  onClick={analyzeVoice}
+                  disabled={!transcript.trim() || isRecording || isProcessing}
+                >
+                  Analyze Voice
+                </Button>
+              </div>
             </div>
-          </Card>
-        )}
-        
-        {result && (
-          <Button
-            onClick={reportCall}
-            className="bg-primary text-white font-semibold py-4 px-6 rounded-xl shadow-md text-center w-full"
-          >
-            Report This Call
-          </Button>
-        )}
-      </div>
+            
+            {transcript && (
+              <div className="w-full mt-4">
+                <h3 className="font-medium mb-2">Transcript:</h3>
+                <div className="p-3 bg-muted rounded-md text-sm">{transcript}</div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      
+      {isProcessing && (
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <p className="text-center mb-2">Analyzing voice...</p>
+            <Progress value={45} className="mb-2" />
+          </CardContent>
+        </Card>
+      )}
+      
+      {analysisResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Analysis Results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Risk Score */}
+              <div>
+                <h3 className="font-medium mb-2">Risk Assessment</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  {getRiskIcon(getRiskLevel(analysisResult.risk_score))}
+                  <span className="font-semibold">
+                    {getRiskLevel(analysisResult.risk_score) === 'low' ? 'Safe' : 
+                     getRiskLevel(analysisResult.risk_score) === 'medium' ? 'Suspicious' : 'Likely Scam'}
+                  </span>
+                </div>
+                
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                  <div 
+                    className={`h-2.5 rounded-full ${getRiskColor(getRiskLevel(analysisResult.risk_score))}`}
+                    style={{ width: `${(analysisResult.risk_score || 0) * 100}%` }}
+                  ></div>
+                </div>
+                
+                <div className="flex justify-between text-xs">
+                  <span>Safe</span>
+                  <span>Suspicious</span>
+                  <span>Scam</span>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* Detected Intent */}
+              <div>
+                <h3 className="font-medium mb-2">Detected Intent</h3>
+                <p className="capitalize">{analysisResult.action || 'Unknown'}</p>
+              </div>
+              
+              {/* Scam Type if detected */}
+              {analysisResult.is_scam && (
+                <>
+                  <Separator />
+                  <div>
+                    <h3 className="font-medium mb-2">Detected Scam Type</h3>
+                    <p>{analysisResult.fraud_type || 'Unknown scam type'}</p>
+                  </div>
+                </>
+              )}
+              
+              {/* Alert if it's a high risk */}
+              {getRiskLevel(analysisResult.risk_score) === 'high' && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Warning: Potential Fraud Detected</AlertTitle>
+                  <AlertDescription>
+                    This message contains several indicators of a scam. Be extremely cautious and 
+                    never share personal information or financial details.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {getRiskLevel(analysisResult.risk_score) === 'medium' && (
+                <Alert variant="default" className="mt-4 bg-yellow-50 border-yellow-200">
+                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  <AlertTitle>Caution: Suspicious Content</AlertTitle>
+                  <AlertDescription>
+                    This message contains some suspicious elements. Proceed with caution and verify
+                    before taking any action.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
-}
+};
+
+export default VoiceCheck;
