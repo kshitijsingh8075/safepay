@@ -4,7 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Send, 
@@ -137,7 +137,7 @@ export default function ChatSupport() {
       </div>
 
       {/* Messages area */}
-      <ScrollArea ref={scrollRef} className="flex-1 p-4">
+      <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto">
         {isLoading ? (
           // Loading skeletons
           <div className="space-y-4">
@@ -241,7 +241,7 @@ export default function ChatSupport() {
             )}
           </div>
         )}
-      </ScrollArea>
+      </div>
 
       {/* Quick replies */}
       {quickReplies.length > 0 && (
