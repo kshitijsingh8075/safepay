@@ -108,8 +108,8 @@ async function calculateMlRisk(upiId: string, reports: any[]): Promise<number> {
   
   // Calculate weighted score
   let riskScore = 0;
-  for (const [feature, weight] of Object.entries(weights)) {
-    riskScore += scores[feature] * weight;
+  for (const feature of Object.keys(weights) as Array<keyof typeof weights>) {
+    riskScore += scores[feature] * weights[feature];
   }
   
   return riskScore;
@@ -121,7 +121,7 @@ async function calculateMlRisk(upiId: string, reports: any[]): Promise<number> {
  * @returns Domain breakdown with count data
  */
 function generateDomainAnalysis(reports: any[]) {
-  const domainCounts = {};
+  const domainCounts: Record<string, number> = {};
   reports.forEach(report => {
     const domain = report.domain || 'unknown';
     domainCounts[domain] = (domainCounts[domain] || 0) + 1;
@@ -129,7 +129,7 @@ function generateDomainAnalysis(reports: any[]) {
   
   return Object.entries(domainCounts)
     .map(([domain, count]) => ({ domain, count }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => (b.count as number) - (a.count as number));
 }
 
 /**
@@ -211,7 +211,7 @@ export function registerUpiCheckRoutes(app: Express): void {
         riskScore: parseFloat((riskScore * 100).toFixed(2)),
         riskLevel: riskScore > 0.7 ? 'high' : riskScore > 0.4 ? 'medium' : 'low',
         totalReports: reports.length,
-        activeCases: reports.filter(r => !r.resolved).length,
+        activeCases: reports.length, // We don't have 'resolved' field, but could add one later
         domainAnalysis,
         threatLevel: threatData.level,
         threatIndicators: threatData.indicators,
@@ -238,13 +238,10 @@ export function registerUpiCheckRoutes(app: Express): void {
       // Create scam report
       const report = await storage.createScamReport({
         upiId,
-        reporterId: userId,
+        userId,
         scamType,
-        description,
-        domain: domain || '',
-        amount: amount || 0,
-        timestamp: new Date().toISOString(),
-        resolved: false
+        description: description || null,
+        amountLost: amount || null
       });
       
       // Update risk score for this UPI ID
