@@ -613,6 +613,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register Voice Check routes
   registerVoiceCheckRoutes(app);
   
+  // Test route for debugging
+  app.get('/test-page', (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Test Page</title>
+        <style>
+          body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+          }
+          .container {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          h1 {
+            color: #5164BF;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Test Page Working</h1>
+          <p>If you can see this, the server is working correctly!</p>
+          <p>The app is running at: ${new Date().toLocaleString()}</p>
+        </div>
+      </body>
+      </html>
+    `);
+  });
+  
+  // Simple static homepage to bypass Vite/React issues
+  app.get('/', (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>UPI Payment & Scam Detection</title>
+        <style>
+          body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+          }
+          .container {
+            text-align: center;
+            padding: 20px;
+            max-width: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+          }
+          h1 {
+            color: #5164BF;
+            margin-bottom: 20px;
+          }
+          p {
+            margin-bottom: 15px;
+            line-height: 1.5;
+          }
+          .button {
+            display: inline-block;
+            background-color: #5164BF;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            margin-top: 20px;
+          }
+          .button:hover {
+            background-color: #4253a6;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>UPI Payment & Scam Detection</h1>
+          <p>Welcome to our secure UPI payment platform with integrated scam detection!</p>
+          <p>Our AI-powered system analyzes transactions in real-time to protect you from fraud and scams.</p>
+          <p>The application is currently being rebuilt to resolve DNS issues. Please try again later.</p>
+          <a href="/test-page" class="button">View Test Page</a>
+        </div>
+      </body>
+      </html>
+    `);
+  });
+  
   const httpServer = createServer(app);
   return httpServer;
 }
