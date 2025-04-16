@@ -231,18 +231,15 @@ export class MemStorage implements IStorage {
     transactions.forEach(tx => this.createTransaction(tx));
     
     // Add a high-risk UPI ID
-    const riskReport: InsertUpiRiskReport = {
+    const riskId = this.upiRiskIdCounter++;
+    const firstReportDate = new Date(Date.now() - 60 * 86400000); // 60 days ago
+    
+    this.upiRiskReports.set(riskId, {
+      id: riskId,
       upiId: 'onlineshopping123@upi',
       reportCount: 15,
       riskScore: 75,
-      statusVerified: false
-    };
-    
-    const riskId = this.upiRiskIdCounter++;
-    const firstReportDate = new Date(Date.now() - 60 * 86400000); // 60 days ago
-    this.upiRiskReports.set(riskId, {
-      ...riskReport,
-      id: riskId,
+      statusVerified: false,
       firstReportDate
     });
     
@@ -274,7 +271,11 @@ export class MemStorage implements IStorage {
     scamReports.forEach(report => {
       const id = this.scamReportIdCounter++;
       this.scamReports.set(id, {
-        ...report,
+        userId: report.userId,
+        upiId: report.upiId,
+        scamType: report.scamType,
+        amountLost: report.amountLost || null,
+        description: report.description || null,
         id,
         timestamp: new Date(Date.now() - Math.floor(Math.random() * 30) * 86400000) // Random date in last 30 days
       });
