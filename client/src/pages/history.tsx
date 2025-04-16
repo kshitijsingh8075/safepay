@@ -101,7 +101,7 @@ export default function History() {
           <div className="text-center mb-6">
             <p className={`text-2xl font-bold ${selectedTransaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
               {selectedTransaction.amount > 0 ? '+ ' : '- '}
-              ${Math.abs(selectedTransaction.amount).toFixed(2)}
+              ₹{Math.abs(selectedTransaction.amount).toFixed(2)}
             </p>
             <p className="text-sm text-gray-500 mt-1">
               {selectedTransaction.type === 'credit' ? 'Received from' : 'Paid to'} {selectedTransaction.title}
@@ -147,7 +147,7 @@ export default function History() {
             if (navigator.share) {
               navigator.share({
                 title: 'Transaction Receipt',
-                text: `${selectedTransaction.type === 'credit' ? 'Received' : 'Paid'} $${Math.abs(selectedTransaction.amount).toFixed(2)} ${selectedTransaction.type === 'credit' ? 'from' : 'to'} ${selectedTransaction.title} (${selectedTransaction.upiId}). Transaction ID: ${selectedTransaction.id}`
+                text: `${selectedTransaction.type === 'credit' ? 'Received' : 'Paid'} ₹${Math.abs(selectedTransaction.amount).toFixed(2)} ${selectedTransaction.type === 'credit' ? 'from' : 'to'} ${selectedTransaction.title} (${selectedTransaction.upiId}). Transaction ID: ${selectedTransaction.id}`
               });
             } else {
               alert('Share functionality not supported on this browser');
@@ -246,7 +246,7 @@ export default function History() {
                 </div>
               </div>
               <p className={`font-semibold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {transaction.amount > 0 ? '+ ' : '- '}${Math.abs(transaction.amount).toFixed(2)}
+                {transaction.amount > 0 ? '+ ' : '- '}₹{Math.abs(transaction.amount).toFixed(2)}
               </p>
             </div>
             <div className="flex justify-between items-center">
