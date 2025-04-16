@@ -111,6 +111,38 @@ function Router() {
         )}
       </Route>
       
+      <Route path="/profile">
+        {() => (
+          <MainLayout>
+            <Profile />
+          </MainLayout>
+        )}
+      </Route>
+      
+      <Route path="/payment-methods">
+        {() => (
+          <MainLayout>
+            <PaymentMethods />
+          </MainLayout>
+        )}
+      </Route>
+      
+      <Route path="/settings">
+        {() => (
+          <MainLayout>
+            <Settings />
+          </MainLayout>
+        )}
+      </Route>
+      
+      <Route path="/help-support">
+        {() => (
+          <MainLayout>
+            <HelpSupport />
+          </MainLayout>
+        )}
+      </Route>
+      
       <Route path="/fraud-heatmap-basic" component={FraudHeatmapBasic} />
 
       <Route component={NotFound} />

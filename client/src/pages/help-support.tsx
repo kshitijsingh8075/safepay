@@ -110,7 +110,7 @@ export default function HelpSupport() {
               <AccordionTrigger>How do I reset my PIN?</AccordionTrigger>
               <AccordionContent>
                 <p className="text-sm text-gray-600">
-                  To reset your PIN, go to Settings > Security > PIN Login and select "Change PIN". You'll need to verify your identity before setting a new PIN.
+                  To reset your PIN, go to Settings &rarr; Security &rarr; PIN Login and select "Change PIN". You'll need to verify your identity before setting a new PIN.
                 </p>
                 <Button 
                   variant="link" 
@@ -126,7 +126,7 @@ export default function HelpSupport() {
               <AccordionTrigger>How do I add or remove payment methods?</AccordionTrigger>
               <AccordionContent>
                 <p className="text-sm text-gray-600">
-                  You can manage your payment methods by going to Account > Payment Methods. There you can add new payment methods or remove existing ones.
+                  You can manage your payment methods by going to Account {'->'} Payment Methods. There you can add new payment methods or remove existing ones.
                 </p>
                 <Button 
                   variant="link" 

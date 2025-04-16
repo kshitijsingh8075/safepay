@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { 
   ArrowLeft,
   CreditCard, 
-  Bank, 
+  Building2, 
   Wallet,
   Plus,
   Trash2,
@@ -79,7 +79,7 @@ function getPaymentMethodIcon(type: string) {
     case 'card':
       return <CreditCard className="h-5 w-5" />;
     case 'bank_account':
-      return <Bank className="h-5 w-5" />;
+      return <Building2 className="h-5 w-5" />;
     default:
       return <CreditCard className="h-5 w-5" />;
   }
