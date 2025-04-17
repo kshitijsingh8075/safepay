@@ -1,4 +1,17 @@
 /**
+ * Enum for different types of scams
+ */
+export enum ScamType {
+  Banking = "Banking Scam",
+  Lottery = "Lottery Scam",
+  KYC = "KYC Verification Scam",
+  Refund = "Refund Scam",
+  Phishing = "Phishing Attempt",
+  Reward = "Reward Scam",
+  Unknown = "Unknown Scam"
+}
+
+/**
  * Voice analysis result interface
  */
 export interface VoiceAnalysisResult {

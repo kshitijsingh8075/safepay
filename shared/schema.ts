@@ -41,6 +41,7 @@ export const upiRiskReports = pgTable("upi_risk_reports", {
   firstReportDate: timestamp("first_report_date").defaultNow().notNull(),
   riskScore: integer("risk_score").notNull().default(0), // 0-100
   statusVerified: boolean("status_verified").default(false),
+  lastChecked: timestamp("last_checked"),
 });
 
 // Scam reports
