@@ -681,6 +681,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register SIM swap protection routes
   registerSimSwapProtectionRoutes(app);
   
+  // Register ML-powered QR scanner routes
+  registerMLQRScanRoutes(app);
+  
   // No test pages anymore
   
   // Initialize Stripe with error handling
