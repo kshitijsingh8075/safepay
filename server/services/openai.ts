@@ -229,7 +229,36 @@ export async function analyzeVoiceTranscript(transcript: string) {
           role: "system",
           content: `You are an expert at detecting phone scams from transcripts, particularly those targeting Indian consumers.
                     Common scam patterns include impersonating bank officials, government agencies, or creating false urgency.
-                    Identify pressure tactics, threats, requests for personal information or money transfers.`
+                    Identify pressure tactics, threats, requests for personal information or money transfers.
+                    
+                    Known scam types:
+                    1. Banking Scam - Impersonating bank officials, claiming account issues
+                    2. KYC Verification Scam - Claiming KYC needs updating with urgency
+                    3. Refund Scam - Offering fake refunds to collect information
+                    4. Government Impersonation - Pretending to be tax, legal, or police authorities
+                    5. OTP Scam - Trying to get one-time passwords or verification codes
+                    6. Remote Access Scam - Attempting to get remote control of devices
+                    7. UPI PIN Scam - Specifically targeting UPI payment PINs
+                    
+                    Analyze for:
+                    - Urgency/pressure tactics
+                    - Threats (legal, financial, etc.)
+                    - Impersonation of authority
+                    - Requests for sensitive information (PINs, passwords, OTPs)
+                    - Inconsistencies in story
+                    - Emotional manipulation
+                    - Reference to unexpected problems or rewards
+                    
+                    Return JSON with:
+                    - is_scam: Boolean indicating if transcript shows scam patterns
+                    - confidence: Number from 0.0-1.0 indicating confidence level
+                    - scam_type: String indicating the type of scam detected
+                    - scam_indicators: Array of specific red flags found
+                    - emotions: Object with detected emotions (fear, urgency, etc.)
+                    - caller_reputation: Estimation of caller trustworthiness
+                    - caller_intent: Analysis of caller's likely intentions
+                    - recommendation: String with recommended action
+                    `
         },
         {
           role: "user",
@@ -246,7 +275,71 @@ export async function analyzeVoiceTranscript(transcript: string) {
       is_scam: false,
       confidence: 0.5,
       scam_indicators: [],
-      recommendation: "Unable to analyze with AI, proceed with caution"
+      recommendation: "Unable to analyze with AI, proceed with caution",
+      emotions: {
+        urgency: 0,
+        fear: 0,
+        pressure: 0
+      },
+      caller_reputation: "unknown",
+      caller_intent: "unknown"
+    };
+  }
+}
+
+/**
+ * Advanced voice analysis with sentiment, language detection and noise assessment
+ * @param transcript The transcript to analyze
+ * @param detectedLanguage Optional detected language code
+ * @param noiseLevel Optional noise level assessment (0-1)
+ */
+export async function analyzeVoiceAdvanced(transcript: string, detectedLanguage?: string, noiseLevel?: number) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: GPT_MODEL,
+      messages: [
+        {
+          role: "system",
+          content: `You are an advanced voice fraud detection system specializing in UPI payment scams in India.
+                    Analyze the provided transcript and additional audio metadata for scam detection.
+                    
+                    Consider:
+                    1. Linguistic patterns typical of Indian scammers (specific terminology, grammar patterns)
+                    2. Emotional manipulation techniques (urgency, fear, authority)
+                    3. Common UPI/banking scam scripts and deviations
+                    4. Caller identity claims vs behavioral indicators
+                    5. Cultural context of Indian financial systems
+                    
+                    Pay special attention to:
+                    - UPI-specific terminology (PIN, VPA, handle, QR code)
+                    - Bank impersonation patterns
+                    - Government authority claims (RBI, tax departments)
+                    - Attempts to create urgency or fear
+                    - Requests for sensitive information
+                    
+                    Return detailed scam analysis in JSON format with probability scores.`
+        },
+        {
+          role: "user",
+          content: `Analyze this voice call for UPI scam detection:
+                   Transcript: "${transcript}"
+                   ${detectedLanguage ? `Detected language: ${detectedLanguage}` : ''}
+                   ${noiseLevel !== undefined ? `Background noise level: ${noiseLevel}` : ''}
+                   
+                   Please provide comprehensive analysis of scam likelihood.`
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+    
+    return safeJsonParse(response.choices[0].message.content);
+  } catch (error) {
+    console.error("OpenAI API error during advanced voice analysis:", error);
+    return {
+      is_scam: false,
+      confidence: 0.5,
+      scam_indicators: [],
+      recommendation: "Error in advanced voice analysis, please use caution"
     };
   }
 }

@@ -1,7 +1,45 @@
 import { Express, Request } from 'express';
 import { storage } from '../storage';
-import { analyzeVoiceTranscript } from '../services/openai';
+import { analyzeVoiceTranscript, analyzeVoiceAdvanced, transcribeAudio } from '../services/openai';
 import { ScamType } from '../../shared/schema';
+import multer from 'multer';
+import { v4 as uuidv4 } from 'uuid';
+
+// Since langdetect is challenging to type, create a simple mock for now
+// In a production app, we would fully implement the langdetect functionality
+const mockLanguageDetect = (text: string): { lang: string; prob: number }[] => {
+  // Very simple language detection mock
+  const hindiPattern = /[ा-ू]/;
+  const bengaliPattern = /[অ-ৰ]/;
+  
+  if (hindiPattern.test(text)) {
+    return [{ lang: 'hi', prob: 0.85 }];
+  } else if (bengaliPattern.test(text)) {
+    return [{ lang: 'bn', prob: 0.82 }];
+  }
+  
+  return [{ lang: 'en', prob: 0.95 }];
+};
+
+// Mock the langdetect library
+const detect = mockLanguageDetect;
+
+// Setup multer for audio file uploads
+const memStorage = multer.memoryStorage();
+const upload = multer({
+  storage: memStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for audio files
+  },
+  fileFilter: (_req, file, cb) => {
+    // Accept only audio files
+    if (file.mimetype.startsWith('audio/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only audio files are allowed'));
+    }
+  }
+});
 
 /**
  * Helper function to map a string scam type to the ScamType enum
@@ -44,6 +82,101 @@ interface ScamAnalysis {
  * @param app Express application
  */
 export function registerVoiceCheckRoutes(app: Express): void {
+  /**
+   * Process audio file for advanced analysis
+   */
+  app.post('/api/process-audio', upload.single('audio'), async (req: Request, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Audio file is required'
+        });
+      }
+      
+      // Get the audio buffer from the uploaded file
+      const audioBuffer = req.file.buffer;
+      
+      // Transcribe the audio using OpenAI's Whisper
+      console.log('Transcribing audio...');
+      const transcript = await transcribeAudio(audioBuffer);
+      
+      if (!transcript) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Failed to transcribe audio'
+        });
+      }
+      
+      // Detect language (mock implementation since we didn't install langdetect)
+      let detectedLanguage = 'en';
+      try {
+        // In a real implementation, we would use a proper language detection library
+        // detectedLanguage = detect(transcript)[0].lang;
+        // This is just a mock implementation
+        if (transcript.match(/[ा-ू]/)) {
+          detectedLanguage = 'hi'; // Hindi
+        } else if (transcript.match(/[অ-ৰ]/)) {
+          detectedLanguage = 'bn'; // Bengali
+        }
+      } catch (error) {
+        console.error('Language detection failed:', error);
+      }
+      
+      // Simulate noise level detection (in a real implementation, we would analyze the audio)
+      const noiseLevel = 0.2; // Mock value between 0-1
+      
+      // Perform advanced analysis using OpenAI
+      console.log('Performing advanced analysis...');
+      const advancedAnalysis = await analyzeVoiceAdvanced(transcript, detectedLanguage, noiseLevel);
+      
+      // Map scam type to our enum
+      const scamType = mapToScamType(advancedAnalysis.scam_type);
+      
+      // Log the analysis for scam detection
+      const userId = req.body.userId ? parseInt(req.body.userId) : undefined;
+      if (userId) {
+        try {
+          await storage.saveChatMessage(userId, {
+            role: 'user',
+            content: `Audio analysis: "${transcript}"`
+          });
+          
+          const responseContent = `Analysis: ${advancedAnalysis.is_scam ? 'SCAM DETECTED' : 'No scam detected'}
+            Confidence: ${Math.round((advancedAnalysis.confidence || 0) * 100)}%
+            ${advancedAnalysis.scam_indicators?.length ? 'Warning signs: ' + advancedAnalysis.scam_indicators.join(', ') : ''}
+            ${advancedAnalysis.recommendation ? 'Recommendation: ' + advancedAnalysis.recommendation : ''}`;
+            
+          await storage.saveChatMessage(userId, {
+            role: 'assistant',
+            content: responseContent
+          });
+        } catch (err) {
+          console.error('Error saving audio analysis to chat:', err);
+        }
+      }
+      
+      // Return the analysis results
+      res.json({
+        status: 'success',
+        transcript,
+        language: detectedLanguage,
+        noise_level: noiseLevel,
+        analysis: {
+          ...advancedAnalysis,
+          scam_type: scamType
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error processing audio:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to process audio file'
+      });
+    }
+  });
+  
   /**
    * Process voice command for fraud detection
    */

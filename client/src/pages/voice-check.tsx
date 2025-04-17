@@ -1,28 +1,44 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { VoiceWave } from '@/components/ui/voice-wave';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Mic, MicOff, AlertTriangle, ShieldCheck, Shield, AlarmClock, ArrowLeft, Volume2, Ban, Info } from 'lucide-react';
-import { formatTime } from '@/lib/utils';
+import { 
+  Mic, MicOff, AlertTriangle, ShieldCheck, Shield, AlarmClock, ArrowLeft, 
+  Volume2, Ban, Info, FileAudio, Save, Phone, Languages, Activity,
+  Eye, EyeOff, Gauge, Database, MessageSquare, Headphones, User, FileWarning,
+  UserCheck, Check, X, BookOpen, ChevronDown, ChevronUp, BarChart, Calculator
+} from 'lucide-react';
+import { formatTime, cn } from '@/lib/utils';
 import { processVoiceCommand, VoiceCommandResult, ScamType } from '@/lib/scam-detection';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 /**
- * Voice Scam Detection for UPI Transactions
- * Captures voice during UPI calls and provides real-time scam analysis
+ * Advanced Voice Scam Detection for UPI Transactions
+ * Captures voice during calls and provides comprehensive AI-powered analysis
+ * Uses speech analytics, real-time transcription, and scam pattern detection
  */
 const VoiceCheck: React.FC = () => {
+  // Recording states
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<VoiceCommandResult | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [advancedAnalysisResults, setAdvancedAnalysisResults] = useState<any>(null);
+  
+  // UI states
   const [showTranscript, setShowTranscript] = useState(false);
   const [showDetectedKeywords, setShowDetectedKeywords] = useState(false);
+  const [activeTab, setActiveTab] = useState('record'); // 'record' or 'upload'
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   
   // Audio recording setup
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -283,6 +299,111 @@ const VoiceCheck: React.FC = () => {
     return result;
   };
 
+  // Handle file upload
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['audio/wav', 'audio/mp3', 'audio/mpeg', 'audio/ogg'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please select a valid audio file (WAV, MP3 or OGG)');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size exceeds 5MB limit. Please select a smaller file.');
+      return;
+    }
+    
+    setUploadedFile(file);
+  };
+  
+  // Process uploaded audio file
+  const processAudioFile = async () => {
+    if (!uploadedFile) {
+      alert('Please select an audio file to analyze');
+      return;
+    }
+    
+    setIsProcessing(true);
+    setUploadProgress(0);
+    setIsUploading(true);
+    setAnalysisResult(null);
+    setAdvancedAnalysisResults(null);
+    
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('audio', uploadedFile);
+      
+      // Upload file with progress tracking
+      const xhr = new XMLHttpRequest();
+      
+      // Track upload progress
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percentComplete);
+        }
+      });
+      
+      // Promise wrapper for XHR request
+      const uploadPromise = new Promise<any>((resolve, reject) => {
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            reject({
+              status: xhr.status,
+              statusText: xhr.statusText
+            });
+          }
+        };
+        xhr.onerror = () => reject({
+          status: xhr.status,
+          statusText: xhr.statusText
+        });
+      });
+      
+      // Send the request
+      xhr.open('POST', '/api/process-audio', true);
+      xhr.send(formData);
+      
+      // Wait for upload and processing to complete
+      const response = await uploadPromise;
+      
+      if (response.status === 'success') {
+        // Set transcript from the analysis
+        setTranscript(response.transcript);
+        
+        // Store full analysis results
+        setAdvancedAnalysisResults(response.analysis);
+        
+        // Convert to format compatible with our UI
+        const analysisResult: VoiceCommandResult = {
+          command: response.transcript,
+          action: 'analyze',
+          risk_score: response.analysis.confidence || 0,
+          fraud_type: response.analysis.scam_type,
+          is_scam: response.analysis.is_scam
+        };
+        
+        setAnalysisResult(analysisResult);
+        setShowTranscript(true);
+      } else {
+        throw new Error('Failed to process audio file');
+      }
+    } catch (error) {
+      console.error('Error processing audio file:', error);
+      alert('Failed to process audio file. Please try again later.');
+    } finally {
+      setIsProcessing(false);
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col p-4 max-w-md mx-auto">
       {/* Header with back button */}
@@ -306,64 +427,172 @@ const VoiceCheck: React.FC = () => {
       {/* Main content */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Volume2 className="w-5 h-5" />
-            Real-time Voice Analysis
-          </CardTitle>
-          <CardDescription>
-            Record the suspicious call to check for scam indicators
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center space-y-6">
-          {/* Recording status */}
-          <div className="w-full flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              {isRecording && (
+          <Tabs defaultValue="record" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2 mb-2">
+              <TabsTrigger value="record" className="flex items-center gap-1">
+                <Mic className="w-4 h-4" />
+                <span>Record</span>
+              </TabsTrigger>
+              <TabsTrigger value="upload" className="flex items-center gap-1">
+                <FileAudio className="w-4 h-4" />
+                <span>Upload</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <CardTitle className="flex items-center gap-2 mt-4">
+              {activeTab === 'record' ? (
                 <>
-                  <span className="inline-block w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-                  <span className="text-sm font-medium">Recording...</span>
+                  <Volume2 className="w-5 h-5" />
+                  Real-time Voice Analysis
+                </>
+              ) : (
+                <>
+                  <FileAudio className="w-5 h-5" />
+                  Analyze Audio Recording
                 </>
               )}
-            </div>
-            {recordingTime > 0 && (
-              <div className="flex items-center gap-1">
-                <AlarmClock className="w-4 h-4" />
-                <span className="text-sm">{formatTime(recordingTime)}</span>
+            </CardTitle>
+            <CardDescription>
+              {activeTab === 'record' 
+                ? "Record the suspicious call to check for scam indicators"
+                : "Upload a call recording for comprehensive AI analysis"}
+            </CardDescription>
+          </Tabs>
+        </CardHeader>
+        
+        <CardContent className="flex flex-col items-center space-y-6">
+          {activeTab === 'record' ? (
+            <>
+              {/* Recording status */}
+              <div className="w-full flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  {isRecording && (
+                    <>
+                      <span className="inline-block w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                      <span className="text-sm font-medium">Recording...</span>
+                    </>
+                  )}
+                </div>
+                {recordingTime > 0 && (
+                  <div className="flex items-center gap-1">
+                    <AlarmClock className="w-4 h-4" />
+                    <span className="text-sm">{formatTime(recordingTime)}</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+              
+              {/* Voice wave visualization */}
+              <div className="w-full flex justify-center p-4 bg-slate-50 rounded-lg">
+                <VoiceWave isRecording={isRecording} />
+              </div>
+              
+              {/* Record/Stop button */}
+              <Button 
+                variant={isRecording ? "destructive" : "default"}
+                size="lg"
+                className="w-full py-6 gap-2"
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isProcessing}
+              >
+                {isRecording ? (
+                  <>
+                    <Ban className="w-5 h-5" />
+                    Stop Recording
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-5 h-5" />
+                    Start Recording
+                  </>
+                )}
+              </Button>
+              
+              {/* Instructions */}
+              <p className="text-sm text-center text-muted-foreground">
+                {isRecording 
+                  ? "Recording voice in real-time. Press stop when finished."
+                  : "Press start when the caller begins speaking to detect scam patterns."}
+              </p>
+            </>
+          ) : (
+            // File upload UI
+            <>
+              <div className="w-full">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-slate-50">
+                  <FileAudio className="w-10 h-10 text-gray-400 mb-2" />
+                  <p className="text-sm font-medium mb-2">Upload Audio Recording</p>
+                  <p className="text-xs text-gray-500 mb-4 text-center">
+                    Supports WAV, MP3 and OGG files up to 5MB
+                  </p>
+                  
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    id="audio-upload"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    disabled={isProcessing}
+                  />
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('audio-upload')?.click()}
+                    disabled={isProcessing}
+                  >
+                    Choose File
+                  </Button>
+                  
+                  {uploadedFile && (
+                    <div className="mt-4 w-full">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium truncate" style={{ maxWidth: '200px' }}>
+                          {uploadedFile.name}
+                        </span>
+                        <span className="text-gray-500">
+                          {(uploadedFile.size / 1024).toFixed(0)} KB
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {isUploading && (
+                  <div className="mt-4">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span>Uploading...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="w-full h-2" />
+                  </div>
+                )}
+                
+                <Button
+                  variant="default"
+                  className="w-full mt-4 gap-2"
+                  onClick={processAudioFile}
+                  disabled={!uploadedFile || isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Activity className="w-4 h-4" />
+                      Analyze Recording
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              <p className="text-xs text-center text-muted-foreground">
+                Upload an audio file of a suspicious call for advanced AI analysis.
+                For better results, ensure the recording is clear and under 5MB.
+              </p>
+            </>
+          )}
           
-          {/* Voice wave visualization */}
-          <div className="w-full flex justify-center p-4 bg-slate-50 rounded-lg">
-            <VoiceWave isRecording={isRecording} />
-          </div>
-          
-          {/* Record/Stop button */}
-          <Button 
-            variant={isRecording ? "destructive" : "default"}
-            size="lg"
-            className="w-full py-6 gap-2"
-            onClick={isRecording ? stopRecording : startRecording}
-          >
-            {isRecording ? (
-              <>
-                <Ban className="w-5 h-5" />
-                Stop Recording
-              </>
-            ) : (
-              <>
-                <Mic className="w-5 h-5" />
-                Start Recording
-              </>
-            )}
-          </Button>
-          
-          {/* Instructions */}
-          <p className="text-sm text-center text-muted-foreground">
-            {isRecording 
-              ? "Recording voice in real-time. Press stop when finished."
-              : "Press start when the caller begins speaking to detect scam patterns."}
-          </p>
           
           {/* Analysis results */}
           {analysisResult && (
@@ -473,6 +702,95 @@ const VoiceCheck: React.FC = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+              
+              {/* Advanced analysis details (when available from file upload) */}
+              {advancedAnalysisResults && (
+                <div className="mt-4">
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="advanced-analysis">
+                      <AccordionTrigger className="text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          <Activity className="w-4 h-4" />
+                          Advanced Analysis Details
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-3 text-sm">
+                          {/* Caller intent section */}
+                          {advancedAnalysisResults.caller_intent && (
+                            <div>
+                              <h4 className="font-medium text-xs uppercase text-gray-500">Caller Intent</h4>
+                              <p className="mt-1">{advancedAnalysisResults.caller_intent}</p>
+                            </div>
+                          )}
+                          
+                          {/* Caller reputation */}
+                          {advancedAnalysisResults.caller_reputation && (
+                            <div>
+                              <h4 className="font-medium text-xs uppercase text-gray-500">Caller Reputation</h4>
+                              <Badge 
+                                variant="outline" 
+                                className={
+                                  advancedAnalysisResults.caller_reputation.includes('suspicious') || 
+                                  advancedAnalysisResults.caller_reputation.includes('untrusted') 
+                                    ? 'bg-red-50' 
+                                    : advancedAnalysisResults.caller_reputation.includes('unknown')
+                                      ? 'bg-yellow-50'
+                                      : 'bg-green-50'
+                                }
+                              >
+                                {advancedAnalysisResults.caller_reputation}
+                              </Badge>
+                            </div>
+                          )}
+                          
+                          {/* Detected emotions */}
+                          {advancedAnalysisResults.emotions && (
+                            <div>
+                              <h4 className="font-medium text-xs uppercase text-gray-500">Emotional Manipulation</h4>
+                              <div className="mt-1 space-y-1">
+                                {Object.entries(advancedAnalysisResults.emotions).map(([emotion, value]: [string, any]) => (
+                                  <div key={emotion} className="flex items-center justify-between">
+                                    <span className="capitalize">{emotion}</span>
+                                    <div className="w-24 bg-gray-200 rounded-full h-1.5">
+                                      <div 
+                                        className="bg-blue-500 h-1.5 rounded-full" 
+                                        style={{ width: `${Math.round(value * 100)}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Language detection info */}
+                          {advancedAnalysisResults.language_confidence && (
+                            <div>
+                              <h4 className="font-medium text-xs uppercase text-gray-500">Language Analysis</h4>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Languages className="w-4 h-4" />
+                                <span>{advancedAnalysisResults.language || 'English'}</span>
+                                <span className="text-xs text-gray-500">
+                                  ({Math.round(advancedAnalysisResults.language_confidence * 100)}% confidence)
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Recommendation */}
+                          {advancedAnalysisResults.recommendation && (
+                            <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-100">
+                              <h4 className="font-medium text-xs uppercase text-blue-700 mb-1">Recommendation</h4>
+                              <p className="text-sm">{advancedAnalysisResults.recommendation}</p>
+                            </div>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 </div>
               )}
               
