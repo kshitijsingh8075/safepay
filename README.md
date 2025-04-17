@@ -178,7 +178,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 👥 Contributors
 
-- Your Name (@yourusername)
+- Your Name (@kshitisingh8075, @yash720, @nihira07, @Niharika01232
 
 ## 🙏 Acknowledgements
 
