@@ -98,11 +98,13 @@ export default function ReportScam() {
             <SelectValue placeholder="Select scam type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Fake Products">Fake Products</SelectItem>
-            <SelectItem value="Phishing">Phishing</SelectItem>
-            <SelectItem value="Impersonation">Impersonation</SelectItem>
-            <SelectItem value="Fraud">Fraud</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
+            <SelectItem value={ScamType.Unknown}>Fake Products</SelectItem>
+            <SelectItem value={ScamType.Phishing}>Phishing</SelectItem>
+            <SelectItem value={ScamType.Banking}>Banking Fraud</SelectItem>
+            <SelectItem value={ScamType.KYC}>KYC Scam</SelectItem>
+            <SelectItem value={ScamType.Lottery}>Lottery Scam</SelectItem>
+            <SelectItem value={ScamType.Refund}>Refund Scam</SelectItem>
+            <SelectItem value={ScamType.Reward}>Reward Scam</SelectItem>
           </SelectContent>
         </Select>
         

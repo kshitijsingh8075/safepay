@@ -2,6 +2,17 @@ import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Enum for different types of scams
+export enum ScamType {
+  Banking = "Banking Scam",
+  Lottery = "Lottery Scam",
+  KYC = "KYC Verification Scam",
+  Refund = "Refund Scam",
+  Phishing = "Phishing Attempt",
+  Reward = "Reward Scam",
+  Unknown = "Unknown Scam"
+}
+
 // User table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -49,7 +60,7 @@ export const scamReports = pgTable("scam_reports", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   upiId: text("upi_id").notNull(),
-  scamType: text("scam_type").notNull(),
+  scamType: text("scam_type").notNull(), // Stores values from ScamType enum
   amountLost: integer("amount_lost"), // Stored in paise/cents
   description: text("description"),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
@@ -109,9 +120,15 @@ export const insertUpiRiskReportSchema = createInsertSchema(upiRiskReports).omit
   firstReportDate: true,
 });
 
-export const insertScamReportSchema = createInsertSchema(scamReports).omit({
+// Create base schema and then extend to validate scamType
+const baseScamReportSchema = createInsertSchema(scamReports).omit({
   id: true,
   timestamp: true,
+});
+
+// Extend the schema to properly validate scamType as an enum
+export const insertScamReportSchema = baseScamReportSchema.extend({
+  scamType: z.nativeEnum(ScamType)
 });
 
 export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit({
