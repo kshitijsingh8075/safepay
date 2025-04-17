@@ -334,6 +334,7 @@ export default function Scan() {
           details="This UPI ID has multiple fraud reports and has been flagged by our AI as potentially fraudulent. We recommend not proceeding with this payment."
           onContinue={handleProceedAnyway}
           onCancel={handleCancel}
+          onReportScam={handleReportScam}
         />
       )}
       

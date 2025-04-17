@@ -12,6 +12,7 @@ interface PaymentSafetyPopupProps {
   details?: string;
   onContinue: () => void;
   onCancel: () => void;
+  onReportScam?: () => void;
 }
 
 export function PaymentSafetyPopup({
@@ -22,7 +23,8 @@ export function PaymentSafetyPopup({
   sslProtected = true,
   details = 'This UPI ID has a strong safety record and is linked to a verified user or business',
   onContinue,
-  onCancel
+  onCancel,
+  onReportScam
 }: PaymentSafetyPopupProps) {
   const getRiskColor = () => {
     if (status === 'safe') return 'bg-green-500';
@@ -112,20 +114,49 @@ export function PaymentSafetyPopup({
           {details}
         </p>
         
-        <Button 
-          className="w-full bg-blue-600 hover:bg-blue-700 mb-3" 
-          onClick={onContinue}
-        >
-          Continue to pay
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          className="w-full text-gray-600" 
-          onClick={onCancel}
-        >
-          Cancel
-        </Button>
+        {status === 'danger' && onReportScam ? (
+          <>
+            <Button 
+              variant="destructive" 
+              className="w-full mb-3" 
+              onClick={onReportScam}
+            >
+              Report Scam
+            </Button>
+            
+            <Button 
+              className="w-full bg-gray-700 hover:bg-gray-800 mb-3" 
+              onClick={onContinue}
+            >
+              Continue anyway
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              className="w-full text-gray-600" 
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button 
+              className={`w-full ${status === 'safe' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-500 hover:bg-amber-600'} mb-3`}
+              onClick={onContinue}
+            >
+              Continue to pay
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              className="w-full text-gray-600" 
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );
