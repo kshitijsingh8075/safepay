@@ -245,7 +245,7 @@ export default function Home() {
       {/* Red notification bar */}
       {showNotification && (
         <NotificationBar
-          message="धोखाधड़ी से सावधान! नए UPI स्कैम की सूचना मिली है। अपनी सुरक्षा के लिए सतर्क रहें।"
+          message="Warning! New UPI scam detected. Please stay vigilant for your safety."
           type="error"
         />
       )}
