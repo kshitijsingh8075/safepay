@@ -674,8 +674,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // No test pages anymore
   
-  // Initialize Stripe
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  // Initialize Stripe with error handling
+  let stripe: Stripe | null = null;
+  try {
+    if (process.env.STRIPE_SECRET_KEY) {
+      stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    } else {
+      console.warn('STRIPE_SECRET_KEY not found in environment variables');
+    }
+  } catch (error) {
+    console.error('Failed to initialize Stripe:', error);
+  }
 
   // Stripe payment routes
   app.post("/api/create-payment-intent", async (req, res) => {
@@ -687,6 +696,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log("Creating payment intent for:", { amount, currency, upiId, description });
+      
+      if (!stripe) {
+        return res.status(503).json({ error: "Payment service is not available" });
+      }
       
       // Create payment intent with Stripe
       const paymentIntent = await stripe.paymentIntents.create({
