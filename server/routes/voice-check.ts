@@ -3,6 +3,26 @@ import { storage } from '../storage';
 import { analyzeVoiceTranscript } from '../services/openai';
 import { ScamType } from '../../shared/schema';
 
+/**
+ * Helper function to map a string scam type to the ScamType enum
+ * @param scamTypeStr The string representation of scam type
+ * @returns The corresponding ScamType enum value
+ */
+function mapToScamType(scamTypeStr?: string): ScamType {
+  if (!scamTypeStr) return ScamType.Unknown;
+  
+  const lowerType = scamTypeStr.toLowerCase();
+
+  if (lowerType.includes('bank')) return ScamType.Banking;
+  if (lowerType.includes('lottery')) return ScamType.Lottery;
+  if (lowerType.includes('kyc') || lowerType.includes('verification')) return ScamType.KYC;
+  if (lowerType.includes('refund')) return ScamType.Refund;
+  if (lowerType.includes('phish')) return ScamType.Phishing;
+  if (lowerType.includes('reward') || lowerType.includes('prize')) return ScamType.Reward;
+  
+  return ScamType.Unknown;
+}
+
 // Define the type for analyzeVoiceTranscript response
 interface VoiceAnalysisResult {
   is_scam: boolean;
@@ -138,7 +158,7 @@ function determineAction(command: string): string {
 function performBasicScamDetection(command: string): { 
   is_scam: boolean; 
   confidence: number; 
-  scam_type: string;
+  scam_type: ScamType;
   indicators: string[];
 } {
   const lowerCommand = command.toLowerCase();

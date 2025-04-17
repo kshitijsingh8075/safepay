@@ -89,6 +89,19 @@ If this error prevents CI/CD pipelines from succeeding, you can add the followin
 "exclude": ["server/vite.ts"]
 ```
 
+### ScamType Enum Usage
+
+The application uses a consistent `ScamType` enum defined in `shared/schema.ts` for categorizing different types of scams. All components that handle scam categorization (storage, routes, reports) have been updated to use this enum, ensuring type safety and consistency.
+
+Available ScamType values:
+- `Banking` - For banking-related scams
+- `Lottery` - For lottery and prize scams
+- `KYC` - For Know Your Customer verification scams
+- `Refund` - For fake refund scams
+- `Phishing` - For phishing attempts
+- `Reward` - For fraudulent reward offers
+- `Unknown` - Default for unclassified scams
+
 ## 🔒 Security Features
 
 - **UPI ID Analysis**: Pattern-based detection of suspicious UPI IDs
