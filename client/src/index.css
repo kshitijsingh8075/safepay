@@ -71,11 +71,30 @@
   }
 
   .pin-dot {
-    @apply w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 mx-1.5;
+    @apply w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 mx-1.5 transition-all duration-300;
   }
 
   .pin-dot.filled {
-    @apply bg-primary;
+    @apply bg-primary transform scale-110;
+  }
+  
+  .pin-dot.animate-ping {
+    animation: pin-reset 0.3s ease-in-out;
+  }
+  
+  @keyframes pin-reset {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0;
+    }
   }
   
   /* Dark mode component styles */

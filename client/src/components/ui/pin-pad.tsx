@@ -1,26 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface PinPadProps {
   length?: number;
   onComplete?: (pin: string) => void;
   className?: string;
+  resetOnComplete?: boolean;
 }
 
 export function PinPad({ 
   length = 4, 
   onComplete,
-  className 
+  className,
+  resetOnComplete = false
 }: PinPadProps) {
   const [pin, setPin] = useState<string>('');
+  const [animateReset, setAnimateReset] = useState<boolean>(false);
   
   const handleNumberPress = (num: number | string) => {
     if (pin.length < length) {
       const newPin = pin + num;
       setPin(newPin);
       
-      if (newPin.length === length && onComplete) {
-        onComplete(newPin);
+      if (newPin.length === length) {
+        if (onComplete) {
+          onComplete(newPin);
+        }
+        
+        if (resetOnComplete) {
+          setAnimateReset(true);
+          setTimeout(() => {
+            setPin('');
+            setAnimateReset(false);
+          }, 300); // Animation duration
+        }
       }
     }
   };
@@ -47,8 +60,9 @@ export function PinPad({
           <div 
             key={index} 
             className={cn(
-              "pin-dot",
-              index < pin.length && "filled"
+              "pin-dot transition-all duration-300",
+              index < pin.length && "filled",
+              animateReset && "animate-ping"
             )} 
           />
         ))}
@@ -66,7 +80,7 @@ export function PinPad({
               <button 
                 key={index}
                 onClick={handleDelete}
-                className="pin-button"
+                className="pin-button dark:text-gray-300"
               >
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -90,7 +104,7 @@ export function PinPad({
             <button 
               key={index}
               onClick={() => handleNumberPress(button.value)}
-              className="pin-button"
+              className="pin-button dark:text-gray-300"
             >
               {button.value}
             </button>

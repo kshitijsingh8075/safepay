@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PinPad } from "@/components/ui/pin-pad";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
-import { Loader2, Fingerprint, Lock, Check } from "lucide-react";
+import { Loader2, Fingerprint, Lock, Check, AlertCircle } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,7 @@ export default function SetupSecurity() {
   const [step, setStep] = useState<"choose-pin" | "confirm-pin" | "biometric">("choose-pin");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
+  const [pinError, setPinError] = useState(false);
   const [useBiometric, setUseBiometric] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -23,6 +24,16 @@ export default function SetupSecurity() {
   const [location] = useLocation();
   const params = new URLSearchParams(location.split('?')[1]);
   const userId = params.get('userId') || localStorage.getItem('userId') || '';
+  
+  // Auto-reset error state
+  useEffect(() => {
+    if (pinError) {
+      const timer = setTimeout(() => {
+        setPinError(false);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [pinError]);
 
   // Setup PIN mutation
   const setupPinMutation = useMutation({
@@ -81,22 +92,27 @@ export default function SetupSecurity() {
   const handlePinComplete = (pinValue: string) => {
     if (step === "choose-pin") {
       setPin(pinValue);
-      setStep("confirm-pin");
+      setTimeout(() => {
+        setStep("confirm-pin");
+      }, 400); // Short delay to allow animation to complete
     } else if (step === "confirm-pin") {
       setConfirmPin(pinValue);
       if (pinValue === pin) {
         // PINs match, set up PIN
         setupPinMutation.mutate();
       } else {
+        setPinError(true);
         toast({
           title: "PINs don't match",
           description: "The PINs you entered don't match. Please try again.",
           variant: "destructive",
         });
-        // Reset to first step
-        setPin("");
-        setConfirmPin("");
-        setStep("choose-pin");
+        // Reset to first step after a short delay
+        setTimeout(() => {
+          setPin("");
+          setConfirmPin("");
+          setStep("choose-pin");
+        }, 1500);
       }
     }
   };
@@ -129,13 +145,18 @@ export default function SetupSecurity() {
           {(step === "choose-pin" || step === "confirm-pin") && (
             <div className="space-y-6">
               <div className="flex justify-center">
-                <Lock className="h-12 w-12 text-primary" />
+                {pinError ? (
+                  <AlertCircle className="h-12 w-12 text-destructive animate-pulse" />
+                ) : (
+                  <Lock className="h-12 w-12 text-primary" />
+                )}
               </div>
               
               <PinPad 
                 length={4} 
                 onComplete={handlePinComplete}
                 className="mx-auto"
+                resetOnComplete={true}
               />
               
               {setupPinMutation.isPending && (
