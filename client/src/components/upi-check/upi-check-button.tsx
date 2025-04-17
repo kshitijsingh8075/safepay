@@ -266,6 +266,41 @@ export default function UpiCheckButton() {
               </Card>
             )}
 
+            {/* AI Analysis Card */}
+            {results.safety_score !== undefined && results.ai_analysis && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <span>AI Safety Analysis</span>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      results.safety_score > 70 ? 'bg-green-500 text-white' :
+                      results.safety_score > 40 ? 'bg-amber-500 text-white' :
+                      'bg-destructive text-destructive-foreground'
+                    }`}>
+                      {results.safety_score}/100
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Safety Score</span>
+                      <span className="font-medium">{results.safety_score}%</span>
+                    </div>
+                    <Progress 
+                      value={results.safety_score} 
+                      className={results.safety_score > 70 ? 'bg-green-500' : 
+                                results.safety_score > 40 ? 'bg-amber-500' : 'bg-destructive'}
+                    />
+                    
+                    <div className="bg-blue-50 p-3 rounded text-sm mt-2 text-blue-800">
+                      {results.ai_analysis}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {results.reportedFor && results.reportedFor !== 'N/A' && (
               <div className="text-sm text-muted-foreground">
                 <span className="font-medium">Reported For:</span> {results.reportedFor}

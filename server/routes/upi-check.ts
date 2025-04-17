@@ -234,7 +234,7 @@ function classifyUpiId(upiId: string): { status: 'SAFE' | 'SUSPICIOUS' | 'SCAM',
 }
 
 export function registerUpiCheckRoutes(app: Express): void {
-  // New simplified endpoint following the example
+  // Enhanced UPI check endpoint with AI analysis
   app.post('/api/check-scam', async (req, res) => {
     try {
       const { upiId } = req.body;
@@ -246,8 +246,9 @@ export function registerUpiCheckRoutes(app: Express): void {
         });
       }
 
-      // Get basic classification
-      const result = classifyUpiId(upiId);
+      // Use the enhanced UPI safety check service with AI analysis
+      const { checkUpiSafety } = await import('../services/upi-check');
+      const result = await checkUpiSafety(upiId);
       
       // Get reports for additional context
       const reports = await storage.getScamReportsByUpiId(upiId);
@@ -260,8 +261,8 @@ export function registerUpiCheckRoutes(app: Express): void {
         // Get most common scam type if available
         category: reports.length > 0 ? await storage.getMostCommonScamType(upiId) : undefined,
         
-        // Get recommendations based on status
-        recommendations: getRecommendations(result.status)
+        // Make sure recommendations are included
+        recommendations: result.recommendations || getRecommendations(result.status)
       };
       
       res.json(enhancedResult);
