@@ -8,8 +8,13 @@
   }
 
   body {
-    @apply font-sans antialiased bg-white text-foreground min-h-screen;
+    @apply font-sans antialiased bg-white text-foreground min-h-screen transition-colors duration-300;
     font-family: 'Inter', sans-serif;
+  }
+
+  /* Dark mode styles */
+  .dark body {
+    @apply bg-gray-900 text-gray-100;
   }
 }
 
@@ -31,48 +36,70 @@
   }
 
   .pin-button {
-    @apply w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold bg-[#F5F6FA];
+    @apply w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold bg-[#F5F6FA] dark:bg-gray-800;
   }
 
   .pin-dot {
-    @apply w-4 h-4 rounded-full bg-gray-300 mx-1.5;
+    @apply w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 mx-1.5;
   }
 
   .pin-dot.filled {
     @apply bg-primary;
   }
+  
+  /* Dark mode component styles */
+  .dark .card {
+    @apply bg-gray-800 border-gray-700;
+  }
+  
+  .dark .bg-secondary {
+    @apply bg-gray-800;
+  }
 }
 
 @layer utilities {
   .bg-secondary {
-    @apply bg-[#F5F6FA];
+    @apply bg-[#F5F6FA] dark:bg-gray-800;
   }
 
   .text-success {
-    @apply text-[#43A047];
+    @apply text-[#43A047] dark:text-[#66BB6A];
   }
 
   .text-error {
-    @apply text-[#E53935];
+    @apply text-[#E53935] dark:text-[#EF5350];
   }
 
   .text-warning {
-    @apply text-[#FFB300];
+    @apply text-[#FFB300] dark:text-[#FFCA28];
   }
 
   .bg-success-light {
-    @apply bg-[#43A047]/10;
+    @apply bg-[#43A047]/10 dark:bg-[#43A047]/20;
   }
 
   .bg-error-light {
-    @apply bg-[#E53935]/10;
+    @apply bg-[#E53935]/10 dark:bg-[#E53935]/20;
   }
 
   .bg-warning-light {
-    @apply bg-[#FFB300]/10;
+    @apply bg-[#FFB300]/10 dark:bg-[#FFB300]/20;
   }
 
   .bg-primary-light {
-    @apply bg-primary/10;
+    @apply bg-primary/10 dark:bg-primary/20;
+  }
+  
+  /* Dark Mode Card and UI Element Styles */
+  .dark-card {
+    @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-colors duration-300;
+  }
+  
+  .dark-input {
+    @apply bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary transition-colors duration-300;
+  }
+  
+  .dark-button {
+    @apply transition-colors duration-300;
   }
 }
