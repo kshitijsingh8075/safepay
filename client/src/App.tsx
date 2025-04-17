@@ -29,6 +29,7 @@ import ScamNews from "@/pages/scam-news";
 import LegalHelp from "@/pages/legal-help";
 import FraudHeatmap from "@/pages/fraud-heatmap";
 import FraudHeatmapBasic from "@/pages/fraud-heatmap-basic";
+import FraudMap from "@/pages/fraud-map";
 import ConfirmTransaction from "@/pages/confirm-transaction";
 import HistoryPage from "@/pages/history";
 import MainLayout from "@/layouts/main-layout";
@@ -164,6 +165,14 @@ function Router() {
       </Route>
       
       <Route path="/fraud-heatmap-basic" component={FraudHeatmapBasic} />
+      
+      <Route path="/fraud-map">
+        {() => (
+          <MainLayout>
+            <FraudMap />
+          </MainLayout>
+        )}
+      </Route>
 
       <Route component={NotFound} />
     </Switch>

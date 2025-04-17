@@ -42,6 +42,8 @@ export const transactions = pgTable("transactions", {
   currency: text("currency").notNull().default('inr'),
   transactionType: text("transaction_type").notNull().default('payment'), // 'payment', 'refund', etc.
   status: text("status").notNull(), // 'completed', 'pending', 'failed', etc.
+  paymentMethod: text("payment_method").default('upi'), // 'upi', 'card', etc.
+  paymentIntentId: text("payment_intent_id"), // For card payments with Stripe
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 

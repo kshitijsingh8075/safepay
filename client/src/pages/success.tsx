@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Check, Share2 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, parseUrlParams, getLocalStorageItem, setLocalStorageItem, formatDate, generateTransactionId } from '@/lib/utils';
 
 export default function Success() {
   const [location, setLocation] = useLocation();
@@ -25,14 +25,24 @@ export default function Success() {
   // Extract transaction details from URL query parameters
   useEffect(() => {
     try {
-      const params = new URLSearchParams(location.split('?')[1]);
+      // Use our utility function to safely parse URL params
+      const params = parseUrlParams(location);
       
       // Get parameters from URL
       const amount = params.get('amount');
-      const to = params.get('to');
+      const to = params.get('merchantName') || params.get('to');
       const upiId = params.get('upiId');
-      const txnId = params.get('txnId');
-      const app = params.get('app');
+      const txnId = params.get('txnId') || params.get('paymentIntentId');
+      const app = params.get('app') || params.get('paymentMethod') || 'Card';
+      
+      // Check if we have a stripe payment
+      const isStripePayment = params.get('paymentMethod') === 'stripe' || app === 'card';
+      
+      // Create a transaction ID if none was provided
+      const finalTxnId = txnId || generateTransactionId(isStripePayment ? 'STRIPE' : 'UPI');
+      
+      // Format date using our utility
+      const formattedDate = formatDate(new Date());
       
       // Update transaction details with URL params if available
       setTransactionDetails((current) => ({
@@ -40,18 +50,18 @@ export default function Success() {
         amount: amount || current.amount,
         to: to || current.to,
         upiId: upiId || current.upiId,
-        transactionId: txnId || current.transactionId,
-        app: app || current.app
+        transactionId: finalTxnId,
+        date: formattedDate,
+        app: isStripePayment ? 'Credit/Debit Card' : (app || current.app)
       }));
       
       // Save transaction to history in local storage
-      const currentDetails = transactionDetails;
       saveTransactionToHistory({
-        amount: parseFloat(amount || currentDetails.amount),
-        to: to || currentDetails.to,
-        upiId: upiId || currentDetails.upiId,
-        transactionId: txnId || currentDetails.transactionId,
-        app: app || currentDetails.app,
+        amount: parseFloat(amount || transactionDetails.amount),
+        to: to || transactionDetails.to,
+        upiId: upiId || transactionDetails.upiId,
+        transactionId: finalTxnId,
+        app: isStripePayment ? 'Credit/Debit Card' : (app || transactionDetails.app),
         date: new Date()
       });
     } catch (error) {
@@ -62,9 +72,8 @@ export default function Success() {
   // Function to save transaction to history in local storage
   const saveTransactionToHistory = (transaction: any) => {
     try {
-      // Get existing history from local storage
-      const historyString = localStorage.getItem('transactionHistory');
-      const history = historyString ? JSON.parse(historyString) : [];
+      // Use our utility to safely get local storage data
+      const history = getLocalStorageItem<any[]>('transactionHistory', []);
       
       // Add new transaction to history
       const newTransaction = {
@@ -84,8 +93,8 @@ export default function Success() {
       // Limit history to 50 items
       const limitedHistory = history.slice(0, 50);
       
-      // Save back to local storage
-      localStorage.setItem('transactionHistory', JSON.stringify(limitedHistory));
+      // Use our utility to safely set local storage data
+      setLocalStorageItem('transactionHistory', limitedHistory);
     } catch (error) {
       console.error('Error saving transaction history:', error);
     }
@@ -97,7 +106,7 @@ export default function Success() {
       if (navigator.share) {
         navigator.share({
           title: 'Payment Receipt',
-          text: `Payment of ₹${transactionDetails.amount} to ${transactionDetails.to} (${transactionDetails.upiId}) was successful. Transaction ID: ${transactionDetails.transactionId}`
+          text: `Payment of ${formatCurrency(transactionDetails.amount)} to ${transactionDetails.to} (${transactionDetails.upiId}) was successful. Transaction ID: ${transactionDetails.transactionId}`
         });
       } else {
         // Fallback for browsers that don't support Web Share API
@@ -120,7 +129,7 @@ export default function Success() {
       <Card className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 w-full mb-8">
         <div className="flex justify-between mb-3">
           <p className="text-gray-500">Amount</p>
-          <p className="font-semibold">₹{transactionDetails.amount}</p>
+          <p className="font-semibold">{formatCurrency(transactionDetails.amount)}</p>
         </div>
         <div className="flex justify-between mb-3">
           <p className="text-gray-500">To</p>

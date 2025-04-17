@@ -290,6 +290,8 @@ export default function Home() {
               <span className="text-[10px] text-center">Legal Help</span>
             </button>
           </div>
+          
+          {/* Third row - Previously had Fraud Map and Chat Support, now removed */}
         </div>
         
         {/* Space for bottom nav - removed Scan QR button */}

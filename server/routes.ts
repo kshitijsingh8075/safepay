@@ -10,6 +10,7 @@ import { registerTestOpenAIRoute } from "./routes/test-openai";
 import { registerUpiCheckRoutes } from "./routes/upi-check";
 import { registerVoiceCheckRoutes } from "./routes/voice-check";
 import { registerWhatsAppCheckRoutes } from "./routes/whatsapp-check";
+import { registerStreamlitRoutes } from "./routes/streamlit-routes";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import Stripe from "stripe";
@@ -668,6 +669,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register WhatsApp Check routes
   registerWhatsAppCheckRoutes(app);
   
+  // Register Streamlit routes for Fraud Map
+  registerStreamlitRoutes(app);
+  
   // No test pages anymore
   
   // Initialize Stripe
@@ -724,7 +728,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           upiId: paymentIntent.metadata.upiId || '',
           status: 'completed',
           transactionType: 'payment',
-          description: paymentIntent.metadata.description || 'UPI Payment'
+          paymentMethod: 'card',
+          paymentIntentId: paymentIntentId,
+          description: paymentIntent.metadata.description || 'Card Payment'
         });
         
         res.json({

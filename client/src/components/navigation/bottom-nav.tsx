@@ -21,9 +21,9 @@ export function BottomNav({ className }: BottomNavProps) {
     },
     { 
       name: 'Fraud Map', 
-      path: '/fraud-heatmap', 
+      path: '/fraud-map', 
       icon: Map,
-      active: location === '/fraud-heatmap'
+      active: location === '/fraud-map' || location === '/fraud-heatmap'
     },
     {
       name: 'Scan QR',
