@@ -20,10 +20,10 @@ export function BottomNav({ className }: BottomNavProps) {
       active: location === '/home'
     },
     { 
-      name: 'History', 
-      path: '/history', 
-      icon: Clock,
-      active: location === '/history'
+      name: 'Fraud Map', 
+      path: '/fraud-heatmap', 
+      icon: Map,
+      active: location === '/fraud-heatmap'
     },
     {
       name: 'Scan QR',
