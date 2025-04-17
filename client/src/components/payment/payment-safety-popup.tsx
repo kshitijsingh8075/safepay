@@ -100,8 +100,7 @@ export function PaymentSafetyPopup({
           <div className="flex items-center">
             <Progress 
               value={100 - getRiskPercentage()} 
-              className="h-2.5 flex-1" 
-              indicatorClassName={status === 'safe' ? 'bg-green-500' : status === 'caution' ? 'bg-yellow-500' : 'bg-red-500'} 
+              className={`h-2.5 flex-1 ${status === 'safe' ? 'bg-green-500' : status === 'caution' ? 'bg-yellow-500' : 'bg-red-500'}`}
             />
             <div className="ml-2 w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center text-xs font-medium">
               {getRiskPercentage().toFixed(0)}%

@@ -8,6 +8,7 @@ import {
   detectAdvancedFraud,
   FraudDetectionResponse
 } from '@/lib/fraud-detection';
+import { PaymentSafetyPopup } from '@/components/payment/payment-safety-popup';
 import { AlertTriangle, AlertCircle, CheckCircle, Shield, AlertOctagon, Loader2, ChevronLeft, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -431,73 +432,22 @@ export default function Scan() {
       </Dialog>
 
       {/* Safe Transaction Dialog - Low Risk */}
-      <Dialog open={showSafeDialog} onOpenChange={setShowSafeDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogTitle className="flex items-center text-green-600">
-            <CheckCircle className="mr-2 h-5 w-5" />
-            Safe UPI Payment
-          </DialogTitle>
-          <DialogDescription>
-            <div className="flex flex-col space-y-4">
-              <div>
-                This UPI ID looks safe and legitimate.
-                {riskDetails && riskDetails.percentage < 10 && " No risk factors were detected."}
-              </div>
-              
-              {/* Risk Level Indicator */}
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-medium mb-2 flex items-center text-green-700">
-                  <Shield className="w-5 h-5 mr-2" />
-                  Low Risk Level
-                </h3>
-                
-                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                  <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${100 - (riskDetails?.percentage || 0)}%` }}></div>
-                </div>
-                
-                <ul className="text-sm space-y-1 text-green-800 mt-3">
-                  <li>• Verified with bank records</li>
-                  <li>• No suspicious patterns detected</li>
-                  <li>• Clean transaction history</li>
-                </ul>
-                
-                <div className="mt-4 p-3 bg-green-100 rounded-md">
-                  <div className="flex items-center space-x-3">
-                    <div className="font-medium">UPI ID: {safeTransactionInfo.upiId}</div>
-                  </div>
-                  
-                  {safeTransactionInfo.name && (
-                    <div className="flex items-center space-x-3 mt-1">
-                      <div className="font-medium">Name: {safeTransactionInfo.name}</div>
-                    </div>
-                  )}
-                  
-                  {safeTransactionInfo.amount && (
-                    <div className="flex items-center space-x-3 mt-1">
-                      <div className="font-medium">Amount: ₹{safeTransactionInfo.amount}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </DialogDescription>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button 
-              variant="default" 
-              className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => {
-                setShowSafeDialog(false);
-                setLocation(`/confirm-transaction?${safeTransactionInfo.queryParams}`);
-              }}
-            >
-              Continue to payment <ArrowLeft className="ml-2 w-4 h-4 rotate-180" />
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* New payment safety popup that matches the UI in the image */}
+      {showSafeDialog && (
+        <PaymentSafetyPopup
+          status="safe"
+          riskScore={riskDetails?.percentage ? riskDetails.percentage / 100 : 0.07} 
+          merchantName={safeTransactionInfo.name || "Merchant"}
+          businessInfo={true}
+          sslProtected={true}
+          details="This UPI ID has a strong safety record and is linked to a verified user or business"
+          onContinue={() => {
+            setShowSafeDialog(false);
+            setLocation(`/confirm-transaction?${safeTransactionInfo.queryParams}`);
+          }}
+          onCancel={handleCancel}
+        />
+      )}
     </>
   );
 }

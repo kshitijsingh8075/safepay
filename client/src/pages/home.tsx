@@ -3,8 +3,9 @@ import { useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/navigation/bottom-nav';
-import { Bell, ShieldAlert } from 'lucide-react';
+import { Bell, ShieldAlert, Search, ArrowRight } from 'lucide-react';
 import { NotificationBar } from '@/components/ui/notification-bar';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const [, setLocation] = useLocation();
