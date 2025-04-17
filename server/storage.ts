@@ -5,7 +5,8 @@ import {
   ScamReport, InsertScamReport,
   PaymentMethod, InsertPaymentMethod,
   ChatMessage, InsertChatMessage,
-  ChatFeedback, InsertChatFeedback
+  ChatFeedback, InsertChatFeedback,
+  ScamType
 } from "@shared/schema";
 
 export interface IStorage {

@@ -1,6 +1,7 @@
 import { Express } from 'express';
 import { storage } from '../storage';
 import { validateUpiIdSafety } from '../services/openai';
+import { ScamType } from '../../shared/schema';
 import { 
   SAFE_UPI_IDS, 
   SCAM_UPI_IDS,
@@ -390,10 +391,41 @@ export function registerUpiCheckRoutes(app: Express): void {
       }
       
       // Create scam report
+      // Convert string scamType to enum ScamType
+      let scamTypeEnum: ScamType;
+      switch(scamType) {
+        case 'Banking Scam':
+        case 'Banking':
+          scamTypeEnum = ScamType.Banking;
+          break;
+        case 'Lottery Scam':
+        case 'Lottery':
+          scamTypeEnum = ScamType.Lottery;
+          break;
+        case 'KYC Verification Scam':
+        case 'KYC':
+          scamTypeEnum = ScamType.KYC;
+          break;
+        case 'Refund Scam':
+        case 'Refund':
+          scamTypeEnum = ScamType.Refund;
+          break;
+        case 'Phishing Attempt':
+        case 'Phishing':
+          scamTypeEnum = ScamType.Phishing;
+          break;
+        case 'Reward Scam':
+        case 'Reward':
+          scamTypeEnum = ScamType.Reward;
+          break;
+        default:
+          scamTypeEnum = ScamType.Unknown;
+      }
+      
       const report = await storage.createScamReport({
         upiId,
         userId,
-        scamType,
+        scamType: scamTypeEnum,
         description: description || null,
         amountLost: amount || null
       });
