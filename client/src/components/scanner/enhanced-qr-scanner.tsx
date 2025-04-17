@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Camera, Check, Flashlight, X } from 'lucide-react';
+import { ArrowLeft, Camera, Check, Flashlight, X, ShieldAlert, ShieldCheck } from 'lucide-react';
 import jsQR from 'jsqr';
 import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
+import { analyzeQRWithML, extractUPIPaymentInfo, QRScanResult } from '@/lib/ml-qr-scanner';
 
 interface QRScannerProps {
   onScan: (data: string) => void;
@@ -119,82 +120,65 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
     }
   };
   
-  // Process detected QR code data
-  const processQrCode = (qrData: string) => {
+  // State for ML scan result
+  const [mlScanResult, setMlScanResult] = useState<QRScanResult | null>(null);
+  
+  // Process detected QR code data with ML-powered analysis
+  const processQrCode = async (qrData: string) => {
     console.log('QR code detected:', qrData);
+    setScanProgress(70); // Update progress to show we're analyzing
     
-    // Process the QR code data - parse UPI info
-    let upiId = '';
+    // Extract payment info using our utility
+    const extractedInfo = extractUPIPaymentInfo(qrData);
+    
+    // Create a payment info object
     let paymentInfo = {
       upi_id: '',
       name: '',
       amount: '',
-      currency: 'INR'
+      currency: 'INR',
+      ml_risk_score: 0,
+      ml_risk_level: 'Low' as 'Low' | 'Medium' | 'High',
+      ml_recommendation: 'Allow' as 'Allow' | 'Verify' | 'Block'
     };
     
-    // Check if the data is a UPI URL
-    if (qrData.startsWith('upi://')) {
-      // Extract complete UPI info from UPI URL format (like upi://pay?pa=abc@bank&pn=Name&am=100)
-      try {
-        const url = new URL(qrData);
-        const params = new URLSearchParams(url.search);
-        
-        paymentInfo = {
-          upi_id: params.get('pa') || '',
-          name: params.get('pn') || '',
-          amount: params.get('am') || '',
-          currency: params.get('cu') || 'INR'
-        };
-        
-        upiId = paymentInfo.upi_id;
-        console.log('Extracted UPI payment info:', paymentInfo);
-      } catch (e) {
-        // If URL parsing fails, try regex
-        const paMatch = qrData.match(/pa=([^&]+)/);
-        const pnMatch = qrData.match(/pn=([^&]+)/);
-        const amMatch = qrData.match(/am=([^&]+)/);
-        
-        if (paMatch && paMatch[1]) {
-          paymentInfo.upi_id = upiId = paMatch[1];
-        }
-        if (pnMatch && pnMatch[1]) {
-          paymentInfo.name = pnMatch[1];
-        }
-        if (amMatch && amMatch[1]) {
-          paymentInfo.amount = amMatch[1];
-        }
-      }
+    if (extractedInfo && extractedInfo.valid) {
+      // Valid UPI QR code detected
+      paymentInfo = {
+        ...paymentInfo,
+        upi_id: extractedInfo.upiId,
+        name: extractedInfo.name || '',
+        amount: extractedInfo.amount || '',
+        currency: extractedInfo.currency || 'INR'
+      };
+      
+      console.log('Extracted UPI payment info:', paymentInfo);
     } else if (qrData.includes('@')) {
       // Directly a UPI ID (like abc@bank)
-      upiId = qrData;
-      paymentInfo.upi_id = upiId;
-      console.log('Found direct UPI ID:', upiId);
+      paymentInfo.upi_id = qrData;
+      console.log('Found direct UPI ID:', qrData);
     } else {
       // Try to check if the QR contains text with a UPI ID in it
       // Use enhanced regex pattern to detect more UPI formats
       const match = qrData.match(/([a-zA-Z0-9\.\_\-]+@[a-zA-Z0-9]+)/);
       if (match && match[1]) {
-        upiId = match[1];
-        paymentInfo.upi_id = upiId;
-        console.log('Extracted UPI ID from text:', upiId);
+        paymentInfo.upi_id = match[1];
+        console.log('Extracted UPI ID from text:', match[1]);
       } else {
         // Try again with a more lenient pattern
         const secondTry = qrData.match(/([^\s\/]+@[^\s\/]+)/);
         if (secondTry && secondTry[1] && secondTry[1].includes('@')) {
-          upiId = secondTry[1];
-          paymentInfo.upi_id = upiId;
-          console.log('Extracted UPI ID with lenient pattern:', upiId);
+          paymentInfo.upi_id = secondTry[1];
+          console.log('Extracted UPI ID with lenient pattern:', secondTry[1]);
         } else {
           console.log('No UPI pattern found, using raw data:', qrData);
           
           // Last resort - try to clean the string
           const cleaned = qrData.trim().replace(/\s+/g, '');
           if (cleaned.length > 0) {
-            upiId = cleaned;
-            paymentInfo.upi_id = upiId;
+            paymentInfo.upi_id = cleaned;
           } else {
-            upiId = 'unknown'; // Use a placeholder so the app doesn't crash
-            paymentInfo.upi_id = upiId;
+            paymentInfo.upi_id = 'unknown'; // Use a placeholder so the app doesn't crash
             
             // Show error but continue to let the user manually correct it
             setScanError('Could not detect a valid UPI ID. Try manual entry.');
@@ -203,21 +187,51 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
       }
     }
     
-    console.log('Extracted UPI ID:', upiId);
-    
-    // Show success UI
-    setScanComplete(true);
-    setScanProgress(100);
-    
-    // Return the detected UPI ID and complete payment info
-    setTimeout(() => {
-      // Play success sound
-      const audio = new Audio('/sounds/qr-success.mp3');
-      audio.play().catch(err => console.log('Audio play error', err));
+    // Perform ML analysis on the QR code
+    try {
+      setScanProgress(85); // Update progress to show ML analysis
+      console.log('Analyzing QR code with ML service...');
       
-      // Pass both the UPI ID and the complete payment info
-      onScan(JSON.stringify(paymentInfo));
-    }, 800); // Show success animation briefly
+      const mlResult = await analyzeQRWithML(qrData);
+      console.log('ML analysis result:', mlResult);
+      
+      // Store the ML result for display
+      setMlScanResult(mlResult);
+      
+      // Update payment info with ML risk details
+      paymentInfo.ml_risk_score = mlResult.risk_score;
+      paymentInfo.ml_risk_level = mlResult.risk_level;
+      paymentInfo.ml_recommendation = mlResult.recommendation;
+      
+      // Always show success UI regardless of risk level
+      // The risk display will be handled by the scan page
+      setScanComplete(true);
+      setScanProgress(100);
+      
+      // Return the detected UPI ID, payment info, and ML analysis
+      setTimeout(() => {
+        // Play success sound
+        const audio = new Audio('/sounds/qr-success.mp3');
+        audio.play().catch(err => console.log('Audio play error', err));
+        
+        // Pass the complete payment info with ML analysis
+        onScan(JSON.stringify(paymentInfo));
+      }, 800); // Show success animation briefly
+      
+    } catch (error) {
+      console.error('Error analyzing QR code with ML:', error);
+      
+      // Continue with basic detection even if ML analysis fails
+      setScanComplete(true);
+      setScanProgress(100);
+      
+      setTimeout(() => {
+        const audio = new Audio('/sounds/qr-success.mp3');
+        audio.play().catch(err => console.log('Audio play error', err));
+        
+        onScan(JSON.stringify(paymentInfo));
+      }, 800);
+    }
   };
 
   // Use ZXing for QR code detection
@@ -362,8 +376,8 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
     }
   };
   
-  // Handle manual UPI entry
-  const handleManualEntry = () => {
+  // Handle manual UPI entry with ML analysis
+  const handleManualEntry = async () => {
     // Simple UPI validation with more flexible pattern for presentations
     const upiPattern = /^[\w.-]+@[\w]+$/;
     
@@ -378,18 +392,46 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
       processedUpiId += '@okaxis'; // Add a default bank for presentation
     }
     
-    setScanComplete(true);
-    setScanProgress(100);
+    setScanProgress(75);
     
     // Create a payment info object
-    const paymentInfo = {
+    let paymentInfo = {
       upi_id: processedUpiId,
       name: 'Demo Merchant',
       amount: '100',
-      currency: 'INR'
+      currency: 'INR',
+      ml_risk_score: 0,
+      ml_risk_level: 'Low' as 'Low' | 'Medium' | 'High',
+      ml_recommendation: 'Allow' as 'Allow' | 'Verify' | 'Block'
     };
     
-    console.log('⚠️ DEMO MODE: Using payment info for presentation:', paymentInfo);
+    console.log('Processing manual UPI entry:', processedUpiId);
+    
+    // Construct a UPI URL for ML analysis
+    const upiUrl = `upi://pay?pa=${processedUpiId}&pn=Demo%20Merchant&am=100&cu=INR&tn=Payment`;
+    
+    try {
+      // Analyze the UPI with ML
+      setScanProgress(85);
+      console.log('Analyzing manual UPI entry with ML service...');
+      
+      const mlResult = await analyzeQRWithML(upiUrl);
+      console.log('ML analysis result for manual entry:', mlResult);
+      
+      // Store the ML result for display
+      setMlScanResult(mlResult);
+      
+      // Update payment info with ML risk details
+      paymentInfo.ml_risk_score = mlResult.risk_score;
+      paymentInfo.ml_risk_level = mlResult.risk_level;
+      paymentInfo.ml_recommendation = mlResult.recommendation;
+    } catch (error) {
+      console.error('Error analyzing manual UPI entry with ML:', error);
+      // Continue with basic entry if ML analysis fails
+    }
+    
+    setScanComplete(true);
+    setScanProgress(100);
     
     // Return the payment info as JSON
     setTimeout(() => {

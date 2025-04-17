@@ -62,7 +62,10 @@ export default function Scan() {
       upi_id: '',
       name: '',
       amount: '',
-      currency: 'INR'
+      currency: 'INR',
+      ml_risk_score: 0,
+      ml_risk_level: 'Low' as 'Low' | 'Medium' | 'High',
+      ml_recommendation: 'Allow' as 'Allow' | 'Verify' | 'Block'
     };
     
     let upiId = '';
@@ -94,68 +97,156 @@ export default function Scan() {
     setScannedUpiId(upiId);
     setUpiDetected(true); // Set UPI detected to true when valid UPI found
     setIsAnalyzing(true);
-    setAnalysisProgress(10);
+    setAnalysisProgress(30);
     
     try {
-      // Step 1: Initial UPI risk analysis
-      setAnalysisProgress(30);
-      const riskAnalysis = await analyzeUpiRisk(upiId);
+      // Check if the payment info already has ML analysis results
+      const hasMlAnalysis = paymentInfo.ml_risk_score > 0;
       
-      // Store risk details
-      setRiskDetails({
-        percentage: riskAnalysis.riskPercentage,
-        level: riskAnalysis.riskLevel,
-        reports: riskAnalysis.reports
-      });
-      
-      // Step 2: Advanced ML-based fraud detection
-      setAnalysisProgress(50);
-      setShowMlAnalysis(true);
-      
-      // Use amount from QR if available, otherwise use a default test amount
-      const amount = paymentInfo.amount ? parseFloat(paymentInfo.amount) : 500;
-      
-      // Call our ML-powered fraud detection service
-      const mlAnalysis = await detectAdvancedFraud(upiId, amount);
-      setMlRiskDetails(mlAnalysis);
-      setAnalysisProgress(100);
-      
-      // Determine what to do based on risk assessment
-      // Priority to ML result if available, otherwise fall back to basic risk analysis
-      if (mlAnalysis.prediction) {
-        // ML model predicts this is likely fraud
-        setShowBlocked(true);
-      } else if (shouldBlockTransaction(riskAnalysis.riskPercentage)) {
-        // High risk from basic analysis - show blocking screen
-        setShowBlocked(true);
-      } else if (shouldShowWarning(riskAnalysis.riskPercentage) || mlAnalysis.confidence > 0.3) {
-        // Medium risk - show warning
-        setShowWarning(true);
+      if (hasMlAnalysis) {
+        console.log('Using ML analysis from QR scanner:', {
+          score: paymentInfo.ml_risk_score,
+          level: paymentInfo.ml_risk_level,
+          recommendation: paymentInfo.ml_recommendation
+        });
+        
+        // Use the ML analysis from the QR scanner
+        setAnalysisProgress(70);
+        
+        // Also get legacy UPI risk analysis for backward compatibility
+        const riskAnalysis = await analyzeUpiRisk(upiId);
+        
+        // Store risk details
+        setRiskDetails({
+          percentage: Math.max(paymentInfo.ml_risk_score, riskAnalysis.riskPercentage), // Use higher of the two risk scores
+          level: paymentInfo.ml_risk_level,
+          reports: riskAnalysis.reports
+        });
+        
+        // Create FraudDetectionResponse from ML scan results
+        const mlAnalysisResult: FraudDetectionResponse = {
+          prediction: paymentInfo.ml_risk_level === 'High',
+          confidence: paymentInfo.ml_risk_score / 100,
+          features: {
+            hourly_reports: riskAnalysis.reports || 0,
+            tx_frequency: 0,
+            amount_deviation: 0,
+            device_risk: 0,
+            platform_reports: 0
+          },
+          live_data: {
+            tx_frequency: 0,
+            avg_amount: paymentInfo.amount ? parseFloat(paymentInfo.amount) : 0,
+            device_mismatches: 0,
+            recent_reports: riskAnalysis.reports || 0
+          },
+          message: `ML analysis: ${paymentInfo.ml_recommendation}`,
+          meta: {
+            service: 'river-ml-qr-scan',
+            version: '1.0',
+            latency_ms: 0
+          }
+        };
+        
+        setMlRiskDetails(mlAnalysisResult);
+        setShowMlAnalysis(true);
+        setAnalysisProgress(100);
+        
+        // Determine what to do based on risk assessment
+        if (paymentInfo.ml_recommendation === 'Block' || paymentInfo.ml_risk_level === 'High') {
+          // High risk - show blocking screen
+          setShowBlocked(true);
+        } else if (paymentInfo.ml_recommendation === 'Verify' || paymentInfo.ml_risk_level === 'Medium') {
+          // Medium risk - show warning
+          setShowWarning(true);
+        } else {
+          // Low risk - show safe dialog then proceed
+          toast({
+            title: "Safe UPI ID",
+            description: "Our AI has verified this appears to be a legitimate UPI ID.",
+            variant: "default",
+          });
+          
+          // Construct query string with all payment info
+          const queryParams = new URLSearchParams();
+          queryParams.append('upiId', upiId);
+          queryParams.append('securityCheck', 'passed');
+          
+          if (paymentInfo.name) queryParams.append('name', paymentInfo.name);
+          if (paymentInfo.amount) queryParams.append('amount', paymentInfo.amount);
+          if (paymentInfo.currency) queryParams.append('currency', paymentInfo.currency);
+          
+          // Show safe dialog
+          setShowSafeDialog(true);
+          setSafeTransactionInfo({
+            upiId,
+            queryParams: queryParams.toString(),
+            name: paymentInfo.name || '',
+            amount: paymentInfo.amount || ''
+          });
+        }
       } else {
-        // Low risk - show safe dialog first then proceed
-        toast({
-          title: "Safe UPI ID",
-          description: "Our AI has verified this appears to be a legitimate UPI ID.",
-          variant: "default",
+        // We don't have ML analysis yet, perform standard flow
+        // Step 1: Initial UPI risk analysis
+        setAnalysisProgress(30);
+        const riskAnalysis = await analyzeUpiRisk(upiId);
+        
+        // Store risk details
+        setRiskDetails({
+          percentage: riskAnalysis.riskPercentage,
+          level: riskAnalysis.riskLevel,
+          reports: riskAnalysis.reports
         });
         
-        // Construct query string with all payment info
-        const queryParams = new URLSearchParams();
-        queryParams.append('upiId', upiId);
-        queryParams.append('securityCheck', 'passed');
+        // Step 2: Advanced ML-based fraud detection
+        setAnalysisProgress(50);
+        setShowMlAnalysis(true);
         
-        if (paymentInfo.name) queryParams.append('name', paymentInfo.name);
-        if (paymentInfo.amount) queryParams.append('amount', paymentInfo.amount);
-        if (paymentInfo.currency) queryParams.append('currency', paymentInfo.currency);
+        // Use amount from QR if available, otherwise use a default test amount
+        const amount = paymentInfo.amount ? parseFloat(paymentInfo.amount) : 500;
         
-        // Show safe dialog
-        setShowSafeDialog(true);
-        setSafeTransactionInfo({
-          upiId,
-          queryParams: queryParams.toString(),
-          name: paymentInfo.name || '',
-          amount: paymentInfo.amount || ''
-        });
+        // Call our ML-powered fraud detection service
+        const mlAnalysis = await detectAdvancedFraud(upiId, amount);
+        setMlRiskDetails(mlAnalysis);
+        setAnalysisProgress(100);
+        
+        // Determine what to do based on risk assessment
+        // Priority to ML result if available, otherwise fall back to basic risk analysis
+        if (mlAnalysis.prediction) {
+          // ML model predicts this is likely fraud
+          setShowBlocked(true);
+        } else if (shouldBlockTransaction(riskAnalysis.riskPercentage)) {
+          // High risk from basic analysis - show blocking screen
+          setShowBlocked(true);
+        } else if (shouldShowWarning(riskAnalysis.riskPercentage) || mlAnalysis.confidence > 0.3) {
+          // Medium risk - show warning
+          setShowWarning(true);
+        } else {
+          // Low risk - show safe dialog first then proceed
+          toast({
+            title: "Safe UPI ID",
+            description: "Our AI has verified this appears to be a legitimate UPI ID.",
+            variant: "default",
+          });
+          
+          // Construct query string with all payment info
+          const queryParams = new URLSearchParams();
+          queryParams.append('upiId', upiId);
+          queryParams.append('securityCheck', 'passed');
+          
+          if (paymentInfo.name) queryParams.append('name', paymentInfo.name);
+          if (paymentInfo.amount) queryParams.append('amount', paymentInfo.amount);
+          if (paymentInfo.currency) queryParams.append('currency', paymentInfo.currency);
+          
+          // Show safe dialog
+          setShowSafeDialog(true);
+          setSafeTransactionInfo({
+            upiId,
+            queryParams: queryParams.toString(),
+            name: paymentInfo.name || '',
+            amount: paymentInfo.amount || ''
+          });
+        }
       }
     } catch (error) {
       console.error('Error analyzing UPI:', error);

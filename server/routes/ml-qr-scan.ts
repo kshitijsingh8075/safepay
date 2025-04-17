@@ -4,10 +4,9 @@
  */
 
 import { Express, Request, Response } from 'express';
-import fetch from 'node-fetch';
 
-// Define the ML service URL - this will be the FastAPI service
-const ML_SERVICE_URL = 'http://localhost:8000'; // Update if needed
+// ML service URL
+const ML_SERVICE_URL = 'http://localhost:8000';
 
 export function registerMLQRScanRoutes(app: Express): void {
   /**
@@ -23,7 +22,7 @@ export function registerMLQRScanRoutes(app: Express): void {
       }
       
       // Forward the request to the ML service
-      const mlResponse = await fetch(`${ML_SERVICE_URL}/predict`, {
+      const response = await fetch(`${ML_SERVICE_URL}/predict`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -31,21 +30,23 @@ export function registerMLQRScanRoutes(app: Express): void {
         body: JSON.stringify({ qr_text }),
       });
       
-      if (!mlResponse.ok) {
-        throw new Error(`ML service responded with ${mlResponse.status}: ${mlResponse.statusText}`);
+      if (!response.ok) {
+        console.error(`ML service error: ${response.status} ${response.statusText}`);
+        return res.status(response.status).json({ 
+          error: 'ML service error',
+          status: response.status,
+          message: response.statusText
+        });
       }
       
-      const data = await mlResponse.json();
+      const data = await response.json();
       res.json(data);
     } catch (error) {
-      console.error('Error in ML QR scan prediction:', error);
-      res.status(500).json({ 
-        error: 'Failed to analyze QR code with ML service',
-        message: error instanceof Error ? error.message : String(error)
-      });
+      console.error('Error proxying ML QR scan request:', error);
+      res.status(500).json({ error: 'Internal server error processing QR code' });
     }
   });
-  
+
   /**
    * Submit feedback about a QR code
    * POST /api/ml/qr-scan/feedback
@@ -54,12 +55,12 @@ export function registerMLQRScanRoutes(app: Express): void {
     try {
       const { qr_text, is_scam } = req.body;
       
-      if (!qr_text || is_scam === undefined) {
-        return res.status(400).json({ error: 'QR text and is_scam flag are required' });
+      if (!qr_text || typeof is_scam !== 'boolean') {
+        return res.status(400).json({ error: 'QR text and is_scam boolean are required' });
       }
       
       // Forward the feedback to the ML service
-      const mlResponse = await fetch(`${ML_SERVICE_URL}/feedback`, {
+      const response = await fetch(`${ML_SERVICE_URL}/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,78 +68,91 @@ export function registerMLQRScanRoutes(app: Express): void {
         body: JSON.stringify({ qr_text, is_scam }),
       });
       
-      if (!mlResponse.ok) {
-        throw new Error(`ML service responded with ${mlResponse.status}: ${mlResponse.statusText}`);
+      if (!response.ok) {
+        console.error(`ML service feedback error: ${response.status} ${response.statusText}`);
+        return res.status(response.status).json({ 
+          error: 'ML service error',
+          message: response.statusText
+        });
       }
       
-      const data = await mlResponse.json();
+      const data = await response.json();
       res.json(data);
     } catch (error) {
-      console.error('Error in ML QR scan feedback:', error);
-      res.status(500).json({ 
-        error: 'Failed to submit QR code feedback to ML service',
-        message: error instanceof Error ? error.message : String(error)
-      });
+      console.error('Error submitting QR scan feedback:', error);
+      res.status(500).json({ error: 'Internal server error processing feedback' });
     }
   });
-  
+
   /**
    * Batch analyze multiple QR codes
    * POST /api/ml/qr-scan/batch
    */
   app.post('/api/ml/qr-scan/batch', async (req: Request, res: Response) => {
     try {
-      const { requests } = req.body;
+      const { qr_texts } = req.body;
       
-      if (!requests || !Array.isArray(requests)) {
-        return res.status(400).json({ error: 'Requests array is required' });
+      if (!Array.isArray(qr_texts) || qr_texts.length === 0) {
+        return res.status(400).json({ error: 'Array of QR texts is required' });
       }
       
       // Forward the batch request to the ML service
-      const mlResponse = await fetch(`${ML_SERVICE_URL}/batch_predict`, {
+      const response = await fetch(`${ML_SERVICE_URL}/batch-predict`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ requests }),
+        body: JSON.stringify({ qr_texts }),
       });
       
-      if (!mlResponse.ok) {
-        throw new Error(`ML service responded with ${mlResponse.status}: ${mlResponse.statusText}`);
+      if (!response.ok) {
+        console.error(`ML service batch error: ${response.status} ${response.statusText}`);
+        return res.status(response.status).json({ 
+          error: 'ML service error',
+          message: response.statusText
+        });
       }
       
-      const data = await mlResponse.json();
+      const data = await response.json();
       res.json(data);
     } catch (error) {
-      console.error('Error in ML QR scan batch prediction:', error);
-      res.status(500).json({ 
-        error: 'Failed to batch analyze QR codes with ML service',
-        message: error instanceof Error ? error.message : String(error)
-      });
+      console.error('Error processing batch QR scan:', error);
+      res.status(500).json({ error: 'Internal server error processing batch' });
     }
   });
-  
+
   /**
    * Health check for the ML service
    * GET /api/ml/qr-scan/health
    */
   app.get('/api/ml/qr-scan/health', async (req: Request, res: Response) => {
     try {
-      // Check if the ML service is up and running
-      const mlResponse = await fetch(`${ML_SERVICE_URL}/`);
+      // Check if the ML service is running
+      const response = await fetch(`${ML_SERVICE_URL}/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
-      if (!mlResponse.ok) {
-        throw new Error(`ML service responded with ${mlResponse.status}: ${mlResponse.statusText}`);
+      if (!response.ok) {
+        console.error(`ML service health check failed: ${response.status} ${response.statusText}`);
+        return res.status(503).json({ 
+          status: 'unavailable',
+          message: 'ML service is not responding'
+        });
       }
       
-      const data = await mlResponse.json();
-      res.json({ status: 'ok', ml_service: data });
+      const data = await response.json();
+      res.json({
+        status: 'healthy',
+        ml_service: data
+      });
     } catch (error) {
-      console.error('ML service health check failed:', error);
+      console.error('Error checking ML service health:', error);
       res.status(503).json({ 
         status: 'unavailable',
-        error: 'ML service is not available',
-        message: error instanceof Error ? error.message : String(error)
+        message: 'ML service is not responding'
       });
     }
   });
