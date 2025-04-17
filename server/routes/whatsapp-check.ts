@@ -2,6 +2,8 @@ import { Express, Request, Response } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { ParamsDictionary } from "express-serve-static-core";
+import { ParsedQs } from "qs";
 import { analyzeWhatsAppMessage } from "../services/openai";
 
 // Configure multer for image upload
@@ -42,8 +44,9 @@ const upload = multer({
   },
 });
 
-// Define multer file type
-interface MulterFile {
+// Type definition for multer file, but we'll use 'any' for the route handler
+// to avoid TypeScript errors with the Express File interface
+type MulterFile = {
   fieldname: string;
   originalname: string;
   encoding: string;
@@ -53,13 +56,7 @@ interface MulterFile {
   filename: string;
   path: string;
   buffer: Buffer;
-  stream?: any; // Adding stream property to match Express.Multer.File
-}
-
-// Extended request type with file property
-interface RequestWithFile extends Request {
-  file?: MulterFile;
-}
+};
 
 /**
  * Register WhatsApp check routes
@@ -67,7 +64,7 @@ interface RequestWithFile extends Request {
  */
 export function registerWhatsAppCheckRoutes(app: Express): void {
   // Endpoint to analyze WhatsApp messages
-  app.post("/api/analyze-whatsapp", upload.single("image"), async (req: RequestWithFile, res: Response) => {
+  app.post("/api/analyze-whatsapp", upload.single("image"), async (req: any, res: Response) => {
     try {
       const description = req.body.description || "";
       let imageBase64 = null;

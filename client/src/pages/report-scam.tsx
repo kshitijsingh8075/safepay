@@ -20,7 +20,7 @@ export default function ReportScam() {
   const { toast } = useToast();
   
   const [upiId, setUpiId] = useState('onlineshopping123@upi');
-  const [scamType, setScamType] = useState<ScamType>('Fake Products');
+  const [scamType, setScamType] = useState<ScamType>(ScamType.Unknown);
   const [amountLost, setAmountLost] = useState('2,500');
   const [description, setDescription] = useState('I ordered products online through this UPI ID but never received the items. The seller stopped responding after payment.');
   const [isSubmitting, setIsSubmitting] = useState(false);

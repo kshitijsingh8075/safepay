@@ -57,20 +57,20 @@ export async function analyzeTranscriptForScams(transcript: string): Promise<Voi
         case 'fake products':
         case 'product':
         case 'shopping':
-          scamType = 'Fake Products';
+          scamType = ScamType.Unknown; // We don't have a specific "Product" scam type
           break;
         case 'phishing':
         case 'impersonation':
         case 'identity theft':
-          scamType = 'Phishing';
+          scamType = ScamType.Phishing;
           break;
         case 'fraud':
         case 'financial':
         case 'investment':
-          scamType = 'Fraud';
+          scamType = ScamType.Banking; // Banking is closest to financial fraud
           break;
         default:
-          scamType = 'Other';
+          scamType = ScamType.Unknown;
       }
     }
     
