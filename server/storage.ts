@@ -570,9 +570,13 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Database Storage Implementation
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { db } from './db';
+import * as schema from '@shared/schema';
+import { 
+  users, transactions, upiRiskReports, scamReports,
+  paymentMethods, chatMessages, chatFeedbacks
+} from '@shared/schema';
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
@@ -742,7 +746,7 @@ export class DatabaseStorage implements IStorage {
           .where(and(
             eq(paymentMethods.userId, method.userId),
             eq(paymentMethods.isDefault, true),
-            eq(paymentMethods.id, id).invert()
+            sql`${paymentMethods.id} != ${id}`
           ));
       }
     }

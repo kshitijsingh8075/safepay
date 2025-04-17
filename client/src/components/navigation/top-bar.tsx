@@ -84,82 +84,77 @@ export function TopBar({
   };
 
   return (
-    <div className={cn("sticky top-0 z-20 w-full bg-white border-b flex items-center px-4 py-3", className)}>
-      {showBack && !isSearchActive && (
-        <Button variant="ghost" size="icon" onClick={handleBack} className="mr-2">
-          <ArrowLeft className="h-5 w-5" />
+    <div className={cn("sticky top-0 z-20 w-full bg-white border-b p-2", className)}>
+      <div className="flex items-center gap-2 mx-auto max-w-md bg-gray-100 rounded-full px-4 py-2">
+        <Avatar className="h-8 w-8 cursor-pointer" onClick={handleProfileClick}>
+          <AvatarFallback className="bg-gray-200">
+            <User className="h-4 w-4 text-gray-400" />
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="flex-1 font-medium">{title}</div>
+        
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="rounded-full"
+          onClick={handleSearchClick}
+          aria-label="Search"
+        >
+          <Search className="h-5 w-5" />
         </Button>
-      )}
-
-      {!isSearchActive ? (
-        <>
-          <h1 className="text-lg font-semibold flex-1">{title}</h1>
-          
-          <div className="flex items-center gap-2">
-            {showSearch && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleSearchClick}
-                aria-label="Search"
-              >
-                <Search className="h-5 w-5" />
-              </Button>
-            )}
-            
-            {showNotification && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleNotificationClick}
-                aria-label="Notifications"
-              >
-                <Bell className="h-5 w-5" />
-              </Button>
-            )}
-            
-            {showProfile && (
-              <Avatar 
-                className="h-8 w-8 cursor-pointer border" 
-                onClick={handleProfileClick}
-              >
-                <AvatarImage src="/images/profile-pic.jpg" />
-                <AvatarFallback className="bg-primary text-white">
-                  <User className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
-            )}
-          </div>
-        </>
-      ) : (
-        <form onSubmit={handleSearchSubmit} className="flex items-center w-full gap-2">
-          <Input
-            type="text"
-            placeholder="Search for UPI IDs, scams..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1"
-            autoFocus
-          />
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleSearchCancel}
-            aria-label="Cancel search"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-          <Button 
-            type="submit" 
-            variant="ghost" 
-            size="icon"
-            disabled={!searchQuery.trim()}
-            aria-label="Submit search"
-          >
-            <Search className="h-5 w-5" />
-          </Button>
-        </form>
+        
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="rounded-full"
+          onClick={handleNotificationClick}
+          aria-label="Notifications"
+        >
+          <Bell className="h-5 w-5" />
+        </Button>
+        
+        <Avatar 
+          className="h-8 w-8 cursor-pointer bg-primary"
+          onClick={handleProfileClick}
+        >
+          <AvatarFallback className="bg-primary text-white">
+            <User className="h-4 w-4" />
+          </AvatarFallback>
+        </Avatar>
+      </div>
+      
+      {isSearchActive && (
+        <div className="absolute inset-0 bg-white px-4 py-2 flex items-center">
+          <form onSubmit={handleSearchSubmit} className="flex items-center w-full gap-2">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleSearchCancel}
+              aria-label="Cancel search"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            <Input
+              type="text"
+              placeholder="Search for UPI IDs, scams..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1"
+              autoFocus
+            />
+            <Button 
+              type="submit" 
+              variant="ghost" 
+              size="icon"
+              disabled={!searchQuery.trim()}
+              aria-label="Submit search"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+          </form>
+        </div>
       )}
     </div>
   );
