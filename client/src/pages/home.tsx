@@ -10,9 +10,45 @@ import { useToast } from '@/hooks/use-toast';
 export default function Home() {
   const [, setLocation] = useLocation();
   const [showNotification, setShowNotification] = useState(false);
+  const [upiInput, setUpiInput] = useState('');
+  const { toast } = useToast();
 
   const handleAlertClick = () => {
     setShowNotification(true);
+  };
+  
+  const handleUpiSearch = () => {
+    if (!upiInput.trim()) {
+      toast({
+        title: "Empty Input",
+        description: "Please enter a UPI ID to search",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // If UPI format is valid (contains @), process it directly
+    if (upiInput.includes('@')) {
+      // Process the UPI ID - use the same route as scan.tsx
+      const queryParams = new URLSearchParams();
+      queryParams.append('upiId', upiInput);
+      queryParams.append('fromSearch', 'true');
+      
+      setLocation(`/scan?${queryParams.toString()}`);
+    } else {
+      // Not in UPI format, add a default provider for demo
+      const demoUpiId = upiInput + '@okaxis';
+      toast({
+        title: "Processing",
+        description: `Using demo format: ${demoUpiId}`,
+      });
+      
+      const queryParams = new URLSearchParams();
+      queryParams.append('upiId', demoUpiId);
+      queryParams.append('fromSearch', 'true');
+      
+      setLocation(`/scan?${queryParams.toString()}`);
+    }
   };
 
   return (
@@ -20,11 +56,28 @@ export default function Home() {
       {/* Top bar with search */}
       <div className="p-4 bg-white z-10">
         <div className="flex items-center gap-2">
-          <div className="flex-1 bg-slate-100 rounded-full px-4 py-2">
+          <div className="flex-1 bg-slate-100 rounded-full px-3 py-1.5 flex items-center">
+            <Search className="w-4 h-4 text-slate-500 mr-2 flex-shrink-0" />
             <Input 
-              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-700 text-sm w-full"
-              placeholder="Search UPI ID or phone number"
+              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-500 text-sm w-full h-8"
+              placeholder="Enter UPI ID to check..."
+              value={upiInput}
+              onChange={(e) => setUpiInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleUpiSearch();
+                }
+              }}
             />
+            {upiInput && (
+              <Button 
+                size="sm" 
+                className="rounded-full h-7 w-7 p-0 flex items-center justify-center bg-blue-600 hover:bg-blue-700"
+                onClick={handleUpiSearch}
+              >
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

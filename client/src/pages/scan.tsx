@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 
 export default function Scan() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [showBlocked, setShowBlocked] = useState(false);
@@ -39,6 +39,18 @@ export default function Scan() {
   } | null>(null);
   const [mlRiskDetails, setMlRiskDetails] = useState<FraudDetectionResponse | null>(null);
   const { toast } = useToast();
+  
+  // Check for UPI ID in URL parameters (when coming from search)
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const upiIdFromUrl = params.get('upiId');
+    const fromSearch = params.get('fromSearch');
+    
+    if (upiIdFromUrl && fromSearch === 'true') {
+      // Process the UPI ID from search
+      processUpiId(upiIdFromUrl);
+    }
+  }, [location]);
 
   const handleScan = async (qrData: string) => {
     // Try to parse the payment info if in JSON format
@@ -226,6 +238,18 @@ export default function Scan() {
     setManualUpiMode(!manualUpiMode);
   };
   
+  // Function to process UPI ID from search 
+  const processUpiId = (upiId: string) => {
+    console.log('Processing UPI ID from search:', upiId);
+    toast({
+      title: "Processing UPI ID",
+      description: `Checking security for ${upiId}`,
+    });
+    
+    // Use the same scan logic we use for QR codes
+    handleScan(upiId);
+  };
+  
   return (
     <>
       {!manualUpiMode ? (
@@ -285,104 +309,33 @@ export default function Scan() {
         </div>
       )}
       
-      {/* Warning Dialog - Medium Risk */}
-      <Dialog open={showWarning} onOpenChange={setShowWarning}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogTitle className="flex items-center text-amber-500">
-            <AlertTriangle className="mr-2 h-5 w-5" />
-            Caution Required
-          </DialogTitle>
-          <DialogDescription>
-            <div className="flex flex-col space-y-4">
-              <div>
-                This UPI ID has been flagged with medium risk ({riskDetails?.percentage}%)
-                {riskDetails && riskDetails.reports > 0 && ` and has ${riskDetails.reports} reports from other users`}.
-              </div>
-              
-              {/* Risk Level Indicator */}
-              <div className="bg-amber-50 p-4 rounded-lg">
-                <h3 className="font-medium mb-2 flex items-center text-amber-700">
-                  <AlertTriangle className="w-5 h-5 mr-2" />
-                  Medium Risk Level
-                </h3>
-                
-                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                  <div className="bg-amber-500 h-2.5 rounded-full" style={{ width: `${riskDetails?.percentage || 0}%` }}></div>
-                </div>
-                
-                <ul className="text-sm space-y-1 text-amber-800 mt-3">
-                  <li>• This UPI ID has some suspicious attributes</li>
-                  <li>• Limited transaction history was found</li>
-                  <li>• Proceed with caution and verify recipient</li>
-                </ul>
-              </div>
-            </div>
-          </DialogDescription>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button variant="default" className="bg-amber-500 hover:bg-amber-600" onClick={handleProceedAnyway}>
-              Continue <ArrowLeft className="ml-2 w-4 h-4 rotate-180" />
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Warning Dialog - Medium Risk (using new PaymentSafetyPopup) */}
+      {showWarning && (
+        <PaymentSafetyPopup
+          status="caution"
+          riskScore={riskDetails?.percentage ? riskDetails.percentage / 100 : 0.45} 
+          merchantName={safeTransactionInfo.name || "Unknown Merchant"}
+          businessInfo={false}
+          sslProtected={true}
+          details="This UPI ID has some suspicious patterns and limited verified transaction history. Proceed with caution."
+          onContinue={handleProceedAnyway}
+          onCancel={handleCancel}
+        />
+      )}
       
-      {/* Block Dialog - High Risk */}
-      <Dialog open={showBlocked} onOpenChange={setShowBlocked}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogTitle className="flex items-center text-red-600">
-            <AlertCircle className="mr-2 h-5 w-5" />
-            Payment Blocked
-          </DialogTitle>
-          <DialogDescription>
-            <div className="flex flex-col space-y-4">
-              <div>
-                This UPI ID has a very high risk score ({riskDetails?.percentage}%)
-                {riskDetails && riskDetails.reports > 0 && ` and has ${riskDetails.reports} reports from other users`}.
-              </div>
-              
-              {/* Risk Level Indicator */}
-              <div className="bg-red-50 p-4 rounded-lg">
-                <h3 className="font-medium mb-2 flex items-center text-red-700">
-                  <AlertOctagon className="w-5 h-5 mr-2" />
-                  High Risk Level
-                </h3>
-                
-                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                  <div className="bg-red-600 h-2.5 rounded-full" style={{ width: `${riskDetails?.percentage || 0}%` }}></div>
-                </div>
-                
-                <div className="text-sm text-red-700 font-bold my-2">
-                  {upiDetected ? 'UPI ID Detected But Seems Fraudulent' : 'UPI ID Not Detected'}
-                </div>
-                
-                <ul className="text-sm space-y-1 text-red-800 mt-3">
-                  <li>• Multiple scam reports have been filed</li>
-                  <li>• This UPI ID has suspicious patterns</li>
-                  <li>• Our AI has flagged this as potentially fraudulent</li>
-                </ul>
-              </div>
-            </div>
-          </DialogDescription>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleReportScam}>
-              Report Scam
-            </Button>
-            <Button 
-              variant="default" 
-              className="bg-gray-700 hover:bg-gray-800 text-white"
-              onClick={handleProceedAnyway}
-            >
-              Continue <ArrowLeft className="ml-2 w-4 h-4 rotate-180" />
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Block Dialog - High Risk (using new PaymentSafetyPopup) */}
+      {showBlocked && (
+        <PaymentSafetyPopup
+          status="danger"
+          riskScore={riskDetails?.percentage ? riskDetails.percentage / 100 : 0.85} 
+          merchantName={safeTransactionInfo.name || "Unknown"}
+          businessInfo={false}
+          sslProtected={false}
+          details="This UPI ID has multiple fraud reports and has been flagged by our AI as potentially fraudulent. We recommend not proceeding with this payment."
+          onContinue={handleProceedAnyway}
+          onCancel={handleCancel}
+        />
+      )}
       
       {/* ML Analysis Dialog */}
       <Dialog open={showMlAnalysis} onOpenChange={setShowMlAnalysis}>
