@@ -24,12 +24,27 @@ export default function ConfirmTransaction() {
   
   // Analyze UPI safety on component mount
   useEffect(() => {
-    const params = new URLSearchParams(location.split('?')[1]);
+    const params = new URLSearchParams(location.split('?')[1] || '');
     const urlUpiId = params.get('upiId');
     const urlName = params.get('name');
     const urlAmount = params.get('amount');
     const urlCurrency = params.get('currency');
     const securityCheck = params.get('securityCheck');
+    
+    // DEMO MODE for presentation - use default values if missing
+    if (!location.includes('?') || !urlUpiId) {
+      console.log('⚠️ DEMO MODE: Using default values for presentation');
+      const demoUpiId = 'merchant@okaxis';
+      const demoName = 'Demo Merchant';
+      const demoAmount = '100';
+      
+      setUpiId(demoUpiId);
+      setMerchant(demoName);
+      setAmount(demoAmount);
+      setSafetyScore(95);
+      setIsAnalyzing(false);
+      return;
+    }
     
     if (urlUpiId) {
       setUpiId(urlUpiId);

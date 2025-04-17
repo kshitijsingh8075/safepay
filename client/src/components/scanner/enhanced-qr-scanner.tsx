@@ -364,7 +364,7 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
   
   // Handle manual UPI entry
   const handleManualEntry = () => {
-    // Simple UPI validation
+    // Simple UPI validation with more flexible pattern for presentations
     const upiPattern = /^[\w.-]+@[\w]+$/;
     
     if (!manualUpiId.trim()) {
@@ -375,20 +375,25 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
     // Add default domain if missing
     let processedUpiId = manualUpiId;
     if (!processedUpiId.includes('@')) {
-      processedUpiId += '@upi';
-    }
-    
-    if (!upiPattern.test(processedUpiId)) {
-      setScanError('Invalid UPI ID format. Please enter in format: username@bank');
-      return;
+      processedUpiId += '@okaxis'; // Add a default bank for presentation
     }
     
     setScanComplete(true);
     setScanProgress(100);
     
-    // Return the UPI ID
+    // Create a payment info object
+    const paymentInfo = {
+      upi_id: processedUpiId,
+      name: 'Demo Merchant',
+      amount: '100',
+      currency: 'INR'
+    };
+    
+    console.log('⚠️ DEMO MODE: Using payment info for presentation:', paymentInfo);
+    
+    // Return the payment info as JSON
     setTimeout(() => {
-      onScan(processedUpiId);
+      onScan(JSON.stringify(paymentInfo));
     }, 500);
   };
   

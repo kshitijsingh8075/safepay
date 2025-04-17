@@ -200,7 +200,17 @@ export default function Scan() {
   
   const handleManualUpiSubmit = () => {
     if (manualUpiInput && manualUpiInput.includes('@')) {
+      // Valid UPI input
       handleScan(manualUpiInput);
+    } else if (manualUpiInput && manualUpiInput.trim() !== '') {
+      // Any input provided - for presentation demo
+      const demoUpiId = manualUpiInput + '@okaxis';
+      console.log('⚠️ DEMO MODE: Using modified UPI ID for presentation:', demoUpiId);
+      toast({
+        title: "Processing payment",
+        description: "Proceeding with demo UPI ID for presentation",
+      });
+      handleScan(demoUpiId);
     } else {
       toast({
         title: "Invalid UPI ID",
