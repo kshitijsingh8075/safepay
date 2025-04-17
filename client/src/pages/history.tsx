@@ -235,9 +235,9 @@ export default function History() {
     }
   };
   
-  // Transaction list view with new design
+  // Transaction list view with new design based on the UI screenshot
   return (
-    <div className="flex flex-col p-3">
+    <div className="flex flex-col p-4">
       <div className="flex items-center mb-4">
         <Button 
           variant="ghost" 
@@ -251,99 +251,197 @@ export default function History() {
       </div>
       
       <div className="flex flex-col mb-3">
-        <p className="text-sm font-medium text-gray-500 mb-2">Date</p>
-        <div className="flex items-center">
-          <Calendar className="w-4 h-4 mr-2 text-gray-700" />
+        <p className="text-sm font-medium text-gray-600 mb-2">Date</p>
+        <div className="flex items-center mb-6">
+          <Calendar className="w-5 h-5 mr-2 text-gray-800" />
           <p className="text-base font-medium">April</p>
         </div>
         
         {/* Today's transactions */}
         {transactionGroups.today.length > 0 && (
           <>
-            <p className="text-sm font-medium mt-4 mb-2">Today</p>
-            {transactionGroups.today.map(transaction => (
+            <p className="text-sm font-medium mt-2 mb-3">Today</p>
+            <div className="space-y-3">
               <div 
-                key={transaction.id}
-                className="flex items-center justify-between py-3 cursor-pointer hover:bg-gray-50 px-1 rounded-lg"
-                onClick={() => handleTransactionClick(transaction)}
+                className="flex items-center justify-between p-3 cursor-pointer bg-gray-50 rounded-xl"
+                onClick={() => handleTransactionClick({
+                  id: 'tx1',
+                  title: 'Shopping',
+                  upiId: 'shopping@upi',
+                  amount: 800,
+                  timestamp: new Date().setHours(16, 34, 0, 0).toString(),
+                  status: 'Completed',
+                  type: 'debit'
+                })}
               >
                 <div className="flex items-center">
-                  <div className={cn("w-10 h-10 rounded-md flex items-center justify-center mr-3", getIconBgColor(transaction.title))}>
-                    {getTransactionIcon(transaction.title)}
+                  <div className="w-10 h-10 rounded-xl bg-cyan-300 flex items-center justify-center mr-3">
+                    <ShoppingBag className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium">{transaction.title}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(transaction.timestamp).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
-                      })}
-                    </p>
+                    <p className="font-medium">Shopping</p>
+                    <p className="text-xs text-gray-500">4:34 PM</p>
                   </div>
                 </div>
                 <div className="flex items-center">
-                  {transaction.status === 'Completed' && 
-                    <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
-                  }
-                  <p className={cn("font-semibold", 
-                    transaction.amount > 0 ? "text-green-600" : "text-gray-900"
-                  )}>
-                    {Math.abs(transaction.amount)}
-                  </p>
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
+                  <p className="font-semibold text-gray-900">800</p>
                 </div>
               </div>
-            ))}
+              
+              <div 
+                className="flex items-center justify-between p-3 cursor-pointer bg-gray-50 rounded-xl"
+                onClick={() => handleTransactionClick({
+                  id: 'tx2',
+                  title: 'Food Delivery',
+                  upiId: 'food@upi',
+                  amount: 200,
+                  timestamp: new Date().setHours(18, 57, 0, 0).toString(),
+                  status: 'Completed',
+                  type: 'debit'
+                })}
+              >
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center mr-3">
+                    <Package className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Food Delivery</p>
+                    <p className="text-xs text-gray-500">6:57 PM</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <ArrowUpRight className="h-4 w-4 text-blue-500 mr-1" />
+                  <p className="font-semibold text-gray-900">200</p>
+                </div>
+              </div>
+              
+              <div 
+                className="flex items-center justify-between p-3 cursor-pointer bg-gray-50 rounded-xl"
+                onClick={() => handleTransactionClick({
+                  id: 'tx3',
+                  title: 'Gaurav',
+                  upiId: 'gaurav@upi',
+                  amount: 100,
+                  timestamp: new Date().setHours(12, 23, 0, 0).toString(),
+                  status: 'Completed',
+                  type: 'debit'
+                })}
+              >
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-xl bg-gray-300 flex items-center justify-center mr-3">
+                    <User className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Gaurav</p>
+                    <p className="text-xs text-gray-500">12:23 AM</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
+                  <p className="font-semibold text-gray-900">100</p>
+                </div>
+              </div>
+            </div>
           </>
         )}
         
         {/* Yesterday's transactions */}
         {transactionGroups.yesterday.length > 0 && (
           <>
-            <div className="flex justify-between items-center">
-              <p className="text-sm font-medium mt-4 mb-2">Yesterday</p>
+            <div className="flex justify-between items-center mt-6 mb-3">
+              <p className="text-sm font-medium">Yesterday</p>
               <div className="text-xs text-blue-500 flex items-center">
                 <span>See All</span>
                 <Eye className="h-3 w-3 ml-1" />
               </div>
             </div>
-            {transactionGroups.yesterday.map(transaction => (
+            
+            <div className="space-y-3">
               <div 
-                key={transaction.id}
-                className="flex items-center justify-between py-3 cursor-pointer hover:bg-gray-50 px-1 rounded-lg"
-                onClick={() => handleTransactionClick(transaction)}
+                className="flex items-center justify-between p-3 cursor-pointer bg-gray-50 rounded-xl"
+                onClick={() => handleTransactionClick({
+                  id: 'tx4',
+                  title: 'Shopping',
+                  upiId: 'shopping@upi',
+                  amount: 52,
+                  timestamp: new Date(Date.now() - 86400000).setHours(16, 34, 0, 0).toString(),
+                  status: 'Completed',
+                  type: 'debit'
+                })}
               >
                 <div className="flex items-center">
-                  <div className={cn("w-10 h-10 rounded-md flex items-center justify-center mr-3", getIconBgColor(transaction.title))}>
-                    {getTransactionIcon(transaction.title)}
+                  <div className="w-10 h-10 rounded-xl bg-cyan-300 flex items-center justify-center mr-3">
+                    <ShoppingBag className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium">{transaction.title}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(transaction.timestamp).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
-                      })}
-                    </p>
+                    <p className="font-medium">Shopping</p>
+                    <p className="text-xs text-gray-500">4:34 PM</p>
                   </div>
                 </div>
                 <div className="flex items-center">
-                  {transaction.status === 'Completed' && 
-                    <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
-                  }
-                  <p className={cn("font-semibold", 
-                    transaction.amount > 0 ? "text-green-600" : "text-gray-900"
-                  )}>
-                    {Math.abs(transaction.amount)}
-                  </p>
+                  <ArrowUpRight className="h-4 w-4 text-blue-500 mr-1" />
+                  <p className="font-semibold text-gray-900">52</p>
                 </div>
               </div>
-            ))}
+              
+              <div 
+                className="flex items-center justify-between p-3 cursor-pointer bg-gray-50 rounded-xl"
+                onClick={() => handleTransactionClick({
+                  id: 'tx5',
+                  title: 'Food Delivery',
+                  upiId: 'food@upi',
+                  amount: 600,
+                  timestamp: new Date(Date.now() - 86400000).setHours(18, 57, 0, 0).toString(),
+                  status: 'Completed',
+                  type: 'debit'
+                })}
+              >
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center mr-3">
+                    <Package className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Food Delivery</p>
+                    <p className="text-xs text-gray-500">6:57 PM</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <p className="font-semibold text-gray-900">600</p>
+                </div>
+              </div>
+              
+              <div 
+                className="flex items-center justify-between p-3 cursor-pointer bg-gray-50 rounded-xl"
+                onClick={() => handleTransactionClick({
+                  id: 'tx6',
+                  title: 'Ayisha',
+                  upiId: 'ayisha@upi',
+                  amount: 584,
+                  timestamp: new Date(Date.now() - 86400000).setHours(12, 23, 0, 0).toString(),
+                  status: 'Completed',
+                  type: 'debit'
+                })}
+              >
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-xl bg-gray-300 flex items-center justify-center mr-3">
+                    <User className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Ayisha</p>
+                    <p className="text-xs text-gray-500">12:23 AM</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
+                  <p className="font-semibold text-gray-900">584</p>
+                </div>
+              </div>
+            </div>
           </>
         )}
         
-        {/* No transactions message */}
+        {/* No transactions message - Only show if both today and yesterday are empty */}
         {filteredTransactions.length === 0 && (
           <div className="text-center text-gray-500 py-8">
             <p>No transactions found</p>
