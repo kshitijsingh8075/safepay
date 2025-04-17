@@ -1,12 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/navigation/bottom-nav';
-import { Bell } from 'lucide-react';
+import { Bell, ShieldAlert } from 'lucide-react';
+import { NotificationBar } from '@/components/ui/notification-bar';
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const [showNotification, setShowNotification] = useState(false);
+
+  const handleAlertClick = () => {
+    setShowNotification(true);
+  };
 
   return (
     <div className="bg-slate-50 h-screen overflow-hidden fixed inset-0 flex flex-col">
@@ -23,13 +29,13 @@ export default function Home() {
       
       {/* Main content area - fixed height and scrollable if needed */}
       <div className="flex-1 overflow-y-auto pb-16">
-        {/* Bell button */}
+        {/* Alert button */}
         <div className="px-4 py-6 flex justify-center">
           <Button 
             className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 text-white"
-            onClick={() => {}}
+            onClick={handleAlertClick}
           >
-            <Bell className="w-6 h-6" />
+            <ShieldAlert className="w-6 h-6" />
           </Button>
         </div>
         
