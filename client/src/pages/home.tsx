@@ -18,12 +18,13 @@ export default function Home() {
     <div className="bg-slate-50 h-screen overflow-hidden fixed inset-0 flex flex-col">
       {/* Top bar with search */}
       <div className="p-4 bg-white z-10">
-        <div className="flex items-center bg-slate-100 rounded-full px-4 py-2">
-          <div className="w-6 h-6 rounded-full bg-gray-300 mr-2"></div>
-          <Input 
-            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-700 text-sm"
-            placeholder="Search UPI ID or phone number"
-          />
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-slate-100 rounded-full px-4 py-2">
+            <Input 
+              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-700 text-sm w-full"
+              placeholder="Search UPI ID or phone number"
+            />
+          </div>
         </div>
       </div>
       
@@ -241,6 +242,14 @@ export default function Home() {
         <div className="h-16"></div>
       </div>
       
+      {/* Red notification bar */}
+      {showNotification && (
+        <NotificationBar
+          message="धोखाधड़ी से सावधान! नए UPI स्कैम की सूचना मिली है। अपनी सुरक्षा के लिए सतर्क रहें।"
+          type="error"
+        />
+      )}
+
       {/* Bottom Navigation */}
       <BottomNav className="absolute bottom-0 left-0 right-0" />
     </div>
