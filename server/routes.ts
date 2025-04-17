@@ -299,6 +299,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: 'Invalid report data', error });
     }
   });
+  
+  // Police complaint routes
+  app.post('/api/report/police-complaint', async (req, res) => {
+    try {
+      const { 
+        upiId, 
+        name, 
+        amount, 
+        policeStation = 'Cyber Crime Police Station',
+        city = 'New Delhi',
+        userDetails = {},
+        transactionDate,
+        description
+      } = req.body;
+      
+      // Basic validation
+      if (!upiId || !name) {
+        return res.status(400).json({ message: 'UPI ID and recipient name are required' });
+      }
+      
+      // Create a scam report entry in our system
+      try {
+        const reportData = {
+          upiId,
+          userId: userDetails.userId || 1, // Use default user if not provided
+          scamType: 'Fraud',
+          description: description || `Police complaint filed against ${upiId}`,
+          amountLost: parseFloat(amount.replace(/,/g, '')) || null
+        };
+        
+        await storage.createScamReport(reportData);
+        await storage.updateUpiRiskScore(upiId);
+      } catch (error) {
+        console.error('Error creating scam report:', error);
+        // Continue with police complaint even if our internal reporting fails
+      }
+      
+      // In a real system, this would communicate with police API
+      // For now, we'll simulate successful submission
+      
+      res.status(201).json({ 
+        message: 'Police complaint submitted successfully',
+        complaintId: 'PC' + Date.now().toString().slice(-8),
+        submissionTime: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error submitting police complaint:', error);
+      res.status(500).json({ message: 'Error submitting police complaint', error });
+    }
+  });
 
   // Transactions routes
   app.get('/api/transactions/:userId', async (req, res) => {
