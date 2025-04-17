@@ -6,6 +6,7 @@ export type ThemeContextType = {
   theme: 'light' | 'dark';
   isDark: boolean;
   toggleTheme: () => void;
+  setTheme: (theme: 'light' | 'dark') => void;
 };
 
 // Create the theme context with a default value
@@ -13,6 +14,7 @@ export const ThemeContext = createContext<ThemeContextType>({
   theme: 'light',
   isDark: false,
   toggleTheme: () => {},
+  setTheme: () => {},
 });
 
 // Props type for the ThemeProvider component
@@ -83,7 +85,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Provide the theme context to children components
   return (
-    <ThemeContext.Provider value={{ theme, isDark, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, isDark, toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
