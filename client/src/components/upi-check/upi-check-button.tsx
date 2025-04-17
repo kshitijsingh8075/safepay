@@ -41,6 +41,8 @@ interface UpiCheckResponse {
   recommendations?: string[];
   age?: string;
   reportedFor?: string;
+  safety_score?: number; // AI-generated safety score
+  ai_analysis?: string; // AI-generated explanation
 }
 
 export default function UpiCheckButton() {
@@ -85,6 +87,9 @@ export default function UpiCheckButton() {
           risk_factors: data.risk_factors || [],
           recommendations: data.recommendations || [],
           reportedFor: data.category || 'N/A',
+          // Include new AI analysis fields
+          safety_score: data.safety_score,
+          ai_analysis: data.ai_analysis
         });
         
         // Show toast with the result

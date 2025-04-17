@@ -1,4 +1,21 @@
 import { storage } from '../storage';
+import OpenAI from "openai";
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// Helper function to safely parse JSON
+function safeJsonParse(jsonString: string | null | undefined, defaultValue: any = {}) {
+  try {
+    if (!jsonString) return defaultValue;
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error('Error parsing JSON:', error);
+    return defaultValue;
+  }
+}
 
 /**
  * Lists of known safe UPI IDs
@@ -124,6 +141,8 @@ export interface UpiCheckResult {
   risk_factors?: string[];
   category?: string;
   recommendations?: string[];
+  safety_score?: number; // Safety score from 0-100
+  ai_analysis?: string; // AI analysis explanation
 }
 
 /**
@@ -331,6 +350,71 @@ export function getRecommendations(status: 'SAFE' | 'SUSPICIOUS' | 'SCAM'): stri
 }
 
 /**
+ * Analyze UPI ID using OpenAI for advanced AI-powered safety assessment
+ * @param upiId UPI ID to analyze
+ * @returns AI analysis with safety score and explanation
+ */
+export async function analyzeUpiWithAI(upiId: string): Promise<{
+  safety_score: number;
+  explanation: string;
+  flags: string[];
+}> {
+  try {
+    // Split UPI ID to analyze parts more effectively
+    const [username, domain] = upiId.split('@');
+    
+    // Prepare system prompt
+    const systemPrompt = `Analyze this UPI ID and tell if it looks suspicious or genuine. Consider patterns such as:
+1. Random numbers in the ID (e.g., long numeric sequences).
+2. Mismatch between the ID's domain and the issuer (e.g., Paytm ID with HDFC).
+3. Common scam patterns (e.g., too many characters, or odd sequence).
+4. Known scam reports for similar IDs.
+
+Valid UPI domains include:
+- okicici = ICICI Bank
+- okhdfcbank = HDFC Bank  
+- oksbi = State Bank of India
+- okaxis = Axis Bank
+- ybl = PhonePe/Yes Bank
+- paytm = Paytm
+- upi = National Payments Corporation of India
+- ibl = ICICI Bank
+- axl = Axis Bank
+
+Return a JSON with:
+1. safety_score: Number from 0 to 100 (higher is safer)
+2. explanation: 2-3 lines explaining the reasoning
+3. flags: Array of specific concerns found (empty if none)`;
+    
+    // Send request to OpenAI
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: upiId }
+      ],
+      response_format: { type: "json_object" }
+    });
+    
+    // Parse response with fallback for safety
+    const defaultResponse = {
+      safety_score: 50,
+      explanation: "Unable to analyze UPI ID with AI. Using standard checks instead.",
+      flags: []
+    };
+    
+    return safeJsonParse(response.choices[0].message.content, defaultResponse);
+  } catch (error) {
+    console.error('Error analyzing UPI with AI:', error);
+    return {
+      safety_score: 50,
+      explanation: "Error during AI analysis. Using standard checks instead.",
+      flags: []
+    };
+  }
+}
+
+/**
  * Check if a UPI ID is safe, suspicious, or a scam
  * @param upiId UPI ID to check
  * @returns Result with status, reason, and confidence score
@@ -399,9 +483,19 @@ export async function checkUpiSafety(upiId: string): Promise<UpiCheckResult> {
   const patternScore = calculatePatternScore(upiId);
   const riskFactors = getRiskFactors(upiId);
   
+  // Use AI-powered analysis to enhance results
+  let aiAnalysis = null;
+  try {
+    aiAnalysis = await analyzeUpiWithAI(upiId);
+  } catch (error) {
+    console.error('Error during AI UPI analysis:', error);
+    // Continue with standard checks if AI fails
+  }
+  
   // Determine status based on pattern score
+  let result: UpiCheckResult;
   if (patternScore > 0.7) {
-    return {
+    result = {
       status: 'SCAM',
       reason: 'High-risk pattern detected',
       confidence_score: patternScore,
@@ -410,7 +504,7 @@ export async function checkUpiSafety(upiId: string): Promise<UpiCheckResult> {
       recommendations: getRecommendations('SCAM')
     };
   } else if (patternScore > 0.4) {
-    return {
+    result = {
       status: 'SUSPICIOUS',
       reason: 'Moderate-risk pattern detected',
       confidence_score: patternScore,
@@ -419,11 +513,27 @@ export async function checkUpiSafety(upiId: string): Promise<UpiCheckResult> {
       recommendations: getRecommendations('SUSPICIOUS')
     };
   } else {
-    return {
+    result = {
       status: 'SAFE',
       reason: 'No known risk factors detected',
       confidence_score: 1 - patternScore,
       recommendations: getRecommendations('SAFE')
     };
   }
+  
+  // Add AI analysis if available
+  if (aiAnalysis) {
+    result.safety_score = aiAnalysis.safety_score;
+    result.ai_analysis = aiAnalysis.explanation;
+    
+    // Add AI-detected flags to risk factors
+    if (aiAnalysis.flags && aiAnalysis.flags.length > 0) {
+      if (!result.risk_factors) {
+        result.risk_factors = [];
+      }
+      result.risk_factors.push(...aiAnalysis.flags);
+    }
+  }
+  
+  return result;
 }
