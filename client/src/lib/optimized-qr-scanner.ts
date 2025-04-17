@@ -4,8 +4,9 @@
  */
 
 // QR Scan Service Host
-// Local development points to the proxy created in server/routes.ts
+// First try the optimized service, fall back to direct implementation
 const QR_SCAN_API_URL = '/api/optimized-qr';
+const DIRECT_QR_SCAN_API_URL = '/api/direct-qr';
 
 // QR prediction response 
 export interface QRPredictionResponse {
@@ -115,6 +116,7 @@ function calculateStringEntropy(str: string): number {
  * @returns Promise with risk analysis
  */
 export async function analyzeQRCode(qrText: string): Promise<QRPredictionResponse> {
+  // First try the optimized ML service
   try {
     // Call the optimized QR scanning service
     const response = await fetch(`${QR_SCAN_API_URL}/predict`, {
@@ -129,36 +131,70 @@ export async function analyzeQRCode(qrText: string): Promise<QRPredictionRespons
       throw new Error('QR analysis service unavailable');
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('Using optimized ML service:', result);
+    return result;
   } catch (error) {
-    // Fallback to basic risk assessment when service is down
-    console.warn('QR analysis service error, using fallback:', error);
-    const entropy = calculateStringEntropy(qrText);
+    console.warn('Optimized QR service error, trying direct implementation:', error);
     
-    // Consider UPI-specific risk factors in fallback
-    let baseRisk = entropy * 40; // Scale entropy to 0-40 range
-    
-    // Add risk for suspicious patterns
-    if (qrText.includes('upi://')) {
+    // Try the direct TypeScript implementation
+    try {
+      const directResponse = await fetch(`${DIRECT_QR_SCAN_API_URL}/predict`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ qr_text: qrText }),
+      });
+      
+      if (directResponse.ok) {
+        const directResult = await directResponse.json();
+        console.log('Using direct TypeScript implementation:', directResult);
+        return directResult;
+      }
+      
+      throw new Error('Direct implementation also failed');
+    } catch (directError) {
+      console.warn('Direct QR service error, using local fallback:', directError);
+      
+      // Final fallback to local risk assessment
+      const entropy = calculateStringEntropy(qrText);
+      
+      // UPI-specific risk factors in local fallback
+      let baseRisk = 30; // Start with medium risk
+      
+      // Significantly reduce risk for UPI QR codes
+      if (qrText.toLowerCase().startsWith('upi://')) {
+        baseRisk -= 25; // Major reduction for UPI QR codes
+      }
+      
+      // Consider entropy for non-standard codes
+      if (!qrText.toLowerCase().startsWith('upi://')) {
+        baseRisk += entropy * 20; // Only apply entropy factor to non-UPI QRs
+      }
+      
       // Check for suspicious keywords
-      const keywords = ['urgent', 'payment', 'verify', 'emergency', 'confirm', 'kyc'];
+      const keywords = ['urgent', 'emergency', 'verify', 'kyc', 'expired', 'blocked'];
       keywords.forEach(keyword => {
         if (qrText.toLowerCase().includes(keyword)) {
-          baseRisk += 10; // Increase risk for each suspicious keyword
+          baseRisk += 15; // Increase risk for suspicious keywords
         }
       });
       
-      // Check for parametrized UPI
-      const params = qrText.split('?')[1]?.split('&') || [];
-      if (params.length > 5) {
-        baseRisk += 15; // Too many parameters is suspicious
-      }
+      // Final result with minimal features
+      return {
+        risk_score: Math.max(0, Math.min(100, Math.round(baseRisk))),
+        latency_ms: 5,
+        features: {
+          length: qrText.length,
+          has_upi: qrText.toLowerCase().startsWith('upi://') ? 1 : 0,
+          num_params: (qrText.match(/&/g) || []).length,
+          urgent: keywords.some(k => qrText.toLowerCase().includes(k)) ? 1 : 0,
+          payment: qrText.toLowerCase().includes('payment') ? 1 : 0,
+          currency: qrText.toLowerCase().includes('inr') ? 1 : 0
+        }
+      };
     }
-    
-    return {
-      risk_score: Math.min(Math.round(baseRisk), 100),
-      latency_ms: 5, // Minimal latency for fallback calculation
-    };
   }
 }
 
