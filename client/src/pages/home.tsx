@@ -3,15 +3,17 @@ import { useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/navigation/bottom-nav';
-import { Bell, ShieldAlert, Search, ArrowRight } from 'lucide-react';
+import { Bell, ShieldAlert, Search, ArrowRight, MoonIcon, SunIcon } from 'lucide-react';
 import { NotificationBar } from '@/components/ui/notification-bar';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [showNotification, setShowNotification] = useState(false);
   const [upiInput, setUpiInput] = useState('');
   const { toast } = useToast();
+  const { isDark, setTheme } = useTheme();
 
   const handleAlertClick = () => {
     setShowNotification(true);

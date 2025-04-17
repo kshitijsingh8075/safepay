@@ -48,7 +48,7 @@ export function BottomNav({ className }: BottomNavProps) {
 
   return (
     <div className={cn(
-      "fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-2 flex justify-between items-center z-50 max-w-screen",
+      "fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-2 py-2 flex justify-between items-center z-50 max-w-screen transition-colors duration-300",
       className
     )}>
       {navItems.map((item, index) => (
@@ -57,11 +57,13 @@ export function BottomNav({ className }: BottomNavProps) {
           href={item.path}
           className={cn(
             "flex flex-col items-center px-2 py-2",
-            item.active ? "text-blue-600" : "text-gray-500"
+            item.active 
+              ? "text-blue-600 dark:text-blue-400" 
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           )}
         >
           {item.primary ? (
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center -mt-5 shadow-lg">
+            <div className="w-12 h-12 bg-blue-600 dark:bg-blue-700 rounded-lg flex items-center justify-center -mt-5 shadow-lg transition-colors duration-300">
               <item.icon className="w-5 h-5 text-white" />
             </div>
           ) : (
