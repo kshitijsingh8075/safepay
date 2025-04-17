@@ -377,9 +377,9 @@ Stay safe!`;
   };
   
   return (
-    <MainLayout className="flex flex-col p-0">
-      <Card className="flex flex-col h-full border-0 rounded-none">
-        <CardHeader className="border-b bg-card px-4 py-3">
+    <MainLayout className="flex flex-col p-0 h-[100dvh] max-h-[100dvh] overflow-hidden">
+      <Card className="flex flex-col h-full max-h-full border-0 rounded-none overflow-hidden">
+        <CardHeader className="border-b bg-card px-4 py-3 flex-shrink-0">
           <CardTitle className="text-lg flex items-center justify-between">
             <div>AI Safety Assistant</div>
             <Button 
@@ -392,7 +392,7 @@ Stay safe!`;
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 p-0 overflow-hidden">
-          <ScrollArea className="h-[calc(100vh-13rem)]">
+          <ScrollArea className="h-[calc(100dvh-11rem)] max-h-[calc(100dvh-11rem)] overflow-y-auto">
             <div className="flex flex-col p-4 gap-4">
               {messages.map((message) => (
                 <div 
@@ -459,7 +459,7 @@ Stay safe!`;
           </div>
         )}
         
-        <CardFooter className="p-4 pt-2 border-t">
+        <CardFooter className="p-4 pt-2 border-t flex-shrink-0">
           {isRecording ? (
             <div className="w-full flex items-center gap-4">
               <div className="flex-1 bg-muted rounded-lg p-3 flex items-center">
