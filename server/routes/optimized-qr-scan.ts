@@ -36,31 +36,55 @@ async function proxyToMLService(path: string, req: Request, res: Response) {
     
     // For predict endpoint, we'll return fallback prediction
     if (path === '/predict') {
-      // Simple fallback risk assessment based on string length and patterns
+      // Enhanced fallback risk assessment with UPI safety emphasis
       const qrText = req.body.qr_text || '';
-      let riskScore = 30; // Default medium risk
       
-      if (qrText.includes('upi://')) {
-        // Check for suspicious patterns in UPI QR codes
-        const suspiciousKeywords = ['urgent', 'payment', 'verify', 'emergency'];
+      // Extract features for consistent output format
+      const features = {
+        length: qrText.length,
+        has_upi: qrText.toLowerCase().startsWith('upi://') ? 1 : 0,
+        num_params: (qrText.match(/&/g) || []).length,
+        urgent: /urgent|emergency|immediate|kyc|expired|blocked/i.test(qrText) ? 1 : 0,
+        payment: /payment|pay|amount|money|transfer/i.test(qrText) ? 1 : 0,
+        currency: /inr|rs|\₹|rupee/i.test(qrText) ? 1 : 0
+      };
+      
+      // Start with a moderate risk score
+      let riskScore = 30;
+      
+      // ** FIXED: Apply significant score reduction for legitimate UPI codes **
+      if (features.has_upi === 1) {
+        riskScore -= 25; // Major reduction for UPI QR codes
         
-        suspiciousKeywords.forEach(keyword => {
-          if (qrText.toLowerCase().includes(keyword)) {
-            riskScore += 15;
+        // Look for valid UPI ID pattern (pa=something@something)
+        if (qrText.includes('pa=')) {
+          const upiIdMatch = qrText.match(/pa=([^&]+)/);
+          if (upiIdMatch && upiIdMatch[1].includes('@')) {
+            riskScore -= 5; // Additional reduction for valid UPI ID format
           }
-        });
-        
-        // Too many parameters is suspicious
-        const params = qrText.split('?')[1]?.split('&') || [];
-        if (params.length > 5) {
-          riskScore += 10;
         }
       }
       
+      // Adjust score based on suspicious patterns
+      if (features.urgent === 1) {
+        riskScore += 20; // Higher penalty for urgency indicators
+      }
+      
+      // Adjust for excessive parameters
+      if (features.num_params > 5) {
+        riskScore += 10;
+      } else if (features.num_params > 10) {
+        riskScore += 20;
+      }
+      
+      // Ensure score stays in valid range
+      const finalScore = Math.max(0, Math.min(100, riskScore));
+      
       res.json({
-        risk_score: Math.min(riskScore, 100),
+        risk_score: finalScore,
         latency_ms: 5,
         fallback: true,
+        features: features
       });
     } else {
       // For other endpoints, return an error
