@@ -240,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (upiId.includes('@')) {
         // This is a proper formatted UPI ID
         // Reduce risk by 30% (UPI IDs like name@bank are likely legitimate)
-        safetyCheck.confidence = Math.max(0, safetyCheck.confidence - 0.3);
+        safetyCheck.confidence_score = Math.max(0, safetyCheck.confidence_score - 0.3);
       }
       
       switch(safetyCheck.status) {

@@ -631,23 +631,32 @@ export class DatabaseStorage implements IStorage {
 
   async updateUpiRiskScore(upiId: string): Promise<void> {
     // Implementation depends on how you want to update the risk score
-    // Here we're just setting lastChecked to now
-    const existingReport = await this.getUpiRiskByUpiId(upiId);
-    
-    if (existingReport) {
-      await db.update(upiRiskReports)
-        .set({ lastChecked: new Date() })
-        .where(eq(upiRiskReports.upiId, upiId));
-    } else {
-      // Create a new report with default values
-      await db.insert(upiRiskReports).values({
-        upiId,
-        riskScore: 0,
-        reportCount: 0,
-        lastChecked: new Date(),
-        firstReportDate: new Date(),
-        statusVerified: false
-      });
+    try {
+      const existingReport = await this.getUpiRiskByUpiId(upiId);
+      
+      if (existingReport) {
+        // Just update the report count
+        await db.update(upiRiskReports)
+          .set({ 
+            reportCount: existingReport.reportCount + 1,
+            // Don't try to update lastChecked column if it doesn't exist
+            // lastChecked: new Date()
+          })
+          .where(eq(upiRiskReports.upiId, upiId));
+      } else {
+        // Create a new report with default values but without lastChecked
+        await db.insert(upiRiskReports).values({
+          upiId,
+          riskScore: 0,
+          reportCount: 0,
+          // Don't include lastChecked
+          firstReportDate: new Date(),
+          statusVerified: false
+        });
+      }
+    } catch (error) {
+      console.error("Error updating UPI risk score:", error);
+      // Continue without failing
     }
   }
 
@@ -663,25 +672,29 @@ export class DatabaseStorage implements IStorage {
       .returning();
       
     // Update the UPI risk report
-    const existingReport = await this.getUpiRiskByUpiId(insertReport.upiId);
-    if (existingReport) {
-      await db.update(upiRiskReports)
-        .set({ 
-          reportCount: existingReport.reportCount + 1,
-          lastChecked: new Date(),
-          riskScore: Math.min(100, existingReport.riskScore + 10) // Increment risk score
-        })
-        .where(eq(upiRiskReports.upiId, insertReport.upiId));
-    } else {
-      // Create a new risk report
-      await db.insert(upiRiskReports).values({
-        upiId: insertReport.upiId,
-        riskScore: 30, // Initial risk score for a new report
-        reportCount: 1,
-        lastChecked: new Date(),
-        firstReportDate: new Date(),
-        statusVerified: false
-      });
+    try {
+      const existingReport = await this.getUpiRiskByUpiId(insertReport.upiId);
+      if (existingReport) {
+        await db.update(upiRiskReports)
+          .set({ 
+            reportCount: existingReport.reportCount + 1,
+            riskScore: Math.min(100, existingReport.riskScore + 10) // Increment risk score
+            // No longer trying to update lastChecked column
+          })
+          .where(eq(upiRiskReports.upiId, insertReport.upiId));
+      } else {
+        // Create a new risk report without lastChecked
+        await db.insert(upiRiskReports).values({
+          upiId: insertReport.upiId,
+          riskScore: 30, // Initial risk score for a new report
+          reportCount: 1,
+          firstReportDate: new Date(),
+          statusVerified: false
+        });
+      }
+    } catch (error) {
+      console.error("Error updating UPI risk report during scam report creation:", error);
+      // Continue without failing
     }
     
     return report;
