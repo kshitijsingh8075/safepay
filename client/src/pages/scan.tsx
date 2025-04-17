@@ -21,6 +21,14 @@ export default function Scan() {
   const [showWarning, setShowWarning] = useState(false);
   const [showBlocked, setShowBlocked] = useState(false);
   const [showMlAnalysis, setShowMlAnalysis] = useState(false);
+  const [showSafeDialog, setShowSafeDialog] = useState(false);
+  const [upiDetected, setUpiDetected] = useState(true); // For UPI detection status
+  const [safeTransactionInfo, setSafeTransactionInfo] = useState<{
+    upiId: string;
+    queryParams: string;
+    name: string;
+    amount: string;
+  }>({ upiId: '', queryParams: '', name: '', amount: '' });
   const [scannedUpiId, setScannedUpiId] = useState('');
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [riskDetails, setRiskDetails] = useState<{
@@ -106,7 +114,7 @@ export default function Scan() {
         // Medium risk - show warning
         setShowWarning(true);
       } else {
-        // Low risk - proceed to confirmation page
+        // Low risk - show safe dialog first then proceed
         toast({
           title: "Safe UPI ID",
           description: "Our AI has verified this appears to be a legitimate UPI ID.",
@@ -122,9 +130,14 @@ export default function Scan() {
         if (paymentInfo.amount) queryParams.append('amount', paymentInfo.amount);
         if (paymentInfo.currency) queryParams.append('currency', paymentInfo.currency);
         
-        setTimeout(() => {
-          setLocation(`/confirm-transaction?${queryParams.toString()}`);
-        }, 1000);
+        // Show safe dialog
+        setShowSafeDialog(true);
+        setSafeTransactionInfo({
+          upiId,
+          queryParams: queryParams.toString(),
+          name: paymentInfo.name || '',
+          amount: paymentInfo.amount || ''
+        });
       }
     } catch (error) {
       console.error('Error analyzing UPI:', error);
@@ -268,16 +281,37 @@ export default function Scan() {
             Caution Required
           </DialogTitle>
           <DialogDescription>
-            This UPI ID has been flagged with medium risk ({riskDetails?.percentage}%)
-            {riskDetails && riskDetails.reports > 0 && ` and has ${riskDetails.reports} reports from other users`}.
-            Proceed with caution.
+            <div className="flex flex-col space-y-4">
+              <div>
+                This UPI ID has been flagged with medium risk ({riskDetails?.percentage}%)
+                {riskDetails && riskDetails.reports > 0 && ` and has ${riskDetails.reports} reports from other users`}.
+              </div>
+              
+              {/* Risk Level Indicator */}
+              <div className="bg-amber-50 p-4 rounded-lg">
+                <h3 className="font-medium mb-2 flex items-center text-amber-700">
+                  <AlertTriangle className="w-5 h-5 mr-2" />
+                  Medium Risk Level
+                </h3>
+                
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                  <div className="bg-amber-500 h-2.5 rounded-full" style={{ width: `${riskDetails?.percentage || 0}%` }}></div>
+                </div>
+                
+                <ul className="text-sm space-y-1 text-amber-800 mt-3">
+                  <li>• This UPI ID has some suspicious attributes</li>
+                  <li>• Limited transaction history was found</li>
+                  <li>• Proceed with caution and verify recipient</li>
+                </ul>
+              </div>
+            </div>
           </DialogDescription>
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
             <Button variant="default" className="bg-amber-500 hover:bg-amber-600" onClick={handleProceedAnyway}>
-              Proceed Anyway
+              Continue <ArrowLeft className="ml-2 w-4 h-4 rotate-180" />
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -291,9 +325,34 @@ export default function Scan() {
             Payment Blocked
           </DialogTitle>
           <DialogDescription>
-            This UPI ID has a very high risk score ({riskDetails?.percentage}%)
-            {riskDetails && riskDetails.reports > 0 && ` and has ${riskDetails.reports} reports from other users`}.
-            We've blocked this transaction for your safety.
+            <div className="flex flex-col space-y-4">
+              <div>
+                This UPI ID has a very high risk score ({riskDetails?.percentage}%)
+                {riskDetails && riskDetails.reports > 0 && ` and has ${riskDetails.reports} reports from other users`}.
+              </div>
+              
+              {/* Risk Level Indicator */}
+              <div className="bg-red-50 p-4 rounded-lg">
+                <h3 className="font-medium mb-2 flex items-center text-red-700">
+                  <AlertOctagon className="w-5 h-5 mr-2" />
+                  High Risk Level
+                </h3>
+                
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                  <div className="bg-red-600 h-2.5 rounded-full" style={{ width: `${riskDetails?.percentage || 0}%` }}></div>
+                </div>
+                
+                <div className="text-sm text-red-700 font-bold my-2">
+                  UPI ID Not Detected or Seems Fraudulent
+                </div>
+                
+                <ul className="text-sm space-y-1 text-red-800 mt-3">
+                  <li>• Multiple scam reports have been filed</li>
+                  <li>• This UPI ID has suspicious patterns</li>
+                  <li>• Our AI has flagged this as potentially fraudulent</li>
+                </ul>
+              </div>
+            </div>
           </DialogDescription>
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={handleCancel}>
@@ -301,6 +360,13 @@ export default function Scan() {
             </Button>
             <Button variant="destructive" onClick={handleReportScam}>
               Report Scam
+            </Button>
+            <Button 
+              variant="default" 
+              className="bg-gray-700 hover:bg-gray-800 text-white"
+              onClick={handleProceedAnyway}
+            >
+              Continue <ArrowLeft className="ml-2 w-4 h-4 rotate-180" />
             </Button>
           </DialogFooter>
         </DialogContent>

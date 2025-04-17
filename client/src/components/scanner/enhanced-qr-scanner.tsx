@@ -222,11 +222,8 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
             // Only log actual errors, ignore TypeErrors which are normal when no QR code is present
             console.error('ZXing error:', error);
             
-            // If scanning for more than 8 seconds with errors, reduce timeout for better user experience
-            if (Date.now() - scanStartTime > 8000 && !scanComplete) {
-              console.log('Fallback: Using test merchant UPI ID after scanning timeout');
-              processQrCode('testmerchant@ybl');
-            }
+            // Do not use fallback timeout - require actual QR detection
+            // Removed automatic fallback that was causing verification without scanning
           }
 
           // Update progress animation
@@ -307,10 +304,10 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
           return Math.min(Math.max(50 + fluctuation, 40), 60); // Keep between 40-60%
         });
         
-        // Check for timeout similar to the ZXing method
-        if (Date.now() - scanStartTime > 8000 && !scanComplete) {
-          console.log('Fallback: Using test merchant UPI ID after jsQR timeout');
-          processQrCode('testmerchant@ybl');
+        // Do not use automatic fallback - require actual QR detection
+        if (Date.now() - scanStartTime > 10000 && !scanComplete) {
+          setScanError('QR code not detected. Please try again or use manual entry.');
+          setIsScanning(false);
           return;
         }
         
