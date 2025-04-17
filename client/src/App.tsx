@@ -32,6 +32,7 @@ import FraudHeatmapBasic from "@/pages/fraud-heatmap-basic";
 import FraudMap from "@/pages/fraud-map";
 import ConfirmTransaction from "@/pages/confirm-transaction";
 import HistoryPage from "@/pages/history";
+import RiskScoreDemo from "@/pages/risk-score-demo";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
@@ -170,6 +171,14 @@ function Router() {
         {() => (
           <MainLayout>
             <FraudMap />
+          </MainLayout>
+        )}
+      </Route>
+
+      <Route path="/risk-score-demo">
+        {() => (
+          <MainLayout>
+            <RiskScoreDemo />
           </MainLayout>
         )}
       </Route>

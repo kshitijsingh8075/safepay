@@ -195,8 +195,7 @@ const RiskScoreDemo: React.FC = () => {
                 </div>
                 <Progress 
                   value={riskResult.score * 100} 
-                  className="h-3"
-                  indicatorClassName={getRiskColor(riskResult.level)}
+                  className={`h-3 ${getRiskColor(riskResult.level)}`}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Low Risk</span>
@@ -291,8 +290,7 @@ const RiskScoreDemo: React.FC = () => {
                             </div>
                             <Progress 
                               value={behavioralData.botProbability * 100} 
-                              className="h-2"
-                              indicatorClassName={behavioralData.botProbability > 0.5 ? 'bg-red-500' : 'bg-green-500'}
+                              className={`h-2 ${behavioralData.botProbability > 0.5 ? 'bg-red-500' : 'bg-green-500'}`}
                             />
                             
                             {behavioralData.indicators.length > 0 && (
