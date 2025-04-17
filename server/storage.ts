@@ -487,21 +487,21 @@ export class MemStorage implements IStorage {
       {
         userId: 1,
         upiId: 'onlineshopping123@upi',
-        scamType: 'Fake Products',
+        scamType: ScamType.Unknown, // Using Unknown for previous "Fake Products"
         amountLost: 250000, // 2,500.00 INR
         description: 'I ordered products online through this UPI ID but never received the items. The seller stopped responding after payment.'
       },
       {
         userId: 1,
         upiId: 'onlineshopping123@upi',
-        scamType: 'Fake Products',
+        scamType: ScamType.Unknown, // Using Unknown for previous "Fake Products"
         amountLost: 350000, // 3,500.00 INR
         description: 'Ordered a smartphone but received a fake product.'
       },
       {
         userId: 1,
         upiId: 'onlineshopping123@upi',
-        scamType: 'Fraud',
+        scamType: ScamType.Banking, // Using Banking for previous "Fraud"
         amountLost: 450000, // 4,500.00 INR
         description: 'They took money and blocked my number.'
       }

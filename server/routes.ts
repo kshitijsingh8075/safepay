@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertScamReportSchema, insertUserSchema, insertPaymentMethodSchema, insertChatMessageSchema, insertChatFeedbackSchema } from "@shared/schema";
+import { insertScamReportSchema, insertUserSchema, insertPaymentMethodSchema, insertChatMessageSchema, insertChatFeedbackSchema, ScamType } from "@shared/schema";
 import { generateOtp, verifyOtp } from "./services/otp";
 import { getChatResponse, generateQuickReplies } from "./services/chat";
 import { getScamNews } from "./services/scam-news-fixed";
@@ -324,7 +324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const reportData = {
           upiId,
           userId: userDetails.userId || 1, // Use default user if not provided
-          scamType: 'Fraud',
+          scamType: ScamType.Banking, // Using Banking scam type for fraud
           description: description || `Police complaint filed against ${upiId}`,
           amountLost: parseFloat(amount.replace(/,/g, '')) || null
         };
