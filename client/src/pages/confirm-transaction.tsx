@@ -26,22 +26,43 @@ export default function ConfirmTransaction() {
   useEffect(() => {
     const params = new URLSearchParams(location.split('?')[1]);
     const urlUpiId = params.get('upiId');
+    const urlName = params.get('name');
+    const urlAmount = params.get('amount');
+    const urlCurrency = params.get('currency');
     const securityCheck = params.get('securityCheck');
     
     if (urlUpiId) {
       setUpiId(urlUpiId);
       
-      // Extract merchant name from UPI ID (e.g., merchantname@upi)
-      const merchantFromUpi = urlUpiId.split('@')[0];
-      if (merchantFromUpi) {
-        // Convert camelCase or snake_case to Title Case with spaces
-        const formattedName = merchantFromUpi
-          .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-          .replace(/_/g, ' ') // Replace underscores with spaces
-          .replace(/^\w/, c => c.toUpperCase()) // Capitalize first letter
-          .trim(); // Remove leading/trailing spaces
-          
-        setMerchant(formattedName);
+      // Set merchant name if provided in the URL
+      if (urlName) {
+        // Use the name from the URL params (from QR code)
+        try {
+          // Decode any URI encoded characters
+          const decodedName = decodeURIComponent(urlName);
+          setMerchant(decodedName);
+        } catch (e) {
+          // If decoding fails, use as is
+          setMerchant(urlName);
+        }
+      } else {
+        // Extract merchant name from UPI ID (e.g., merchantname@upi)
+        const merchantFromUpi = urlUpiId.split('@')[0];
+        if (merchantFromUpi) {
+          // Convert camelCase or snake_case to Title Case with spaces
+          const formattedName = merchantFromUpi
+            .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+            .replace(/_/g, ' ') // Replace underscores with spaces
+            .replace(/^\w/, c => c.toUpperCase()) // Capitalize first letter
+            .trim(); // Remove leading/trailing spaces
+            
+          setMerchant(formattedName);
+        }
+      }
+      
+      // Set amount if provided in the URL
+      if (urlAmount) {
+        setAmount(urlAmount);
       }
       
       // If security check wasn't already performed in the previous step,
@@ -143,8 +164,16 @@ export default function ConfirmTransaction() {
   };
   
   const handleContinue = () => {
-    // Navigate to payment page directly instead of showing payment apps dialog
-    setLocation(`/payment?upiId=${encodeURIComponent(upiId)}&securityCheck=passed`);
+    // Construct query params with all payment information
+    const queryParams = new URLSearchParams();
+    queryParams.append('upiId', upiId);
+    queryParams.append('name', merchant || '');
+    queryParams.append('amount', amount);
+    queryParams.append('securityCheck', 'passed');
+    queryParams.append('safetyScore', safetyScore?.toString() || '90');
+    
+    // Navigate to payment page with all payment details
+    setLocation(`/payment?${queryParams.toString()}`);
   };
   
   const handlePayWithApp = (app: string) => {

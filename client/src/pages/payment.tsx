@@ -11,12 +11,16 @@ export default function Payment() {
   const [location] = useLocation();
   const { toast } = useToast();
   
-  // Extract UPI ID from URL parameters
+  // Extract payment details from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const upiId = urlParams.get('upiId') || '';
+  const merchantName = urlParams.get('name') || '';
+  const urlAmount = urlParams.get('amount');
   const securityCheck = urlParams.get('securityCheck') === 'passed';
+  const safetyScore = urlParams.get('safetyScore') || '90';
   
-  const [amount, setAmount] = useState<string>('');
+  // Use the amount from URL if available, otherwise empty string
+  const [amount, setAmount] = useState<string>(urlAmount || '');
   const [note, setNote] = useState<string>('');
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   
@@ -64,17 +68,26 @@ export default function Payment() {
     // For demo, we'll just navigate to the transaction success screen
     const paymentDetails = {
       upiId,
+      merchantName,
       amount,
       note,
       app: selectedApp,
+      safetyScore,
       timestamp: new Date().toISOString(),
     };
     
     // Store payment details in session storage for the success screen
     sessionStorage.setItem('lastPayment', JSON.stringify(paymentDetails));
     
-    // Navigate to success screen
-    setLocation(`/payment-success?amount=${amount}&app=${selectedApp}`);
+    // Create URL params for success page
+    const successParams = new URLSearchParams();
+    successParams.append('amount', amount);
+    successParams.append('app', selectedApp || '');
+    successParams.append('merchantName', merchantName);
+    successParams.append('upiId', upiId);
+    
+    // Navigate to success screen with more details
+    setLocation(`/payment-success?${successParams.toString()}`);
   };
   
   const handleBack = () => {
@@ -104,13 +117,34 @@ export default function Payment() {
               <CardTitle className="text-base">Merchant UPI ID</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="font-medium">{upiId}</div>
-                {securityCheck && (
-                  <div className="text-xs px-2 py-1 bg-green-50 text-green-600 rounded-full">
-                    Verified
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">{upiId}</div>
+                  {securityCheck && (
+                    <div className="text-xs px-2 py-1 bg-green-50 text-green-600 rounded-full">
+                      Verified
+                    </div>
+                  )}
+                </div>
+                
+                {merchantName && (
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">Merchant: </span>
+                    {merchantName}
                   </div>
                 )}
+                
+                <div className="text-xs text-gray-500 flex items-center">
+                  <span className="inline-block w-2 h-2 rounded-full mr-1" 
+                    style={{ 
+                      backgroundColor: parseInt(safetyScore) > 70 
+                        ? '#10b981' 
+                        : parseInt(safetyScore) > 30 
+                          ? '#f59e0b' 
+                          : '#ef4444'
+                    }}></span>
+                  Safety Score: {safetyScore}%
+                </div>
               </div>
             </CardContent>
           </Card>

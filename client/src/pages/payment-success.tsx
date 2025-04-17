@@ -7,9 +7,11 @@ import { useToast } from '@/hooks/use-toast';
 
 interface PaymentDetails {
   upiId: string;
+  merchantName?: string;
   amount: string;
   note?: string;
   app: string;
+  safetyScore?: string;
   timestamp: string;
 }
 
@@ -18,10 +20,12 @@ export default function PaymentSuccess() {
   const { toast } = useToast();
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   
-  // Extract amount and app from URL parameters
+  // Extract payment details from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const amount = urlParams.get('amount') || '';
   const app = urlParams.get('app') || '';
+  const merchantName = urlParams.get('merchantName') || '';
+  const upiId = urlParams.get('upiId') || '';
   
   // Load payment details from session storage
   useEffect(() => {
