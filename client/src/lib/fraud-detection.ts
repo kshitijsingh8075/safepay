@@ -26,13 +26,34 @@ export function getRiskColor(level: RiskLevel): string {
   }
 }
 
+// Quick UPI analysis - fast and minimalist
 export async function analyzeUpiRisk(upiId: string): Promise<UpiRiskAnalysis> {
   try {
-    const res = await apiRequest('GET', `/api/upi/check/${upiId}`);
-    return await res.json();
+    console.log(`Analyzing UPI: ${upiId}`);
+    const res = await apiRequest('GET', `/api/upi/check/${encodeURIComponent(upiId)}`);
+    const data = await res.json();
+    console.log('UPI analysis result:', data);
+    
+    return {
+      upiId: data.upiId,
+      riskPercentage: data.riskPercentage || 0,
+      riskLevel: data.riskLevel === 'high' ? 'High' : 
+                data.riskLevel === 'medium' ? 'Medium' : 'Low',
+      reports: data.reports || 0,
+      age: 'New', // Default value for quick check
+      reportedFor: data.reason || 'Unknown'
+    };
   } catch (error) {
     console.error('Error analyzing UPI risk:', error);
-    throw error;
+    // Return a default response to prevent app crash
+    return {
+      upiId,
+      riskPercentage: 50, // Default medium risk
+      riskLevel: 'Medium',
+      reports: 0,
+      age: 'Unknown',
+      reportedFor: 'Could not verify'
+    };
   }
 }
 

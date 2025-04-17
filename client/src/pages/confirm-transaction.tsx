@@ -164,16 +164,8 @@ export default function ConfirmTransaction() {
   };
   
   const handleContinue = () => {
-    // Construct query params with all payment information
-    const queryParams = new URLSearchParams();
-    queryParams.append('upiId', upiId);
-    queryParams.append('name', merchant || '');
-    queryParams.append('amount', amount);
-    queryParams.append('securityCheck', 'passed');
-    queryParams.append('safetyScore', safetyScore?.toString() || '90');
-    
-    // Navigate to payment page with all payment details
-    setLocation(`/payment?${queryParams.toString()}`);
+    // Instead of navigating, show payment app options directly
+    setShowPaymentApps(true);
   };
   
   const handlePayWithApp = (app: string) => {
@@ -319,55 +311,71 @@ export default function ConfirmTransaction() {
         {isAnalyzing ? 'Analyzing...' : isLoading ? 'Processing...' : 'Continue to pay'}
       </Button>
       
-      {/* Payment Apps Dialog */}
+      {/* Payment Apps Dialog - Similar to screenshot */}
       <Dialog open={showPaymentApps} onOpenChange={setShowPaymentApps}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogTitle className="text-center mb-6">
-            Pay through
-          </DialogTitle>
-          
-          <div className="grid grid-cols-3 gap-4">
-            <button 
-              onClick={() => handlePayWithApp('gpay')}
-              className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50"
-            >
-              <div className="w-12 h-12 flex items-center justify-center bg-white rounded-full shadow-sm mb-2">
-                <img 
-                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/2048px-Google_%22G%22_logo.svg.png" 
-                  alt="Google Pay" 
-                  className="w-6 h-6"
-                />
-              </div>
-              <span className="text-sm">GPay</span>
-            </button>
+        <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden">
+          <div className="bg-white rounded-lg">
+            <div className="p-6 pb-4">
+              <DialogTitle className="text-center text-lg font-medium">
+                Pay through -
+              </DialogTitle>
+            </div>
             
-            <button 
-              onClick={() => handlePayWithApp('paytm')}
-              className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50"
-            >
-              <div className="w-12 h-12 flex items-center justify-center bg-white rounded-full shadow-sm mb-2">
-                <img 
-                  src="https://static.vecteezy.com/system/resources/previews/018/910/724/original/paytm-logo-paytm-icon-free-free-vector.jpg" 
-                  alt="Paytm" 
-                  className="w-8 h-8"
-                />
+            <div className="px-8 pb-6">
+              <div className="grid grid-cols-3 gap-6">
+                <button 
+                  onClick={() => handlePayWithApp('gpay')}
+                  className="flex flex-col items-center"
+                >
+                  <div className="w-16 h-16 mb-2">
+                    <img 
+                      src="https://cdn.iconscout.com/icon/free/png-512/free-google-pay-2038779-1721670.png" 
+                      alt="Google Pay" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <span className="text-sm">GPay</span>
+                </button>
+                
+                <button 
+                  onClick={() => handlePayWithApp('paytm')}
+                  className="flex flex-col items-center"
+                >
+                  <div className="w-16 h-16 mb-2">
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Paytm_Logo_%28standalone%29.svg/2560px-Paytm_Logo_%28standalone%29.svg.png" 
+                      alt="Paytm" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <span className="text-sm">Paytm</span>
+                </button>
+                
+                <button 
+                  onClick={() => handlePayWithApp('phonepe')}
+                  className="flex flex-col items-center"
+                >
+                  <div className="w-16 h-16 mb-2">
+                    <img 
+                      src="https://www.logo.wine/a/logo/PhonePe/PhonePe-Logo.wine.svg" 
+                      alt="PhonePe" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <span className="text-sm">Phonepe</span>
+                </button>
               </div>
-              <span className="text-sm">Paytm</span>
-            </button>
+            </div>
             
-            <button 
-              onClick={() => handlePayWithApp('phonepe')}
-              className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50"
-            >
-              <div className="w-12 h-12 flex items-center justify-center bg-white rounded-full shadow-sm mb-2">
-                <img 
-                  src="https://static.vecteezy.com/system/resources/previews/021/672/650/non_2x/phonepe-logo-phonepe-icon-free-free-vector.jpg" 
-                  alt="PhonePe" 
-                  className="w-8 h-8"
-                />
-              </div>
-              <span className="text-sm">PhonePe</span>
-            </button>
+            <div className="px-6 py-4">
+              <Button 
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6" 
+                size="lg"
+                onClick={() => setShowPaymentApps(false)}
+              >
+                Continue to pay
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

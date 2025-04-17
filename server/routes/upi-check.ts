@@ -234,6 +234,50 @@ function classifyUpiId(upiId: string): { status: 'SAFE' | 'SUSPICIOUS' | 'SCAM',
 }
 
 export function registerUpiCheckRoutes(app: Express): void {
+  // Quick UPI ID validation endpoint
+  app.get('/api/upi/check/:upiId', async (req, res) => {
+    try {
+      const { upiId } = req.params;
+      
+      if (!upiId || !validateUpi(upiId)) {
+        return res.status(400).json({
+          status: "error",
+          valid: false,
+          message: "Invalid UPI ID format"
+        });
+      }
+      
+      // Quick initial classification - only takes milliseconds
+      const classification = classifyUpiId(upiId);
+      
+      // Get any existing reports
+      const reports = await storage.getScamReportsByUpiId(upiId);
+      
+      // Calculate basic risk percentage based on classification and reports
+      const reportsFactor = Math.min(reports.length / 5, 1.0);
+      const patternFactor = calculatePatternScore(upiId);
+      const classificationFactor = classification.status === 'SCAM' ? 1.0 : 
+                                  classification.status === 'SUSPICIOUS' ? 0.6 : 0.1;
+      
+      const riskPercentage = Math.round((classificationFactor * 0.4 + reportsFactor * 0.3 + patternFactor * 0.3) * 100);
+      
+      return res.json({
+        upiId,
+        valid: true,
+        status: classification.status,
+        riskPercentage,
+        riskLevel: riskPercentage > 70 ? 'high' : riskPercentage > 40 ? 'medium' : 'low',
+        reports: reports.length,
+        reason: classification.reason
+      });
+    } catch (error) {
+      console.error('Error in quick UPI check:', error);
+      res.status(500).json({
+        status: "error",
+        message: "Internal server error during UPI validation"
+      });
+    }
+  });
   // Enhanced UPI check endpoint with AI analysis
   app.post('/api/check-scam', async (req, res) => {
     try {
