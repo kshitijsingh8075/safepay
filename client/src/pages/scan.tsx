@@ -31,7 +31,41 @@ export default function Scan() {
   const [mlRiskDetails, setMlRiskDetails] = useState<FraudDetectionResponse | null>(null);
   const { toast } = useToast();
 
-  const handleScan = async (upiId: string) => {
+  const handleScan = async (qrData: string) => {
+    // Try to parse the payment info if in JSON format
+    let paymentInfo = {
+      upi_id: '',
+      name: '',
+      amount: '',
+      currency: 'INR'
+    };
+    
+    let upiId = '';
+    
+    try {
+      // Check if the data is JSON
+      const parsedData = JSON.parse(qrData);
+      paymentInfo = parsedData;
+      upiId = parsedData.upi_id;
+    } catch (e) {
+      // If not JSON, assume it's just a UPI ID string
+      upiId = qrData;
+      paymentInfo.upi_id = upiId;
+    }
+    
+    // If no valid UPI ID was found, show error
+    if (!upiId) {
+      toast({
+        title: "Invalid QR Code",
+        description: "Could not detect a valid UPI ID in this QR code.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        setLocation('/home');
+      }, 1500);
+      return;
+    }
+    
     setScannedUpiId(upiId);
     setIsAnalyzing(true);
     setAnalysisProgress(10);
@@ -52,11 +86,11 @@ export default function Scan() {
       setAnalysisProgress(50);
       setShowMlAnalysis(true);
       
-      // Use a default test amount for analysis (will be changed by user later)
-      const testAmount = 500; 
+      // Use amount from QR if available, otherwise use a default test amount
+      const amount = paymentInfo.amount ? parseFloat(paymentInfo.amount) : 500;
       
       // Call our ML-powered fraud detection service
-      const mlAnalysis = await detectAdvancedFraud(upiId, testAmount);
+      const mlAnalysis = await detectAdvancedFraud(upiId, amount);
       setMlRiskDetails(mlAnalysis);
       setAnalysisProgress(100);
       
@@ -78,8 +112,18 @@ export default function Scan() {
           description: "Our AI has verified this appears to be a legitimate UPI ID.",
           variant: "default",
         });
+        
+        // Construct query string with all payment info
+        const queryParams = new URLSearchParams();
+        queryParams.append('upiId', upiId);
+        queryParams.append('securityCheck', 'passed');
+        
+        if (paymentInfo.name) queryParams.append('name', paymentInfo.name);
+        if (paymentInfo.amount) queryParams.append('amount', paymentInfo.amount);
+        if (paymentInfo.currency) queryParams.append('currency', paymentInfo.currency);
+        
         setTimeout(() => {
-          setLocation(`/confirm-transaction?upiId=${encodeURIComponent(upiId)}&securityCheck=passed`);
+          setLocation(`/confirm-transaction?${queryParams.toString()}`);
         }, 1000);
       }
     } catch (error) {
@@ -89,8 +133,18 @@ export default function Scan() {
         description: "Could not complete security analysis. Proceed with caution.",
         variant: "destructive",
       });
+      
+      // Construct basic query string with UPI ID
+      const queryParams = new URLSearchParams();
+      queryParams.append('upiId', upiId);
+      
+      // Add other payment info if available
+      if (paymentInfo.name) queryParams.append('name', paymentInfo.name);
+      if (paymentInfo.amount) queryParams.append('amount', paymentInfo.amount);
+      if (paymentInfo.currency) queryParams.append('currency', paymentInfo.currency);
+      
       setTimeout(() => {
-        setLocation(`/confirm-transaction?upiId=${encodeURIComponent(upiId)}`);
+        setLocation(`/confirm-transaction?${queryParams.toString()}`);
       }, 1500);
     } finally {
       setIsAnalyzing(false);

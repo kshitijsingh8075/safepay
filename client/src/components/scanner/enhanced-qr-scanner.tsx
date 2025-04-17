@@ -125,31 +125,58 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
     
     // Process the QR code data - parse UPI info
     let upiId = '';
+    let paymentInfo = {
+      upi_id: '',
+      name: '',
+      amount: '',
+      currency: 'INR'
+    };
     
     // Check if the data is a UPI URL
     if (qrData.startsWith('upi://')) {
-      // Extract UPI ID from UPI URL format (like upi://pay?pa=abc@bank&pn=Name)
+      // Extract complete UPI info from UPI URL format (like upi://pay?pa=abc@bank&pn=Name&am=100)
       try {
         const url = new URL(qrData);
         const params = new URLSearchParams(url.search);
-        upiId = params.get('pa') || '';
+        
+        paymentInfo = {
+          upi_id: params.get('pa') || '',
+          name: params.get('pn') || '',
+          amount: params.get('am') || '',
+          currency: params.get('cu') || 'INR'
+        };
+        
+        upiId = paymentInfo.upi_id;
+        console.log('Extracted UPI payment info:', paymentInfo);
       } catch (e) {
         // If URL parsing fails, try regex
-        const match = qrData.match(/pa=([^&]+)/);
-        if (match && match[1]) {
-          upiId = match[1];
+        const paMatch = qrData.match(/pa=([^&]+)/);
+        const pnMatch = qrData.match(/pn=([^&]+)/);
+        const amMatch = qrData.match(/am=([^&]+)/);
+        
+        if (paMatch && paMatch[1]) {
+          paymentInfo.upi_id = upiId = paMatch[1];
+        }
+        if (pnMatch && pnMatch[1]) {
+          paymentInfo.name = pnMatch[1];
+        }
+        if (amMatch && amMatch[1]) {
+          paymentInfo.amount = amMatch[1];
         }
       }
     } else if (qrData.includes('@')) {
       // Directly a UPI ID (like abc@bank)
       upiId = qrData;
+      paymentInfo.upi_id = upiId;
     } else {
       // Try to check if the QR contains text with a UPI ID in it
       const match = qrData.match(/([a-zA-Z0-9\.\-\_]+@[a-zA-Z0-9]+)/);
       if (match && match[1]) {
         upiId = match[1];
+        paymentInfo.upi_id = upiId;
       } else {
         upiId = qrData; // Use as-is if nothing else works
+        paymentInfo.upi_id = upiId;
       }
     }
     
@@ -159,9 +186,14 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
     setScanComplete(true);
     setScanProgress(100);
     
-    // Return the detected UPI ID
+    // Return the detected UPI ID and complete payment info
     setTimeout(() => {
-      onScan(upiId);
+      // Play success sound
+      const audio = new Audio('/sounds/qr-success.mp3');
+      audio.play().catch(err => console.log('Audio play error', err));
+      
+      // Pass both the UPI ID and the complete payment info
+      onScan(JSON.stringify(paymentInfo));
     }, 800); // Show success animation briefly
   };
 
