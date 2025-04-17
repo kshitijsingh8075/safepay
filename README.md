@@ -133,6 +133,41 @@ npm test
 - Multi-language support
 - Enhanced biometric authentication
 
+## 🚀 GitHub Deployment
+
+The project is configured for GitHub CI/CD with workflows for testing and deployment.
+
+### Setting up GitHub Secrets
+
+Before deploying to GitHub, set up the following repository secrets:
+
+1. `OPENAI_API_KEY` - Your OpenAI API key
+2. `SESSION_SECRET` - A secure random string for session encryption
+3. `DATABASE_URL` - Your production database connection string
+
+### GitHub Actions Workflows
+
+- **CI Workflow**: Runs on every pull request and push to main branch, performing TypeScript checks while excluding known problematic files.
+- **Deploy Workflow**: Runs on pushes to main, sets up PostgreSQL for testing, and prepares for deployment.
+
+### Known TypeScript Limitations
+
+Some files are excluded from TypeScript checks due to compatibility issues:
+
+- `server/vite.ts`: Contains custom Vite configuration code that uses ambient types not fully compatible with strict TypeScript checks. This file is maintained as-is for functionality and excluded from CI checks.
+
+### Environment Variables
+
+When deploying to production, ensure these environment variables are set:
+
+```
+DATABASE_URL=your_production_db_url
+OPENAI_API_KEY=your_openai_api_key
+SESSION_SECRET=your_session_secret
+PORT=5000  # Or any port your hosting provider uses
+NODE_ENV=production
+```
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
