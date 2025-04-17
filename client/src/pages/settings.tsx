@@ -186,6 +186,20 @@ export default function Settings() {
                 {user?.usePin ? 'Change PIN' : 'Set PIN'}
               </Button>
             </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="h-4 w-4 text-gray-500" />
+                <Label htmlFor="advanced-security">SIM Swap & MFA</Label>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setLocation('/security-settings')}
+              >
+                Configure
+              </Button>
+            </div>
           </div>
         </SettingsSection>
 
