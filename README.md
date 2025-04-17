@@ -1,3 +1,7 @@
+## Live Demo
+
+You can access the deployed version of the project [here](https://safe-pay.replit.app/).
+
 # UPI Secure - AI-Powered Payment Security App
 
 A cutting-edge mobile-first React application revolutionizing UPI payment security through intelligent fraud prevention and user-centric design.
