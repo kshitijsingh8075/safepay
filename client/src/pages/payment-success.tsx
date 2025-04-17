@@ -82,10 +82,14 @@ export default function PaymentSuccess() {
   };
   
   const handleShare = () => {
+    // Get merchant name for share text
+    const displayName = paymentDetails?.merchantName || merchantName || 'merchant';
+    const displayUpi = paymentDetails?.upiId || upiId || '';
+    
     if (navigator.share) {
       navigator.share({
         title: 'Payment Receipt',
-        text: `I've sent ₹${amount} to ${paymentDetails?.upiId || 'merchant'} via UPI. Transaction ID: ${transactionId}`,
+        text: `I've sent ₹${amount} to ${displayName} (${displayUpi}) via UPI. Transaction ID: ${transactionId}`,
       }).catch((error) => {
         console.log('Error sharing:', error);
       });
@@ -129,7 +133,14 @@ export default function PaymentSuccess() {
               
               <div className="flex justify-between">
                 <div className="text-gray-500">Paid to</div>
-                <div>{paymentDetails?.upiId || 'Unknown Merchant'}</div>
+                <div>
+                  {paymentDetails?.merchantName || merchantName || 'Unknown Merchant'}
+                  {(paymentDetails?.upiId || upiId) && (
+                    <div className="text-xs text-gray-500">
+                      {paymentDetails?.upiId || upiId}
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="flex justify-between">
