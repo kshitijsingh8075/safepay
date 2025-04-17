@@ -225,10 +225,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const safetyCheck = await checkUpiSafety(upiId);
       
       // Get additional risk data from the database
-      const riskReport = await storage.getUpiRiskByUpiId(upiId);
+      let riskReport;
+      try {
+        riskReport = await storage.getUpiRiskByUpiId(upiId);
+      } catch (dbError) {
+        console.error("Error checking UPI risk:", dbError);
+        // Continue with null riskReport
+      }
       
       // Convert status to risk level
       let riskLevel: 'Low' | 'Medium' | 'High' = 'Low';
+      
+      // Significantly reduce risk for legitimate UPI IDs
+      if (upiId.includes('@')) {
+        // This is a proper formatted UPI ID
+        // Reduce risk by 30% (UPI IDs like name@bank are likely legitimate)
+        safetyCheck.confidence = Math.max(0, safetyCheck.confidence - 0.3);
+      }
+      
       switch(safetyCheck.status) {
         case 'SCAM': riskLevel = 'High'; break;
         case 'SUSPICIOUS': riskLevel = 'Medium'; break;
