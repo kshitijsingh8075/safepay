@@ -4,6 +4,7 @@ import { ArrowLeft, Camera, Check, Flashlight, X, ShieldAlert, ShieldCheck } fro
 import jsQR from 'jsqr';
 import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
 import { analyzeQRWithML, extractUPIPaymentInfo, QRScanResult } from '@/lib/ml-qr-scanner';
+import { analyzeQRWithOptimizedML } from '@/lib/enhanced-optimized-qr-scanner';
 
 interface QRScannerProps {
   onScan: (data: string) => void;
@@ -192,7 +193,8 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
       setScanProgress(85); // Update progress to show ML analysis
       console.log('Analyzing QR code with ML service...');
       
-      const mlResult = await analyzeQRWithML(qrData);
+      // Use optimized ML scanner for faster analysis
+      const mlResult = await analyzeQRWithOptimizedML(qrData);
       console.log('ML analysis result:', mlResult);
       
       // Store the ML result for display
@@ -415,7 +417,8 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
       setScanProgress(85);
       console.log('Analyzing manual UPI entry with ML service...');
       
-      const mlResult = await analyzeQRWithML(upiUrl);
+      // Use optimized ML scanner for faster analysis
+      const mlResult = await analyzeQRWithOptimizedML(upiUrl);
       console.log('ML analysis result for manual entry:', mlResult);
       
       // Store the ML result for display
