@@ -28,6 +28,7 @@ import LegalHelp from "@/pages/legal-help";
 import FraudHeatmap from "@/pages/fraud-heatmap";
 import FraudHeatmapBasic from "@/pages/fraud-heatmap-basic";
 import ConfirmTransaction from "@/pages/confirm-transaction";
+import HistoryPage from "@/pages/history";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
@@ -87,11 +88,17 @@ function Router() {
       <Route path="/history">
         {() => (
           <MainLayout>
+            <HistoryPage />
+          </MainLayout>
+        )}
+      </Route>
+      <Route path="/chat-support">
+        {() => (
+          <MainLayout>
             <ChatSupport />
           </MainLayout>
         )}
       </Route>
-      <Route path="/chat-support" component={ChatSupport} />
       <Route path="/account">
         {() => (
           <MainLayout>
