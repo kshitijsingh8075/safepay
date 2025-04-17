@@ -14,7 +14,10 @@ export default function MainLayout({
   className
 }: MainLayoutProps) {
   return (
-    <div className={cn("min-h-screen bg-white", className)}>
+    <div className={cn(
+      "min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300", 
+      className
+    )}>
       <main className="pb-16">
         {children}
       </main>

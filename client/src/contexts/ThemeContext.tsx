@@ -1,14 +1,17 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import Cookies from 'js-cookie';
 
 // Define the type for the theme context value
 export type ThemeContextType = {
   theme: 'light' | 'dark';
+  isDark: boolean;
   toggleTheme: () => void;
 };
 
 // Create the theme context with a default value
 export const ThemeContext = createContext<ThemeContextType>({
   theme: 'light',
+  isDark: false,
   toggleTheme: () => {},
 });
 
@@ -22,22 +25,22 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // State to track current theme
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
-  // Effect to initialize theme from localStorage or system preference
+  // Computed value for easier boolean checks
+  const isDark = theme === 'dark';
+
+  // Effect to initialize theme from localStorage, cookie, or system preference
   useEffect(() => {
-    // Check if theme is saved in localStorage
-    const savedTheme = localStorage.getItem('theme');
+    // Check if theme is saved in localStorage or cookie
+    const savedTheme = localStorage.getItem('theme') || 
+                      Cookies.get('theme') || 
+                      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     
     if (savedTheme === 'dark' || savedTheme === 'light') {
-      // Use saved theme if available
       setTheme(savedTheme);
-    } else {
-      // Otherwise check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(prefersDark ? 'dark' : 'light');
     }
   }, []);
 
-  // Effect to apply theme class to html element and save to localStorage
+  // Effect to apply theme class to html element and save to storage
   useEffect(() => {
     // Get the HTML element
     const root = document.documentElement;
@@ -49,9 +52,29 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       root.classList.remove('dark');
     }
     
-    // Save theme preference to localStorage
+    // Save theme preference to both localStorage and cookies for persistence
     localStorage.setItem('theme', theme);
+    Cookies.set('theme', theme, { 
+      expires: 200, // 200 days
+      sameSite: 'Lax',
+      secure: window.location.protocol === 'https:'
+    });
   }, [theme]);
+
+  // Listen for storage events for cross-tab synchronization
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        const newTheme = e.newValue as 'light' | 'dark';
+        if (newTheme && (newTheme === 'light' || newTheme === 'dark')) {
+          setTheme(newTheme);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Function to toggle between light and dark themes
   const toggleTheme = () => {
@@ -60,7 +83,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Provide the theme context to children components
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, isDark, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

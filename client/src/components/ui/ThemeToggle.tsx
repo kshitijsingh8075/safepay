@@ -15,18 +15,17 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   label = 'Dark Mode',
   className = '',
 }) => {
-  const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
+  const { isDark, toggleTheme } = useTheme();
 
   return (
     <div className={`flex items-center justify-between ${className}`}>
       <div className="flex items-center space-x-2">
         {isDark ? (
-          <Moon className="h-5 w-5 text-indigo-300" />
+          <Moon className="h-5 w-5 text-indigo-300" aria-hidden="true" />
         ) : (
-          <Sun className="h-5 w-5 text-amber-500" />
+          <Sun className="h-5 w-5 text-amber-500" aria-hidden="true" />
         )}
-        <span className="text-sm font-medium">{label}</span>
+        <span className="text-sm font-medium dark:text-gray-300">{label}</span>
       </div>
       
       <Switch
@@ -34,7 +33,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         onChange={toggleTheme}
         className={`${
           isDark ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'
-        } relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
+        } relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/80 focus:ring-offset-2 focus:ring-offset-background`}
       >
         <span className="sr-only">Toggle dark mode</span>
         <span
