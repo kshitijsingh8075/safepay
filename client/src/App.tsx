@@ -33,6 +33,7 @@ import FraudMap from "@/pages/fraud-map";
 import ConfirmTransaction from "@/pages/confirm-transaction";
 import HistoryPage from "@/pages/history";
 import RiskScoreDemo from "@/pages/risk-score-demo";
+import SecuritySettings from "@/pages/security-settings";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
@@ -179,6 +180,14 @@ function Router() {
         {() => (
           <MainLayout>
             <RiskScoreDemo />
+          </MainLayout>
+        )}
+      </Route>
+
+      <Route path="/security-settings">
+        {() => (
+          <MainLayout>
+            <SecuritySettings />
           </MainLayout>
         )}
       </Route>
