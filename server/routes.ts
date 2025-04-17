@@ -14,6 +14,7 @@ import { registerStreamlitRoutes } from "./routes/streamlit-routes";
 import { registerRiskAnalysisRoutes } from "./routes/risk-analysis";
 import { registerSimSwapProtectionRoutes } from "./routes/sim-swap-protection";
 import { registerMLQRScanRoutes } from "./routes/ml-qr-scan";
+import { registerOptimizedQRScanRoutes } from "./routes/register-optimized-qr-scan";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import Stripe from "stripe";
