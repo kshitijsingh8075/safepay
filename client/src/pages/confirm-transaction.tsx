@@ -8,6 +8,7 @@ import { CheckCircle, ChevronLeft, Shield, AlertTriangle, Info } from 'lucide-re
 import { detectAdvancedFraud } from '@/lib/fraud-detection';
 import { enhancedFraudDetection, validateUpiId, getSecurityTip } from '@/lib/enhanced-fraud-detection';
 import { useToast } from '@/hooks/use-toast';
+import { UpiPinDialog } from '@/components/payment/upi-pin-dialog';
 
 export default function ConfirmTransaction() {
   const [location, setLocation] = useLocation();
@@ -20,6 +21,8 @@ export default function ConfirmTransaction() {
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [safetyScore, setSafetyScore] = useState<number | null>(null);
   const [showPaymentApps, setShowPaymentApps] = useState(false);
+  const [showUpiPin, setShowUpiPin] = useState(false);
+  const [selectedUpiApp, setSelectedUpiApp] = useState<string>('');
   const { toast } = useToast();
   
   // Analyze UPI safety on component mount
@@ -184,26 +187,25 @@ export default function ConfirmTransaction() {
   };
   
   const handlePayWithApp = (app: string) => {
-    setIsLoading(true);
-    
     // Close the payment apps dialog
     setShowPaymentApps(false);
     
-    try {
-      // Navigate to success page after a brief delay
-      // In a real app, this would open the payment app via deep linking
-      setTimeout(() => {
-        setLocation('/success');
-      }, 1500);
-    } catch (error) {
-      console.error('Payment error:', error);
+    // Set the selected app and show UPI PIN dialog
+    setSelectedUpiApp(app);
+    setShowUpiPin(true);
+  };
+  
+  const handlePaymentSuccess = () => {
+    setIsLoading(true);
+    
+    // In a real app, this would process the payment with the UPI app
+    setTimeout(() => {
       toast({
-        title: "Payment Failed",
-        description: "There was an error processing your payment. Please try again.",
-        variant: "destructive",
+        title: "Payment Successful",
+        description: `Your payment of ₹${amount} to ${merchant} has been processed successfully.`,
       });
-      setIsLoading(false);
-    }
+      setLocation('/success');
+    }, 1500);
   };
   
   return (
@@ -339,7 +341,7 @@ export default function ConfirmTransaction() {
             <div className="px-8 pb-6">
               <div className="grid grid-cols-3 gap-6">
                 <button 
-                  onClick={() => handlePayWithApp('gpay')}
+                  onClick={() => handlePayWithApp('GPay')}
                   className="flex flex-col items-center"
                 >
                   <div className="w-16 h-16 mb-2">
@@ -353,7 +355,7 @@ export default function ConfirmTransaction() {
                 </button>
                 
                 <button 
-                  onClick={() => handlePayWithApp('paytm')}
+                  onClick={() => handlePayWithApp('Paytm')}
                   className="flex flex-col items-center"
                 >
                   <div className="w-16 h-16 mb-2">
@@ -367,7 +369,7 @@ export default function ConfirmTransaction() {
                 </button>
                 
                 <button 
-                  onClick={() => handlePayWithApp('phonepe')}
+                  onClick={() => handlePayWithApp('PhonePe')}
                   className="flex flex-col items-center"
                 >
                   <div className="w-16 h-16 mb-2">
@@ -377,7 +379,7 @@ export default function ConfirmTransaction() {
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <span className="text-sm">Phonepe</span>
+                  <span className="text-sm">PhonePe</span>
                 </button>
               </div>
             </div>
@@ -388,12 +390,20 @@ export default function ConfirmTransaction() {
                 size="lg"
                 onClick={() => setShowPaymentApps(false)}
               >
-                Continue to pay
+                Cancel
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* UPI PIN Dialog */}
+      <UpiPinDialog
+        open={showUpiPin}
+        onOpenChange={setShowUpiPin}
+        onSuccess={handlePaymentSuccess}
+        upiApp={selectedUpiApp}
+      />
     </div>
   );
 }
