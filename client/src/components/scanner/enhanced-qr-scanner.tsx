@@ -168,15 +168,38 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
       // Directly a UPI ID (like abc@bank)
       upiId = qrData;
       paymentInfo.upi_id = upiId;
+      console.log('Found direct UPI ID:', upiId);
     } else {
       // Try to check if the QR contains text with a UPI ID in it
-      const match = qrData.match(/([a-zA-Z0-9\.\-\_]+@[a-zA-Z0-9]+)/);
+      // Use enhanced regex pattern to detect more UPI formats
+      const match = qrData.match(/([a-zA-Z0-9\.\_\-]+@[a-zA-Z0-9]+)/);
       if (match && match[1]) {
         upiId = match[1];
         paymentInfo.upi_id = upiId;
+        console.log('Extracted UPI ID from text:', upiId);
       } else {
-        upiId = qrData; // Use as-is if nothing else works
-        paymentInfo.upi_id = upiId;
+        // Try again with a more lenient pattern
+        const secondTry = qrData.match(/([^\s\/]+@[^\s\/]+)/);
+        if (secondTry && secondTry[1] && secondTry[1].includes('@')) {
+          upiId = secondTry[1];
+          paymentInfo.upi_id = upiId;
+          console.log('Extracted UPI ID with lenient pattern:', upiId);
+        } else {
+          console.log('No UPI pattern found, using raw data:', qrData);
+          
+          // Last resort - try to clean the string
+          const cleaned = qrData.trim().replace(/\s+/g, '');
+          if (cleaned.length > 0) {
+            upiId = cleaned;
+            paymentInfo.upi_id = upiId;
+          } else {
+            upiId = 'unknown'; // Use a placeholder so the app doesn't crash
+            paymentInfo.upi_id = upiId;
+            
+            // Show error but continue to let the user manually correct it
+            setScanError('Could not detect a valid UPI ID. Try manual entry.');
+          }
+        }
       }
     }
     
