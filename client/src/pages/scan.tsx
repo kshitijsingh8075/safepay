@@ -22,7 +22,7 @@ export default function Scan() {
   const [showBlocked, setShowBlocked] = useState(false);
   const [showMlAnalysis, setShowMlAnalysis] = useState(false);
   const [showSafeDialog, setShowSafeDialog] = useState(false);
-  const [upiDetected, setUpiDetected] = useState(true); // For UPI detection status
+  const [upiDetected, setUpiDetected] = useState(false); // For UPI detection status
   const [safeTransactionInfo, setSafeTransactionInfo] = useState<{
     upiId: string;
     queryParams: string;
@@ -75,6 +75,7 @@ export default function Scan() {
     }
     
     setScannedUpiId(upiId);
+    setUpiDetected(true); // Set UPI detected to true when valid UPI found
     setIsAnalyzing(true);
     setAnalysisProgress(10);
     
@@ -343,7 +344,7 @@ export default function Scan() {
                 </div>
                 
                 <div className="text-sm text-red-700 font-bold my-2">
-                  UPI ID Not Detected or Seems Fraudulent
+                  {upiDetected ? 'UPI ID Detected But Seems Fraudulent' : 'UPI ID Not Detected'}
                 </div>
                 
                 <ul className="text-sm space-y-1 text-red-800 mt-3">
