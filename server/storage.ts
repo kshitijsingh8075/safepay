@@ -570,4 +570,269 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+import { eq, and, desc } from 'drizzle-orm';
+import { db } from './db';
+
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.phoneNumber, phoneNumber));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async getTransactionsByUserId(userId: number): Promise<Transaction[]> {
+    return await db.select().from(transactions)
+      .where(eq(transactions.userId, userId))
+      .orderBy(desc(transactions.timestamp));
+  }
+
+  async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
+    const [transaction] = await db.insert(transactions)
+      .values(insertTransaction)
+      .returning();
+    return transaction;
+  }
+
+  async getUpiRiskByUpiId(upiId: string): Promise<UpiRiskReport | undefined> {
+    const [report] = await db.select().from(upiRiskReports)
+      .where(eq(upiRiskReports.upiId, upiId));
+    return report;
+  }
+
+  async updateUpiRiskScore(upiId: string): Promise<void> {
+    // Implementation depends on how you want to update the risk score
+    // Here we're just setting lastChecked to now
+    const existingReport = await this.getUpiRiskByUpiId(upiId);
+    
+    if (existingReport) {
+      await db.update(upiRiskReports)
+        .set({ lastChecked: new Date() })
+        .where(eq(upiRiskReports.upiId, upiId));
+    } else {
+      // Create a new report with default values
+      await db.insert(upiRiskReports).values({
+        upiId,
+        riskScore: 0,
+        reportCount: 0,
+        lastChecked: new Date(),
+        firstReported: new Date()
+      });
+    }
+  }
+
+  async getScamReportsByUpiId(upiId: string): Promise<ScamReport[]> {
+    return await db.select().from(scamReports)
+      .where(eq(scamReports.upiId, upiId))
+      .orderBy(desc(scamReports.reportDate));
+  }
+
+  async createScamReport(insertReport: InsertScamReport): Promise<ScamReport> {
+    const [report] = await db.insert(scamReports)
+      .values(insertReport)
+      .returning();
+      
+    // Update the UPI risk report
+    const existingReport = await this.getUpiRiskByUpiId(insertReport.upiId);
+    if (existingReport) {
+      await db.update(upiRiskReports)
+        .set({ 
+          reportCount: existingReport.reportCount + 1,
+          lastChecked: new Date(),
+          riskScore: Math.min(100, existingReport.riskScore + 10) // Increment risk score
+        })
+        .where(eq(upiRiskReports.upiId, insertReport.upiId));
+    } else {
+      // Create a new risk report
+      await db.insert(upiRiskReports).values({
+        upiId: insertReport.upiId,
+        riskScore: 30, // Initial risk score for a new report
+        reportCount: 1,
+        lastChecked: new Date(),
+        firstReported: new Date()
+      });
+    }
+    
+    return report;
+  }
+
+  async getMostCommonScamType(upiId: string): Promise<string> {
+    // In a real implementation, this would use SQL aggregation
+    // For simplicity, we'll load all reports and count in JS
+    const reports = await this.getScamReportsByUpiId(upiId);
+    
+    if (!reports.length) return 'Unknown';
+    
+    const typeCounts: Record<string, number> = {};
+    let maxCount = 0;
+    let commonType = 'Unknown';
+    
+    for (const report of reports) {
+      const count = (typeCounts[report.scamType] || 0) + 1;
+      typeCounts[report.scamType] = count;
+      
+      if (count > maxCount) {
+        maxCount = count;
+        commonType = report.scamType;
+      }
+    }
+    
+    return commonType;
+  }
+
+  async getPaymentMethodsByUserId(userId: number): Promise<PaymentMethod[]> {
+    return await db.select().from(paymentMethods)
+      .where(eq(paymentMethods.userId, userId));
+  }
+
+  async getPaymentMethod(id: number): Promise<PaymentMethod | undefined> {
+    const [method] = await db.select().from(paymentMethods)
+      .where(eq(paymentMethods.id, id));
+    return method;
+  }
+
+  async createPaymentMethod(method: InsertPaymentMethod): Promise<PaymentMethod> {
+    // If this is set as default, unset any existing defaults
+    if (method.isDefault) {
+      await db.update(paymentMethods)
+        .set({ isDefault: false })
+        .where(and(
+          eq(paymentMethods.userId, method.userId),
+          eq(paymentMethods.isDefault, true)
+        ));
+    }
+    
+    const [paymentMethod] = await db.insert(paymentMethods)
+      .values(method)
+      .returning();
+    return paymentMethod;
+  }
+
+  async updatePaymentMethod(id: number, data: Partial<InsertPaymentMethod>): Promise<PaymentMethod | undefined> {
+    // If this is being set as default, unset any existing defaults
+    if (data.isDefault) {
+      const [method] = await db.select().from(paymentMethods)
+        .where(eq(paymentMethods.id, id));
+      
+      if (method) {
+        await db.update(paymentMethods)
+          .set({ isDefault: false })
+          .where(and(
+            eq(paymentMethods.userId, method.userId),
+            eq(paymentMethods.isDefault, true),
+            eq(paymentMethods.id, id).invert()
+          ));
+      }
+    }
+    
+    const [updatedMethod] = await db.update(paymentMethods)
+      .set(data)
+      .where(eq(paymentMethods.id, id))
+      .returning();
+    return updatedMethod;
+  }
+
+  async deletePaymentMethod(id: number): Promise<boolean> {
+    const result = await db.delete(paymentMethods)
+      .where(eq(paymentMethods.id, id))
+      .returning({ id: paymentMethods.id });
+    return result.length > 0;
+  }
+
+  async setDefaultPaymentMethod(userId: number, methodId: number): Promise<boolean> {
+    // First, unset all defaults for this user
+    await db.update(paymentMethods)
+      .set({ isDefault: false })
+      .where(and(
+        eq(paymentMethods.userId, userId),
+        eq(paymentMethods.isDefault, true)
+      ));
+    
+    // Then set the new default
+    const result = await db.update(paymentMethods)
+      .set({ isDefault: true })
+      .where(and(
+        eq(paymentMethods.userId, userId),
+        eq(paymentMethods.id, methodId)
+      ))
+      .returning({ id: paymentMethods.id });
+    
+    return result.length > 0;
+  }
+
+  async getChatHistoryByUserId(userId: number): Promise<ChatMessage[]> {
+    return await db.select().from(chatMessages)
+      .where(eq(chatMessages.userId, userId))
+      .orderBy(desc(chatMessages.timestamp));
+  }
+
+  async saveChatMessage(userId: number, message: { role: string; content: string }): Promise<ChatMessage> {
+    const [chatMessage] = await db.insert(chatMessages)
+      .values({
+        userId,
+        role: message.role,
+        content: message.content,
+        timestamp: new Date()
+      })
+      .returning();
+    return chatMessage;
+  }
+
+  async saveChatFeedback(userId: number, messageId: number, feedback: { rating?: number; feedback?: string }): Promise<ChatFeedback> {
+    const [chatFeedback] = await db.insert(chatFeedbacks)
+      .values({
+        userId,
+        messageId, 
+        rating: feedback.rating,
+        feedback: feedback.feedback,
+        timestamp: new Date()
+      })
+      .returning();
+    return chatFeedback;
+  }
+}
+
+// For development and testing, we'll check if a DATABASE_URL is available
+// If not, we'll fall back to MemStorage
+// Otherwise, use DatabaseStorage with PostgreSQL
+
+let storageImpl: IStorage;
+
+try {
+  // Check if we have a database connection
+  if (process.env.DATABASE_URL) {
+    console.log('Using PostgreSQL database storage');
+    storageImpl = new DatabaseStorage();
+  } else {
+    console.log('No DATABASE_URL found, falling back to in-memory storage');
+    storageImpl = new MemStorage();
+  }
+} catch (error) {
+  console.error('Error initializing database storage:', error);
+  console.log('Falling back to in-memory storage');
+  storageImpl = new MemStorage();
+}
+
+export const storage = storageImpl;
