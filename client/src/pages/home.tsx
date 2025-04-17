@@ -210,14 +210,14 @@ export default function Home() {
               onClick={() => setLocation('/scam-news')}
               className="flex flex-col items-center"
             >
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   strokeWidth={1.5} 
                   stroke="currentColor" 
-                  className="w-5 h-5 text-blue-500"
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
                 >
                   <path 
                     strokeLinecap="round" 
@@ -226,21 +226,21 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center">Scam News</span>
+              <span className="text-[10px] text-center dark-text-secondary">Scam News</span>
             </button>
             
             <button 
               onClick={() => setLocation('/voice-check')}
               className="flex flex-col items-center"
             >
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   strokeWidth={1.5} 
                   stroke="currentColor" 
-                  className="w-5 h-5 text-blue-500"
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
                 >
                   <path 
                     strokeLinecap="round" 
@@ -249,21 +249,21 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center">Voice Scam</span>
+              <span className="text-[10px] text-center dark-text-secondary">Voice Scam</span>
             </button>
             
             <button 
               onClick={() => setLocation('/whatsapp-check')}
               className="flex flex-col items-center"
             >
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   strokeWidth={1.5} 
                   stroke="currentColor" 
-                  className="w-5 h-5 text-blue-500"
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
                 >
                   <path 
                     strokeLinecap="round" 
@@ -272,21 +272,21 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center">WhatsApp Check</span>
+              <span className="text-[10px] text-center dark-text-secondary">WhatsApp Check</span>
             </button>
             
             <button 
               onClick={() => setLocation('/legal-help')}
               className="flex flex-col items-center"
             >
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   strokeWidth={1.5} 
                   stroke="currentColor" 
-                  className="w-5 h-5 text-blue-500"
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
                 >
                   <path 
                     strokeLinecap="round" 
@@ -295,7 +295,7 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center">Legal Help</span>
+              <span className="text-[10px] text-center dark-text-secondary">Legal Help</span>
             </button>
           </div>
           
@@ -305,14 +305,14 @@ export default function Home() {
               onClick={() => setLocation('/risk-score-demo')}
               className="flex flex-col items-center"
             >
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   strokeWidth={1.5} 
                   stroke="currentColor" 
-                  className="w-5 h-5 text-blue-500"
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
                 >
                   <path 
                     strokeLinecap="round" 
@@ -321,21 +321,21 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center">Risk Score Demo</span>
+              <span className="text-[10px] text-center dark-text-secondary">Risk Score Demo</span>
             </button>
             
             <button 
               onClick={() => setLocation('/fraud-map')}
               className="flex flex-col items-center"
             >
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   strokeWidth={1.5} 
                   stroke="currentColor" 
-                  className="w-5 h-5 text-blue-500"
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
                 >
                   <path 
                     strokeLinecap="round" 
@@ -344,21 +344,21 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center">Fraud Map</span>
+              <span className="text-[10px] text-center dark-text-secondary">Fraud Map</span>
             </button>
             
             <button 
               onClick={() => setLocation('/security-settings')}
               className="flex flex-col items-center"
             >
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   strokeWidth={1.5} 
                   stroke="currentColor" 
-                  className="w-5 h-5 text-blue-500"
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
                 >
                   <path 
                     strokeLinecap="round" 
@@ -367,7 +367,7 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center">SIM Swap & MFA</span>
+              <span className="text-[10px] text-center dark-text-secondary">SIM Swap & MFA</span>
             </button>
           </div>
         </div>
