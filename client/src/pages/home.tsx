@@ -54,14 +54,14 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-gray-900 h-screen overflow-hidden fixed inset-0 flex flex-col transition-colors duration-300">
+    <div className="dark-bg-secondary h-screen overflow-hidden fixed inset-0 flex flex-col">
       {/* Top bar with search */}
-      <div className="p-4 bg-white dark:bg-gray-800 z-10 shadow-sm transition-colors duration-300">
+      <div className="p-4 dark-bg-primary z-10 shadow-sm">
         <div className="flex items-center gap-2">
           <div className="flex-1 bg-slate-100 dark:bg-gray-700 rounded-full px-3 py-1.5 flex items-center transition-colors duration-300">
-            <Search className="w-4 h-4 text-slate-500 dark:text-gray-400 mr-2 flex-shrink-0" />
+            <Search className="w-4 h-4 dark-text-tertiary mr-2 flex-shrink-0" />
             <Input 
-              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-500 dark:placeholder:text-gray-400 text-sm w-full h-8 dark:text-gray-100"
+              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-500 dark:placeholder:text-gray-400 text-sm w-full h-8 dark-text-primary"
               placeholder="Enter UPI ID to check..."
               value={upiInput}
               onChange={(e) => setUpiInput(e.target.value)}
@@ -161,14 +161,14 @@ export default function Home() {
               onClick={() => setLocation('/report-scam')}
               className="flex flex-col items-center"
             >
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   strokeWidth={1.5} 
                   stroke="currentColor" 
-                  className="w-5 h-5 text-blue-500"
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
                 >
                   <path 
                     strokeLinecap="round" 
@@ -177,21 +177,21 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center">Report Scams</span>
+              <span className="text-[10px] text-center dark-text-secondary">Report Scams</span>
             </button>
             
             <button 
               onClick={() => setLocation('/history')}
               className="flex flex-col items-center"
             >
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   strokeWidth={1.5} 
                   stroke="currentColor" 
-                  className="w-5 h-5 text-blue-500"
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
                 >
                   <path 
                     strokeLinecap="round" 
@@ -200,7 +200,7 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center">History</span>
+              <span className="text-[10px] text-center dark-text-secondary">History</span>
             </button>
           </div>
           

@@ -11,6 +11,7 @@ import PIN from "@/pages/pin";
 import PhoneLogin from "@/pages/phone-login";
 import SetupSecurity from "@/pages/setup-security";
 import Home from "@/pages/home";
+import Help from "@/pages/help";
 import Scan from "@/pages/scan";
 import Payment from "@/pages/payment";
 import Checkout from "@/pages/checkout";
@@ -166,6 +167,8 @@ function Router() {
           </MainLayout>
         )}
       </Route>
+      
+      <Route path="/help" component={Help} />
       
       <Route path="/fraud-heatmap-basic" component={FraudHeatmapBasic} />
       
