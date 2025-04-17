@@ -53,6 +53,7 @@ interface MulterFile {
   filename: string;
   path: string;
   buffer: Buffer;
+  stream?: any; // Adding stream property to match Express.Multer.File
 }
 
 // Extended request type with file property

@@ -185,7 +185,8 @@ export class MemStorage implements IStorage {
         reportCount: 1,
         firstReportDate: new Date(),
         riskScore: 30, // Initial medium-low risk score
-        statusVerified: false
+        statusVerified: false,
+        lastChecked: new Date()
       };
       this.upiRiskReports.set(riskReport.id, riskReport);
     } else {
@@ -476,7 +477,8 @@ export class MemStorage implements IStorage {
       reportCount: 15,
       riskScore: 75,
       statusVerified: false,
-      firstReportDate
+      firstReportDate,
+      lastChecked: new Date()
     });
     
     // Add some scam reports
@@ -642,7 +644,8 @@ export class DatabaseStorage implements IStorage {
         riskScore: 0,
         reportCount: 0,
         lastChecked: new Date(),
-        firstReported: new Date()
+        firstReportDate: new Date(),
+        statusVerified: false
       });
     }
   }
@@ -650,7 +653,7 @@ export class DatabaseStorage implements IStorage {
   async getScamReportsByUpiId(upiId: string): Promise<ScamReport[]> {
     return await db.select().from(scamReports)
       .where(eq(scamReports.upiId, upiId))
-      .orderBy(desc(scamReports.reportDate));
+      .orderBy(desc(scamReports.timestamp));
   }
 
   async createScamReport(insertReport: InsertScamReport): Promise<ScamReport> {
@@ -675,7 +678,8 @@ export class DatabaseStorage implements IStorage {
         riskScore: 30, // Initial risk score for a new report
         reportCount: 1,
         lastChecked: new Date(),
-        firstReported: new Date()
+        firstReportDate: new Date(),
+        statusVerified: false
       });
     }
     
