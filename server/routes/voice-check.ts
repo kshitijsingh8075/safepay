@@ -1,6 +1,7 @@
 import { Express, Request } from 'express';
 import { storage } from '../storage';
 import { analyzeVoiceTranscript } from '../services/openai';
+import { ScamType } from '../../shared/schema';
 
 // Define the type for analyzeVoiceTranscript response
 interface VoiceAnalysisResult {
@@ -14,8 +15,8 @@ interface VoiceAnalysisResult {
 interface ScamAnalysis {
   is_scam: boolean;
   confidence: number;
-  scam_type: string;
-  indicators: any[]; // Using any[] to resolve type issues
+  scam_type: ScamType;
+  indicators: string[]; // Using string[] for indicators
 }
 
 /**
@@ -44,7 +45,7 @@ export function registerVoiceCheckRoutes(app: Express): void {
       let analysis: ScamAnalysis = { 
         is_scam: false, 
         confidence: 0.5, 
-        scam_type: 'unknown',
+        scam_type: ScamType.Unknown,
         indicators: []
       };
       
@@ -54,9 +55,9 @@ export function registerVoiceCheckRoutes(app: Express): void {
           analysis = {
             is_scam: aiAnalysis.is_scam,
             confidence: aiAnalysis.confidence,
-            scam_type: aiAnalysis.scam_type || 'unknown',
+            scam_type: mapToScamType(aiAnalysis.scam_type),
             indicators: aiAnalysis.scam_indicators || []
-          } as ScamAnalysis;
+          };
         }
       } catch (error) {
         console.error('Error with AI voice analysis:', error);
@@ -166,15 +167,15 @@ function performBasicScamDetection(command: string): {
   });
   
   // Determine scam type and confidence
-  let scamType = 'unknown';
+  let scamType = ScamType.Unknown;
   
   if (indicators.length >= 3) {
     if (lowerCommand.includes('bank') || lowerCommand.includes('account')) {
-      scamType = 'Banking Scam';
+      scamType = ScamType.Banking;
     } else if (lowerCommand.includes('offer') || lowerCommand.includes('prize')) {
-      scamType = 'Reward Scam';
+      scamType = ScamType.Reward;
     } else {
-      scamType = 'Phishing Attempt';
+      scamType = ScamType.Phishing;
     }
   }
   
