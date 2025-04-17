@@ -8,6 +8,10 @@ A cutting-edge mobile-first React application revolutionizing UPI payment securi
 
 ![UPI Secure Screenshot](attached_assets/image_1744853525614.png)
 
+## 🔴 Live Demo
+
+Watch the project in action on YouTube: [Click here to watch the demo](https://youtu.be/7OcJXmIMKHE)
+
 ## 🚀 Features
 
 - **Advanced QR Code Scanner**: Scan and verify UPI payment QR codes with real-time security analysis
