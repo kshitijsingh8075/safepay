@@ -3,8 +3,9 @@ import { useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Search, ArrowLeft, ReceiptText } from 'lucide-react';
+import { Search, ArrowLeft, ReceiptText, ShoppingBag, Calendar, Package, User, Eye, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 // Sample fallback transaction data (will only be used if localStorage is empty)
 const sampleTransactionHistory = [
@@ -168,108 +169,196 @@ export default function History() {
     );
   }
 
-  // Transaction list view
+  // Group transactions by date
+  const groupedTransactions = () => {
+    // Get today and yesterday dates for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    
+    // Create groups
+    const groups: Record<string, Transaction[]> = {
+      today: [],
+      yesterday: [],
+      earlier: []
+    };
+    
+    // Group transactions
+    filteredTransactions.forEach(transaction => {
+      const txDate = new Date(transaction.timestamp);
+      txDate.setHours(0, 0, 0, 0);
+      
+      if (txDate.getTime() === today.getTime()) {
+        groups.today.push(transaction);
+      } else if (txDate.getTime() === yesterday.getTime()) {
+        groups.yesterday.push(transaction);
+      } else {
+        groups.earlier.push(transaction);
+      }
+    });
+    
+    return groups;
+  };
+  
+  const transactionGroups = groupedTransactions();
+  
+  // Helper function to get transaction icon
+  const getTransactionIcon = (title: string) => {
+    const titleLower = title.toLowerCase();
+    
+    if (titleLower.includes('shop') || titleLower.includes('market') || titleLower.includes('store')) {
+      return <ShoppingBag className="h-5 w-5 text-white" />;
+    } else if (titleLower.includes('food') || titleLower.includes('restaurant') || titleLower.includes('delivery')) {
+      return <Package className="h-5 w-5 text-white" />;
+    } else if (titleLower.includes('transfer') || titleLower.includes('send') || titleLower.includes('receive')) {
+      return <ArrowUpRight className="h-5 w-5 text-white" />;
+    } else {
+      return <User className="h-5 w-5 text-white" />;
+    }
+  };
+  
+  // Helper function to get icon background color
+  const getIconBgColor = (title: string) => {
+    const titleLower = title.toLowerCase();
+    
+    if (titleLower.includes('shop') || titleLower.includes('market') || titleLower.includes('store')) {
+      return 'bg-cyan-400';
+    } else if (titleLower.includes('food') || titleLower.includes('restaurant') || titleLower.includes('delivery')) {
+      return 'bg-indigo-500';
+    } else if (titleLower.includes('transfer') || titleLower.includes('send') || titleLower.includes('receive')) {
+      return 'bg-green-500';
+    } else {
+      return 'bg-gray-400';
+    }
+  };
+  
+  // Transaction list view with new design
   return (
-    <div className="flex flex-col px-6 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">Transaction History</h1>
+    <div className="flex flex-col p-3">
+      <div className="flex items-center mb-4">
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={() => setLocation('/home')}
-          className="p-2"
+          className="p-1 mr-3"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
+        <h1 className="text-xl font-bold">History</h1>
       </div>
       
-      <div className="bg-[#F5F6FA] rounded-xl px-4 py-3 flex items-center mb-6">
-        <Search className="w-5 h-5 text-gray-500 mr-2" />
-        <Input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 bg-transparent border-none focus:ring-0"
-          placeholder="Search transactions"
-        />
-      </div>
-      
-      {filteredTransactions.length === 0 ? (
-        <div className="text-center text-gray-500 py-8">
-          <p>No transactions found</p>
-          {searchQuery && (
-            <Button 
-              variant="link" 
-              onClick={() => setSearchQuery('')}
-              className="mt-2"
-            >
-              Clear search
-            </Button>
-          )}
+      <div className="flex flex-col mb-3">
+        <p className="text-sm font-medium text-gray-500 mb-2">Date</p>
+        <div className="flex items-center">
+          <Calendar className="w-4 h-4 mr-2 text-gray-700" />
+          <p className="text-base font-medium">April</p>
         </div>
-      ) : (
-        filteredTransactions.map(transaction => (
-          <Card 
-            key={transaction.id}
-            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-3 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => handleTransactionClick(transaction)}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center">
-                <div className={`w-10 h-10 rounded-full ${transaction.amount > 0 ? 'bg-green-50' : 'bg-[#F5F6FA]'} flex items-center justify-center mr-3`}>
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    strokeWidth={1.5} 
-                    stroke="currentColor" 
-                    className={`w-5 h-5 ${transaction.amount > 0 ? 'text-green-600' : 'text-primary'}`}
-                  >
-                    {transaction.type === 'credit' ? (
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" 
-                      />
-                    ) : (
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" 
-                      />
-                    )}
-                  </svg>
+        
+        {/* Today's transactions */}
+        {transactionGroups.today.length > 0 && (
+          <>
+            <p className="text-sm font-medium mt-4 mb-2">Today</p>
+            {transactionGroups.today.map(transaction => (
+              <div 
+                key={transaction.id}
+                className="flex items-center justify-between py-3 cursor-pointer hover:bg-gray-50 px-1 rounded-lg"
+                onClick={() => handleTransactionClick(transaction)}
+              >
+                <div className="flex items-center">
+                  <div className={cn("w-10 h-10 rounded-md flex items-center justify-center mr-3", getIconBgColor(transaction.title))}>
+                    {getTransactionIcon(transaction.title)}
+                  </div>
+                  <div>
+                    <p className="font-medium">{transaction.title}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(transaction.timestamp).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-medium">{transaction.title}</h4>
-                  <p className="text-xs text-gray-500">{transaction.upiId}</p>
+                <div className="flex items-center">
+                  {transaction.status === 'Completed' && 
+                    <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
+                  }
+                  <p className={cn("font-semibold", 
+                    transaction.amount > 0 ? "text-green-600" : "text-gray-900"
+                  )}>
+                    {Math.abs(transaction.amount)}
+                  </p>
                 </div>
               </div>
-              <p className={`font-semibold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {transaction.amount > 0 ? '+ ' : '- '}₹{Math.abs(transaction.amount).toFixed(2)}
-              </p>
-            </div>
+            ))}
+          </>
+        )}
+        
+        {/* Yesterday's transactions */}
+        {transactionGroups.yesterday.length > 0 && (
+          <>
             <div className="flex justify-between items-center">
-              <p className="text-xs text-gray-500">
-                {new Date(transaction.timestamp).toLocaleDateString('en-US', {
-                  day: 'numeric',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                })}
-              </p>
-              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                transaction.status === 'Completed' ? 'text-green-600 bg-green-50' : 
-                transaction.status === 'Failed' ? 'text-red-600 bg-red-50' :
-                'text-amber-600 bg-amber-50'
-              }`}>
-                {transaction.status}
-              </span>
+              <p className="text-sm font-medium mt-4 mb-2">Yesterday</p>
+              <div className="text-xs text-blue-500 flex items-center">
+                <span>See All</span>
+                <Eye className="h-3 w-3 ml-1" />
+              </div>
             </div>
-          </Card>
-        ))
-      )}
+            {transactionGroups.yesterday.map(transaction => (
+              <div 
+                key={transaction.id}
+                className="flex items-center justify-between py-3 cursor-pointer hover:bg-gray-50 px-1 rounded-lg"
+                onClick={() => handleTransactionClick(transaction)}
+              >
+                <div className="flex items-center">
+                  <div className={cn("w-10 h-10 rounded-md flex items-center justify-center mr-3", getIconBgColor(transaction.title))}>
+                    {getTransactionIcon(transaction.title)}
+                  </div>
+                  <div>
+                    <p className="font-medium">{transaction.title}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(transaction.timestamp).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  {transaction.status === 'Completed' && 
+                    <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
+                  }
+                  <p className={cn("font-semibold", 
+                    transaction.amount > 0 ? "text-green-600" : "text-gray-900"
+                  )}>
+                    {Math.abs(transaction.amount)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+        
+        {/* No transactions message */}
+        {filteredTransactions.length === 0 && (
+          <div className="text-center text-gray-500 py-8">
+            <p>No transactions found</p>
+            {searchQuery && (
+              <Button 
+                variant="link" 
+                onClick={() => setSearchQuery('')}
+                className="mt-2"
+              >
+                Clear search
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

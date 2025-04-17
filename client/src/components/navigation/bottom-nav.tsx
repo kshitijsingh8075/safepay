@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { 
-  Home, Map, PlusCircle, MessageCircle, User
+  Home, Map, PlusCircle, MessageCircle, User, Clock
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -20,10 +20,10 @@ export function BottomNav({ className }: BottomNavProps) {
       active: location === '/home'
     },
     { 
-      name: 'Heatmap', 
-      path: '/fraud-heatmap', 
-      icon: Map,
-      active: location === '/fraud-heatmap'
+      name: 'History', 
+      path: '/history', 
+      icon: Clock,
+      active: location === '/history'
     },
     {
       name: 'Scan QR',
@@ -34,9 +34,9 @@ export function BottomNav({ className }: BottomNavProps) {
     },
     { 
       name: 'Chat Support', 
-      path: '/history', 
+      path: '/chat-support', 
       icon: MessageCircle,
-      active: location === '/history'
+      active: location === '/chat-support'
     },
     { 
       name: 'Account', 
