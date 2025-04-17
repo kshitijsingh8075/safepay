@@ -12,6 +12,7 @@ import { registerVoiceCheckRoutes } from "./routes/voice-check";
 import { registerWhatsAppCheckRoutes } from "./routes/whatsapp-check";
 import { registerStreamlitRoutes } from "./routes/streamlit-routes";
 import { registerRiskAnalysisRoutes } from "./routes/risk-analysis";
+import { registerSimSwapProtectionRoutes } from "./routes/sim-swap-protection";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import Stripe from "stripe";
@@ -675,6 +676,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Risk Analysis routes
   registerRiskAnalysisRoutes(app);
+  
+  // Register SIM swap protection routes
+  registerSimSwapProtectionRoutes(app);
   
   // No test pages anymore
   
