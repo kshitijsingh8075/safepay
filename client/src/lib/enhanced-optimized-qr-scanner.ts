@@ -36,14 +36,23 @@ export async function analyzeQRWithOptimizedML(qrText: string): Promise<QRScanRe
     }
     
     // Generate features based on optimized result
-    // Since optimized service doesn't provide these details, we generate reasonable values
-    const features = {
-      pattern_match: normalizedScore * 0.8,
-      domain_check: normalizedScore * 0.9,
-      syntax_validation: 1 - (normalizedScore * 0.3),
-      entropy: normalizedScore * 0.7,
-      length_score: 0.7
-    };
+    // Use the features from the optimized service if available
+    const features = optimizedResult.features 
+      ? {
+          pattern_match: optimizedResult.features.urgent ? 0.8 : 0.3,
+          domain_check: optimizedResult.features.has_upi ? 0.2 : 0.9,
+          syntax_validation: 1 - (normalizedScore * 0.3),
+          entropy: (optimizedResult.features.length / 100) * 0.9,
+          length_score: Math.min(optimizedResult.features.length / 80, 1) // Normalize length
+        }
+      : {
+          // Fallback when features are not available
+          pattern_match: normalizedScore * 0.8,
+          domain_check: normalizedScore * 0.9,
+          syntax_validation: 1 - (normalizedScore * 0.3),
+          entropy: normalizedScore * 0.7,
+          length_score: 0.7
+        };
     
     // Convert risk level to match expected format
     const formattedRiskLevel = riskLevel === 'low' ? 'Low' : 

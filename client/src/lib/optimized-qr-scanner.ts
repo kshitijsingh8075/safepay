@@ -12,6 +12,14 @@ export interface QRPredictionResponse {
   risk_score: number;
   latency_ms: number;
   cached?: boolean;
+  features?: {
+    length: number;
+    has_upi: number;
+    num_params: number;
+    urgent: number;
+    payment: number;
+    currency: number;
+  };
 }
 
 // UPI payment information extracted from QR codes
