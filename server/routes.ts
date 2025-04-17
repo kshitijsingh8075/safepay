@@ -12,6 +12,7 @@ import { registerVoiceCheckRoutes } from "./routes/voice-check";
 import { registerWhatsAppCheckRoutes } from "./routes/whatsapp-check";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import Stripe from "stripe";
 
 const scryptAsync = promisify(scrypt);
 
@@ -668,6 +669,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerWhatsAppCheckRoutes(app);
   
   // No test pages anymore
+  
+  // Initialize Stripe
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+  // Stripe payment routes
+  app.post("/api/create-payment-intent", async (req, res) => {
+    try {
+      const { amount, currency = "inr", upiId, description } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Valid amount is required" });
+      }
+      
+      console.log("Creating payment intent for:", { amount, currency, upiId, description });
+      
+      // Create payment intent with Stripe
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to smallest currency unit (paise/cents)
+        currency: currency,
+        payment_method_types: ['card'],
+        metadata: {
+          upiId: upiId || '',
+          description: description || 'UPI Payment'
+        }
+      });
+      
+      // Return client secret for frontend to complete payment
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id
+      });
+    } catch (error: any) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ error: error.message || "Failed to create payment" });
+    }
+  });
+  
+  // Route to confirm a payment was successful
+  app.get("/api/payment/:paymentIntentId", async (req, res) => {
+    try {
+      const { paymentIntentId } = req.params;
+      
+      console.log("Checking payment status for:", paymentIntentId);
+      
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (paymentIntent.status === 'succeeded') {
+        // Record the successful transaction in our database
+        const transaction = await storage.createTransaction({
+          userId: req.query.userId ? Number(req.query.userId) : 1, // Default to user 1 if no user ID
+          amount: paymentIntent.amount / 100, // Convert back from smallest currency unit
+          currency: paymentIntent.currency,
+          upiId: paymentIntent.metadata.upiId || '',
+          status: 'completed',
+          transactionType: 'payment',
+          description: paymentIntent.metadata.description || 'UPI Payment'
+        });
+        
+        res.json({
+          success: true,
+          status: paymentIntent.status,
+          transaction
+        });
+      } else {
+        res.json({
+          success: false,
+          status: paymentIntent.status
+        });
+      }
+    } catch (error: any) {
+      console.error("Error checking payment status:", error);
+      res.status(500).json({ error: error.message || "Failed to check payment status" });
+    }
+  });
   
   const httpServer = createServer(app);
   return httpServer;

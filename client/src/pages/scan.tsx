@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { EnhancedQRScanner } from '@/components/scanner/enhanced-qr-scanner';
 import { 
@@ -9,11 +9,13 @@ import {
   FraudDetectionResponse
 } from '@/lib/fraud-detection';
 import { PaymentSafetyPopup } from '@/components/payment/payment-safety-popup';
-import { AlertTriangle, AlertCircle, CheckCircle, Shield, AlertOctagon, Loader2, ChevronLeft, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, AlertCircle, CheckCircle, Shield, AlertOctagon, Loader2, ChevronLeft, ArrowLeft, LockKeyhole } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthState } from '@/hooks/use-auth-state';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 
 export default function Scan() {
@@ -23,7 +25,9 @@ export default function Scan() {
   const [showBlocked, setShowBlocked] = useState(false);
   const [showMlAnalysis, setShowMlAnalysis] = useState(false);
   const [showSafeDialog, setShowSafeDialog] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [upiDetected, setUpiDetected] = useState(false); // For UPI detection status
+  const { authState } = useAuthState(); // Auth state for login checks
   const [safeTransactionInfo, setSafeTransactionInfo] = useState<{
     upiId: string;
     queryParams: string;
@@ -187,8 +191,13 @@ export default function Scan() {
     // User chose to continue despite warning
     setShowWarning(false);
     
-    // Add a risk flag to indicate the user ignored warnings
-    setLocation(`/confirm-transaction?upiId=${encodeURIComponent(scannedUpiId)}&riskWarningShown=true`);
+    // Check if user is logged in
+    if (!authState.isLoggedIn) {
+      setShowLoginPrompt(true);
+    } else {
+      // Add a risk flag to indicate the user ignored warnings
+      setLocation(`/confirm-transaction?upiId=${encodeURIComponent(scannedUpiId)}&riskWarningShown=true`);
+    }
   };
 
   const handleReportScam = () => {
@@ -250,6 +259,21 @@ export default function Scan() {
     handleScan(upiId);
   };
   
+  // Function to handle login redirection
+  const handleLoginRedirect = () => {
+    // Save current URL to return after login
+    const currentUrl = window.location.pathname + window.location.search;
+    setLocation(`/login?returnUrl=${encodeURIComponent(currentUrl)}`);
+  };
+
+  // Check if user is logged in
+  useEffect(() => {
+    if (!authState.isLoggedIn && showSafeDialog) {
+      setShowLoginPrompt(true);
+      setShowSafeDialog(false);
+    }
+  }, [showSafeDialog, authState.isLoggedIn]);
+
   return (
     <>
       {!manualUpiMode ? (
@@ -385,6 +409,38 @@ export default function Scan() {
         </DialogContent>
       </Dialog>
 
+      {/* Login Prompt Dialog */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <LockKeyhole className="h-5 w-5 mr-2 text-primary" />
+                Login Required
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">You need to be logged in to make payments. Login now to continue with this payment.</p>
+              <div className="flex flex-col gap-2">
+                <Button 
+                  onClick={handleLoginRedirect}
+                  className="w-full"
+                >
+                  Log in now
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleCancel}
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Safe Transaction Dialog - Low Risk */}
       {/* New payment safety popup that matches the UI in the image */}
       {showSafeDialog && (
@@ -396,8 +452,14 @@ export default function Scan() {
           sslProtected={true}
           details="This UPI ID has a strong safety record and is linked to a verified user or business"
           onContinue={() => {
-            setShowSafeDialog(false);
-            setLocation(`/confirm-transaction?${safeTransactionInfo.queryParams}`);
+            // Check if user is logged in
+            if (!authState.isLoggedIn) {
+              setShowLoginPrompt(true);
+              setShowSafeDialog(false);
+            } else {
+              setShowSafeDialog(false);
+              setLocation(`/confirm-transaction?${safeTransactionInfo.queryParams}`);
+            }
           }}
           onCancel={handleCancel}
         />

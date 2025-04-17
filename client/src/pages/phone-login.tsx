@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,12 +9,37 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { isValidPhoneNumber } from "@/lib/upi";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthState } from "@/hooks/use-auth-state";
 
 export default function PhoneLogin() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { skipLogin, login } = useAuthState();
+  
+  // Check for return URL in query parameters
+  const [location] = useLocation();
+  const returnUrl = new URLSearchParams(location.split('?')[1] || '').get('returnUrl') || '/home';
+  
+  // Handle Skip Login
+  const handleSkipLogin = () => {
+    try {
+      console.log('Skipping login and navigating to', returnUrl);
+      skipLogin();
+      toast({
+        title: "Skipped Login",
+        description: "You can browse most features, but payment will require login",
+      });
+      setTimeout(() => {
+        setLocation('/home');
+      }, 500);
+    } catch (error) {
+      console.error('Error skipping login:', error);
+      // Fallback navigation if there's an error
+      setLocation('/home');
+    }
+  };
 
   // Request OTP mutation
   const requestOtpMutation = useMutation({
@@ -71,27 +96,28 @@ export default function PhoneLogin() {
     onSuccess: (data) => {
       console.log("OTP verification response:", data);
       
-      // Save userId for future use
+      // Use our new auth context to handle login
       if (data.userId) {
-        localStorage.setItem('userId', data.userId.toString());
-      }
-      
-      toast({
-        title: "Login Successful",
-        description: "You have successfully logged in.",
-      });
+        skipLogin(); // Clear any previous skipped state
+        login(data.userId.toString(), phoneNumber);
+        
+        toast({
+          title: "Login Successful",
+          description: "You have successfully logged in.",
+        });
 
-      // Check if it's a new user who needs to set up security
-      if (data.isNewUser) {
-        // Redirect to security setup
-        setTimeout(() => {
-          setLocation(`/setup-security?userId=${data.userId}`);
-        }, 1000);
-      } else {
-        // Redirect to home page for existing users
-        setTimeout(() => {
-          setLocation("/home");
-        }, 1000);
+        // Check if it's a new user who needs to set up security
+        if (data.isNewUser) {
+          // Redirect to security setup
+          setTimeout(() => {
+            setLocation(`/setup-security?userId=${data.userId}`);
+          }, 1000);
+        } else {
+          // Redirect to home page for existing users or the return URL
+          setTimeout(() => {
+            setLocation(returnUrl);
+          }, 1000);
+        }
       }
     },
     onError: (error: Error) => {
@@ -171,6 +197,26 @@ export default function PhoneLogin() {
                   <ArrowRight className="mr-2 h-4 w-4" />
                 )}
                 Get OTP
+              </Button>
+              
+              <div className="relative mt-2">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-muted-foreground/20" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    or
+                  </span>
+                </div>
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full mt-2"
+                onClick={handleSkipLogin}
+              >
+                Skip for now
               </Button>
             </form>
           ) : (

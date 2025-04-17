@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ChevronRight, IndianRupee } from 'lucide-react';
+import { ArrowLeft, ChevronRight, IndianRupee, LockKeyhole, CreditCard } from 'lucide-react';
+import { useAuthState } from '@/hooks/use-auth-state';
 
 export default function Payment() {
   const [, setLocation] = useLocation();
   const [location] = useLocation();
   const { toast } = useToast();
+  const { authState } = useAuthState();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  
+  // Check if user is logged in
+  useEffect(() => {
+    if (!authState.isLoggedIn && !showLoginPrompt) {
+      setShowLoginPrompt(true);
+    }
+  }, [authState.isLoggedIn, showLoginPrompt]);
   
   // Extract payment details from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
@@ -29,6 +39,7 @@ export default function Payment() {
     { id: 'gpay', name: 'Google Pay', icon: '../../googlepay_icon.svg', color: 'bg-white' },
     { id: 'phonepe', name: 'PhonePe', icon: '../../phonepe_icon.svg', color: 'bg-[#5f259f]' },
     { id: 'paytm', name: 'Paytm', icon: '../../paytm_icon.svg', color: 'bg-[#00baf2]' },
+    { id: 'card', name: 'Credit/Debit Card', icon: null, color: 'bg-[#5164BF]' },
   ];
   
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,7 +75,20 @@ export default function Payment() {
       return;
     }
     
-    // In a real app, we would prepare deep links for the selected payment app
+    // If card payment is selected, redirect to Stripe checkout
+    if (selectedApp === 'card') {
+      // Create URL params for the checkout page
+      const checkoutParams = new URLSearchParams();
+      checkoutParams.append('amount', amount);
+      checkoutParams.append('upiId', upiId);
+      checkoutParams.append('description', `Payment to ${merchantName || upiId}${note ? ` - ${note}` : ''}`);
+      
+      // Navigate to Stripe checkout page
+      setLocation(`/checkout?${checkoutParams.toString()}`);
+      return;
+    }
+    
+    // For UPI payment apps, we would prepare deep links in a real app
     // For demo, we'll just navigate to the transaction success screen
     const paymentDetails = {
       upiId,
@@ -87,11 +111,18 @@ export default function Payment() {
     successParams.append('upiId', upiId);
     
     // Navigate to success screen with more details
-    setLocation(`/payment-success?${successParams.toString()}`);
+    setLocation(`/success?${successParams.toString()}`);
   };
   
   const handleBack = () => {
     setLocation(`/confirm-transaction?upiId=${encodeURIComponent(upiId)}`);
+  };
+
+  // Function to handle login redirection
+  const handleLoginRedirect = () => {
+    // Save current URL to return after login
+    const currentUrl = window.location.pathname + window.location.search;
+    setLocation(`/login?returnUrl=${encodeURIComponent(currentUrl)}`);
   };
 
   return (
@@ -108,6 +139,38 @@ export default function Payment() {
         </Button>
         <h1 className="text-lg font-bold">Complete Payment</h1>
       </div>
+      
+      {/* Login Prompt Overlay */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <LockKeyhole className="h-5 w-5 mr-2 text-primary" />
+                Login Required
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">You need to be logged in to make payments. Login now to continue with your payment.</p>
+              <div className="flex flex-col gap-2">
+                <Button 
+                  onClick={handleLoginRedirect}
+                  className="w-full"
+                >
+                  Log in now
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleBack}
+                  className="w-full"
+                >
+                  Go back
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       
       <div className="flex-1 p-4">
         <div className="max-w-md mx-auto space-y-6">
@@ -194,8 +257,11 @@ export default function Payment() {
                     ${selectedApp === app.id ? 'border-primary bg-primary/5' : 'border-gray-200 hover:bg-gray-50'}`}
                 >
                   <div className={`w-10 h-10 ${app.color} rounded-full flex items-center justify-center mr-3`}>
-                    {/* App icon would be displayed here in a real app */}
-                    <div className="text-center font-bold text-sm">{app.name.charAt(0)}</div>
+                    {app.id === 'card' ? (
+                      <CreditCard className="h-5 w-5 text-white" />
+                    ) : (
+                      <div className="text-center font-bold text-sm">{app.name.charAt(0)}</div>
+                    )}
                   </div>
                   <div className="flex-1">
                     <div className="font-medium">{app.name}</div>

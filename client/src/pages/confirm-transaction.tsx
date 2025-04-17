@@ -339,7 +339,7 @@ export default function ConfirmTransaction() {
             </div>
             
             <div className="px-8 pb-6">
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-4 gap-4">
                 <button 
                   onClick={() => handlePayWithApp('GPay')}
                   className="flex flex-col items-center"
@@ -380,6 +380,24 @@ export default function ConfirmTransaction() {
                     />
                   </div>
                   <span className="text-sm">PhonePe</span>
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    setShowPaymentApps(false);
+                    // Navigate to the Stripe checkout page
+                    setLocation(`/checkout?upiId=${encodeURIComponent(upiId)}&amount=${amount}&description=${encodeURIComponent(`Payment to ${merchant}`)}`);
+                  }}
+                  className="flex flex-col items-center"
+                >
+                  <div className="w-16 h-16 mb-2">
+                    <img 
+                      src="https://cdn.iconscout.com/icon/free/png-256/free-stripe-2-498440.png" 
+                      alt="Stripe" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <span className="text-sm">Card</span>
                 </button>
               </div>
             </div>

@@ -36,11 +36,12 @@ export const users = pgTable("users", {
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  title: text("title").notNull(),
+  description: text("description").notNull().default('Payment'),
   upiId: text("upi_id").notNull(),
   amount: integer("amount").notNull(), // Stored in paise/cents
-  type: text("type").notNull(), // 'credit' or 'debit'
-  status: text("status").notNull(), // 'Completed', 'Pending', 'Failed', etc.
+  currency: text("currency").notNull().default('inr'),
+  transactionType: text("transaction_type").notNull().default('payment'), // 'payment', 'refund', etc.
+  status: text("status").notNull(), // 'completed', 'pending', 'failed', etc.
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
