@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { 
-  Home, Map, PlusCircle, MessageCircle, User, Clock
+  Home, Map, QrCode, MessageCircle, User, Clock
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -28,7 +28,7 @@ export function BottomNav({ className }: BottomNavProps) {
     {
       name: 'Scan QR',
       path: '/scan',
-      icon: PlusCircle,
+      icon: QrCode,
       primary: true,
       active: location === '/scan'
     },
