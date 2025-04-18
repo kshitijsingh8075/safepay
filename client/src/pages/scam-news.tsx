@@ -25,9 +25,12 @@ import {
   Search, 
   Loader2, 
   CheckCircle,
-  Info
+  Info,
+  ArrowLeft
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { NewsDetail } from '@/components/scam-news/news-detail';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface ScamAlert {
   title: string;
@@ -87,6 +90,24 @@ export default function ScamNews() {
   const [activeTab, setActiveTab] = useState('alerts');
   const [upiSearch, setUpiSearch] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<ScamAlert | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  
+  // Check if we have a saved alert from the home screen
+  useEffect(() => {
+    const savedAlert = localStorage.getItem('selectedScamAlert');
+    if (savedAlert) {
+      try {
+        const alertData = JSON.parse(savedAlert);
+        setSelectedAlert(alertData);
+        setShowDetailDialog(true);
+        // Clear the stored data after using it
+        localStorage.removeItem('selectedScamAlert');
+      } catch (error) {
+        console.error('Error parsing saved alert:', error);
+      }
+    }
+  }, []);
   
   // Fetch scam news data
   const fetchScamNews = async () => {
@@ -180,12 +201,31 @@ export default function ScamNews() {
   // Fetch data on component mount
   useEffect(() => {
     fetchScamNews();
+    
+    // Set up auto refresh every 24 hours
+    const refreshInterval = setInterval(() => {
+      fetchScamNews();
+    }, 24 * 60 * 60 * 1000); // 24 hours
+    
+    return () => clearInterval(refreshInterval);
   }, []);
   
   // Handle UPI search form submission
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     searchUpiId();
+  };
+  
+  // Handle alert selection for detail view
+  const handleAlertSelect = (alert: ScamAlert) => {
+    setSelectedAlert(alert);
+    setShowDetailDialog(true);
+  };
+  
+  // Handle report similar scam
+  const handleReportSimilar = () => {
+    setShowDetailDialog(false);
+    setLocation('/report-scam');
   };
   
   // Render risk level badge with appropriate color
@@ -238,10 +278,18 @@ export default function ScamNews() {
   
   return (
     <div className="flex flex-col p-6 space-y-6">
-      <div className="flex flex-col space-y-2">
-        <h2 className="text-2xl font-bold">Scam News</h2>
-        <p className="text-gray-500">Latest UPI scams and safety alerts in your area</p>
+      <div className="flex items-center justify-between mb-2">
+        <button
+          onClick={() => setLocation('/home')}
+          className="w-9 h-9 bg-slate-100 dark:bg-gray-700 rounded-full flex items-center justify-center"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+        </button>
+        <h2 className="text-xl font-bold">Scam News</h2>
+        <div className="w-9"></div> {/* Empty div to maintain centering */}
       </div>
+      
+      <p className="text-gray-500 text-sm">Latest UPI scams and safety alerts in your area</p>
       
       {/* UPI ID search */}
       <Card>
@@ -267,6 +315,19 @@ export default function ScamNews() {
           </form>
         </CardContent>
       </Card>
+      
+      {/* News detail dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          {selectedAlert && (
+            <NewsDetail 
+              alert={selectedAlert} 
+              onClose={() => setShowDetailDialog(false)} 
+              onReportSimilar={handleReportSimilar}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       
       {/* Main content tabs */}
       <Tabs 
@@ -301,7 +362,11 @@ export default function ScamNews() {
                 <ScrollArea className="h-[60vh] pr-4">
                   <div className="space-y-4">
                     {data.alerts.map((alert, index) => (
-                      <Card key={index} className="overflow-hidden">
+                      <Card 
+                        key={index} 
+                        className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => handleAlertSelect(alert)}
+                      >
                         <div className="flex flex-col">
                           <div className="p-4">
                             <div className="flex justify-between items-start mb-2">
@@ -310,22 +375,23 @@ export default function ScamNews() {
                             </div>
                             
                             <div className="flex items-center mb-3 text-sm space-x-2">
-                              <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-600">
+                              <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-400">
                                 {alert.type}
                               </Badge>
                               {renderVerificationBadge(alert.verification_status)}
                             </div>
                             
-                            <p className="text-gray-700 mb-3">{alert.description}</p>
+                            <p className="text-gray-700 dark:text-gray-300 mb-3">{alert.description}</p>
                             
-                            <div className="flex items-center text-sm text-gray-500">
+                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                               <MapPin className="h-3 w-3 mr-1" />
                               {alert.affected_areas.join(', ')}
                             </div>
                           </div>
                           
-                          <div className="bg-gray-50 px-4 py-2 text-xs text-gray-500">
-                            Reported on {new Date(alert.date_reported).toLocaleDateString()}
+                          <div className="bg-gray-50 dark:bg-gray-800 px-4 py-2 text-xs text-gray-500 dark:text-gray-400 flex justify-between items-center">
+                            <span>Reported on {new Date(alert.date_reported).toLocaleDateString()}</span>
+                            <ChevronRight className="h-4 w-4" />
                           </div>
                         </div>
                       </Card>
