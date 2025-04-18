@@ -52,11 +52,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Phone number is required' });
       }
       
-      // Generate OTP for the phone number
-      const otp = generateOtp(phoneNumber);
+      // For hackathon demo - bypass OTP generation completely
+      // and use a fixed OTP to avoid rate limits
+      let otp = '123456';
+      
+      try {
+        // Try to generate an OTP, but fall back to fixed OTP if it fails
+        otp = generateOtp(phoneNumber);
+      } catch (error) {
+        console.log(`Using demo OTP for ${phoneNumber} due to error:`, error);
+      }
       
       // Always include the OTP in the response for the hackathon
-      console.log(`Generated OTP for ${phoneNumber}: ${otp}`);
+      console.log(`OTP for ${phoneNumber}: ${otp}`);
       
       // Always return the OTP in the response 
       res.status(200).json({
@@ -77,8 +85,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Phone number and OTP are required' });
       }
       
-      // Verify the OTP
-      const isValid = verifyOtp(phoneNumber, otp);
+      // For hackathon demo - accept demo OTP code
+      let isValid = false;
+      
+      // Accept a fixed OTP for demo purposes
+      if (otp === '123456') {
+        console.log(`Using demo OTP verification for ${phoneNumber}`);
+        isValid = true;
+      } else {
+        // Try normal OTP verification
+        isValid = verifyOtp(phoneNumber, otp);
+      }
       
       if (!isValid) {
         return res.status(401).json({ message: 'Invalid or expired OTP' });
