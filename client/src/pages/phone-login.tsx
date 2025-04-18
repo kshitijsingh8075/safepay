@@ -241,19 +241,7 @@ export default function PhoneLogin() {
                 </div>
               )}
               
-              <div className="text-center text-sm">
-                <Button
-                  variant="link"
-                  className="p-0 text-muted-foreground"
-                  onClick={() => {
-                    setStep("phone");
-                    requestOtpMutation.reset();
-                  }}
-                  disabled={requestOtpMutation.isPending || verifyOtpMutation.isPending}
-                >
-                  Change phone number
-                </Button>
-              </div>
+              {/* Removed the "Change phone number" button to prevent going back */}
               
               <div className="text-center text-sm">
                 <Button

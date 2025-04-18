@@ -45,7 +45,7 @@ export default function MyReports() {
   // Redirect if not logged in
   React.useEffect(() => {
     if (!authState.isLoggedIn) {
-      setLocation('/login');
+      setLocation('/phone-login?returnUrl=/my-reports');
     }
   }, [authState.isLoggedIn, setLocation]);
   

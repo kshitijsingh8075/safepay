@@ -87,8 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const returnUrl = encodeURIComponent(window.location.pathname);
           // This is safer than directly modifying window.location
           callback = () => {}; // Clear the callback to prevent execution
-          console.log('Login required. Redirecting to /login');
-          window.location.href = '/login?returnUrl=' + returnUrl;
+          console.log('Login required. Redirecting to phone login page');
+          window.location.href = '/phone-login?returnUrl=' + returnUrl;
         }
       } catch (error) {
         console.error('Error in requireLogin:', error);

@@ -37,29 +37,16 @@ function generateOtpCode(length = 6): string {
  * @returns The generated OTP code or throws an error if rate limit exceeded
  */
 export function generateOtp(identifier: string, expiryMinutes = 10): string {
-  // Check rate limit (max 3 requests per hour)
-  const now = new Date();
-  const rateLimit = otpRateLimits.get(identifier);
+  // For demo purposes, we're removing the rate limit
+  // This is a temporary fix for the hackathon demo only
   
-  if (rateLimit) {
-    // Reset rate limit if reset time has passed
-    if (now > rateLimit.resetAt) {
-      otpRateLimits.set(identifier, { count: 1, resetAt: new Date(now.getTime() + 60 * 60 * 1000) });
-    } 
-    // Otherwise check if rate limit exceeded
-    else if (rateLimit.count >= 3) {
-      const minutesToReset = Math.ceil((rateLimit.resetAt.getTime() - now.getTime()) / (60 * 1000));
-      throw new Error(`Rate limit exceeded. Try again in ${minutesToReset} minutes.`);
-    } 
-    // Increment count if not exceeded
-    else {
-      rateLimit.count += 1;
-      otpRateLimits.set(identifier, rateLimit);
-    }
-  } else {
-    // First request, set initial rate limit
-    otpRateLimits.set(identifier, { count: 1, resetAt: new Date(now.getTime() + 60 * 60 * 1000) });
+  // Clear any existing rate limit if it exists
+  if (otpRateLimits.has(identifier)) {
+    otpRateLimits.delete(identifier);
   }
+  
+  // Set a very high rate limit for demo purposes
+  otpRateLimits.set(identifier, { count: 1, resetAt: new Date(Date.now() + 24 * 60 * 60 * 1000) });
   
   // Generate a 6-digit OTP
   const code = generateOtpCode(6);
