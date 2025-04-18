@@ -33,7 +33,7 @@ import FraudHeatmap from "@/pages/fraud-heatmap";
 import FraudHeatmapBasic from "@/pages/fraud-heatmap-basic";
 import FraudMap from "@/pages/fraud-map";
 import ConfirmTransaction from "@/pages/confirm-transaction";
-import HistoryPage from "@/pages/history";
+import HistoryPage from "@/pages/history-new";
 import RiskScoreDemo from "@/pages/risk-score-demo";
 import SecuritySettings from "@/pages/security-settings";
 import MyReports from "@/pages/my-reports";

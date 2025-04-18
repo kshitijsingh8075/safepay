@@ -1,72 +1,165 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { Search, ArrowLeft, ReceiptText, ShoppingBag, Calendar, Package, User, Eye, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
+import { 
+  Search, 
+  ArrowLeft, 
+  ReceiptText, 
+  ShoppingBag, 
+  Calendar, 
+  Package, 
+  User, 
+  ArrowUpRight, 
+  ChevronRight, 
+  CreditCard, 
+  Smartphone, 
+  Clock, 
+  Building, 
+  IndianRupee,
+  FilterX,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuthState } from '@/hooks/use-auth-state';
+import { apiRequest } from '@/lib/queryClient';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from '@/components/ui/pagination';
+import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from '@/components/ui/dialog';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 
-// Sample fallback transaction data (will only be used if localStorage is empty)
-const sampleTransactionHistory = [
-  {
-    id: '1',
-    title: 'City Supermarket',
-    upiId: 'citysupermarket@upi',
-    amount: -850,
-    timestamp: new Date('2023-05-15T11:30:00').toISOString(),
-    status: 'Completed',
-    type: 'debit',
-    app: 'UPI App'
-  }
-];
-
+// Transaction interface matching server schema
 interface Transaction {
-  id: string;
-  title: string;
+  id: number;
+  userId: number;
+  description: string;
   upiId: string;
-  amount: number;
+  amount: number; // Stored in paise/cents
+  currency: string;
+  transactionType: string; // 'payment', 'refund', etc.
+  status: string; // 'completed', 'pending', 'failed', etc.
+  paymentMethod: string; // 'upi', 'card', etc.
+  paymentIntentId?: string; // For card payments with Stripe
   timestamp: string;
-  status: string;
-  type: 'credit' | 'debit';
-  app?: string;
+  // UI display properties
+  merchantName?: string;
+  appUsed?: string;
 }
+
+// Payment method icons
+const PaymentMethodIcon = ({ method }: { method: string }) => {
+  switch(method.toLowerCase()) {
+    case 'upi':
+      return <Smartphone className="h-4 w-4" />;
+    case 'card':
+      return <CreditCard className="h-4 w-4" />;
+    case 'bank':
+      return <Building className="h-4 w-4" />;
+    default:
+      return <IndianRupee className="h-4 w-4" />;
+  }
+};
+
+// Format an amount in paise to rupees with ₹ symbol
+const formatAmount = (amount: number, currency = "inr") => {
+  const value = Math.abs(amount) / 100; // Convert paise to rupees
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 2
+  }).format(value);
+};
 
 export default function History() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filter, setFilter] = useState("all");
+  const itemsPerPage = 10;
   
-  // Load transaction history from localStorage
+  // Get userId from auth state
+  const { authState } = useAuthState();
+  
+  // Fetch user transactions when component mounts
   useEffect(() => {
-    try {
-      const historyString = localStorage.getItem('transactionHistory');
-      if (historyString) {
-        const parsedHistory = JSON.parse(historyString);
-        // Ensure type is correct by explicitly mapping
-        const typedTransactions = parsedHistory.map((tx: any) => ({
-          ...tx,
-          type: tx.type === 'credit' || tx.type === 'debit' ? tx.type : 'debit'
-        })) as Transaction[];
-        setTransactions(typedTransactions);
-      } else {
-        // If no history in localStorage, use sample data
-        setTransactions(sampleTransactionHistory as Transaction[]);
+    const fetchTransactions = async () => {
+      if (!authState.isLoggedIn || !authState.userId) {
+        setError("You need to be logged in to view transaction history");
+        setIsLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Error loading transaction history:', error);
-      // Fallback to sample data on error
-      setTransactions(sampleTransactionHistory as Transaction[]);
+      
+      try {
+        setIsLoading(true);
+        const response = await apiRequest('GET', `/api/transactions/${authState.userId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch transaction history');
+        }
+        
+        const data = await response.json();
+        setTransactions(data);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error fetching transactions:', err);
+        setError('Failed to load transaction history');
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTransactions();
+  }, [authState.isLoggedIn, authState.userId]);
+  
+  // Apply filters and search
+  useEffect(() => {
+    let result = [...transactions];
+    
+    // Apply search filter
+    if (searchQuery) {
+      result = result.filter(tx => 
+        tx.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.upiId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.paymentMethod?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
-  }, []);
-
-  // Filter transactions based on search query
-  const filteredTransactions = transactions.filter(tx => 
-    tx.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.upiId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.app?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    
+    // Apply type filter
+    if (filter !== "all") {
+      result = result.filter(tx => tx.transactionType === filter);
+    }
+    
+    setFilteredTransactions(result);
+  }, [transactions, searchQuery, filter]);
 
   const handleTransactionClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
