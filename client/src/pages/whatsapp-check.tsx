@@ -37,7 +37,7 @@ const WhatsAppCheck = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<WhatsAppAnalysisResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
