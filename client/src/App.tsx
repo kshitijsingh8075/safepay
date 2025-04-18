@@ -1,10 +1,10 @@
 import React from "react";
-import SimpleHome from "./pages/simple-home";
+import EmergencyHome from "./pages/emergency-home";
 
 function App() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fb', paddingTop: '20px' }}>
-      <SimpleHome />
+      <EmergencyHome />
     </div>
   );
 }
