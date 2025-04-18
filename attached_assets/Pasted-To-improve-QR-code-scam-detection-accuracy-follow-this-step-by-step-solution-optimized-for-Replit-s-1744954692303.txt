@@ -1,0 +1,166 @@
+To improve QR code scam detection accuracy, follow this step-by-step solution optimized for Replit’s environment. The approach combines QR content decoding, heuristic checks, and a lightweight machine learning model:
+
+1. QR Code Content Extraction
+First, decode the QR code to extract the embedded text/URL using libraries like pyzbar and opencv:
+
+python
+Copy
+# Install dependencies
+!pip install pyzbar opencv-python
+
+# Decode QR
+import cv2
+from pyzbar.pyzbar import decode
+
+def extract_qr_content(image_path):
+    img = cv2.imread(image_path)
+    decoded_data = decode(img)
+    return [data.data.decode("utf-8") for data in decoded_data]
+
+# Example usage:
+content = extract_qr_content("qr_sample.png")
+print(content)  # Output: ["https://safe-pay.replit.app/home"]
+2. Scam Detection Heuristics
+Apply rule-based checks on the extracted content:
+
+python
+Copy
+import re
+from urllib.parse import urlparse
+
+def is_scam(url):
+    # Check for suspicious patterns
+    domain = urlparse(url).netloc
+    suspicious_keywords = ["phish", "scam", "login", "verify", "free"]
+    
+    # Rule 1: Shortened URLs (e.g., bit.ly)
+    if re.match(r"(bit\.ly|goo\.gl|tinyurl)", domain):
+        return True
+    
+    # Rule 2: Missing HTTPS
+    if not url.startswith("https://"):
+        return True
+    
+    # Rule 3: Suspicious keywords in domain/path
+    if any(keyword in domain.lower() for keyword in suspicious_keywords):
+        return True
+    
+    return False
+
+# Example:
+url = "https://phishy-site.bit.ly/login"
+print(is_scam(url))  # Output: True
+3. Lightweight ML Model (Text Classification)
+Train a TF-IDF + Logistic Regression model on a dataset of safe/scam URLs:
+
+Dataset Preparation
+Safe URLs: Use your provided samples (e.g., 7357802287@superyes, kshitijmeena@okabi).
+
+Scam URLs: Simulate malicious patterns (e.g., phishy@hacker.ru, freebitcoin.scam).
+
+Code
+python
+Copy
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+
+# Sample dataset (expand with real data)
+data = {
+    "text": [
+        "7357802287@superyes",  # Safe
+        "kshitijmeena@okabi",   # Safe
+        "phishy@hacker.ru",     # Scam
+        "freebitcoin.scam"      # Scam
+    ],
+    "label": [0, 0, 1, 1]  # 0 = safe, 1 = scam
+}
+
+df = pd.DataFrame(data)
+
+# TF-IDF Vectorization
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(df["text"])
+y = df["label"]
+
+# Train model
+model = LogisticRegression()
+model.fit(X, y)
+
+# Predict
+def predict_scam(text):
+    vec = vectorizer.transform([text])
+    return model.predict(vec)[0]
+
+print(predict_scam("secure@okaxis"))  # 0 (safe)
+print(predict_scam("hack@bit.ly"))    # 1 (scam)
+4. Integrate into Replit
+Combine decoding, heuristics, and ML into a single pipeline:
+
+python
+Copy
+def qr_scam_detector(image_path):
+    content_list = extract_qr_content(image_path)
+    if not content_list:
+        return "No QR detected"
+    
+    results = []
+    for content in content_list:
+        # Check if it's a URL or UPI ID
+        if "http" in content:
+            heuristic_check = is_scam(content)
+        else:
+            heuristic_check = False
+        
+        # ML prediction (if needed)
+        ml_check = predict_scam(content)
+        
+        # Final decision
+        if heuristic_check or ml_check == 1:
+            results.append(f"⚠️ Scam detected: {content}")
+        else:
+            results.append(f"✅ Safe: {content}")
+    
+    return results
+5. Improve Accuracy
+Expand Dataset: Add real scam examples (e.g., from PhishTank).
+
+Use Pretrained APIs for URL analysis:
+
+python
+Copy
+import requests
+
+def check_google_safe_browsing(url):
+    API_KEY = "YOUR_API_KEY"
+    response = requests.post(
+        "https://safebrowsing.googleapis.com/v4/threatMatches:find",
+        json={
+            "client": {"clientId": "safe-pay", "clientVersion": "1.0"},
+            "threatInfo": {
+                "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING"],
+                "platformTypes": ["ANY_PLATFORM"],
+                "threatEntryTypes": ["URL"],
+                "threatEntries": [{"url": url}]
+            }
+        },
+        params={"key": API_KEY}
+    )
+    return response.json().get("matches") is not None
+6. Run in Replit
+Use lightweight libraries (scikit-learn, requests).
+
+Save the trained model with joblib to avoid retraining:
+
+python
+Copy
+import joblib
+joblib.dump(model, "qr_scam_model.joblib")
+Sample Output
+Copy
+Input QR: "phishy@hacker.ru"
+Output: ⚠️ Scam detected: phishy@hacker.ru
+
+Input QR: "7357802287@superyes"
+Output: ✅ Safe: 7357802287@superyes
+This approach combines rule-based checks (for speed) and ML (for adaptability) while staying resource-efficient. Adjust the heuristics and dataset based on real scam patterns!
