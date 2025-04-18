@@ -390,6 +390,14 @@ export function registerUpiCheckRoutes(app: Express): void {
         return res.status(400).json({ error: 'Invalid UPI format' });
       }
       
+      // Parse amount to integer (paise/cents) if present
+      let amountInPaise = null;
+      if (amount) {
+        // Remove commas and convert to paise (cents)
+        const cleanAmount = amount.toString().replace(/[^\d.]/g, '');
+        amountInPaise = Math.round(parseFloat(cleanAmount) * 100);
+      }
+      
       // Create scam report
       // Convert string scamType to enum ScamType
       let scamTypeEnum: ScamType;
@@ -427,7 +435,7 @@ export function registerUpiCheckRoutes(app: Express): void {
         userId,
         scamType: scamTypeEnum,
         description: description || null,
-        amountLost: amount || null
+        amountLost: amountInPaise
       });
       
       // Update risk score for this UPI ID
@@ -439,6 +447,68 @@ export function registerUpiCheckRoutes(app: Express): void {
       });
     } catch (error) {
       console.error('Error reporting scam:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  // Get all scam reports for a specific user
+  app.get('/api/user/:userId/scam-reports', async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: 'Invalid user ID' });
+      }
+      
+      const reports = await storage.getScamReportsByUserId(userId);
+      
+      // Format report data for the client
+      const formattedReports = reports.map(report => ({
+        id: report.id,
+        upiId: report.upiId,
+        scamType: report.scamType,
+        description: report.description,
+        amountLost: report.amountLost ? (report.amountLost / 100).toFixed(2) : null, // Convert paise to rupees
+        timestamp: report.timestamp,
+        // Add any additional data needed for display
+      }));
+      
+      res.json(formattedReports);
+    } catch (error) {
+      console.error('Error fetching user scam reports:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  // Get a specific scam report by ID
+  app.get('/api/scam-reports/:reportId', async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.reportId);
+      
+      if (isNaN(reportId)) {
+        return res.status(400).json({ error: 'Invalid report ID' });
+      }
+      
+      const report = await storage.getScamReportById(reportId);
+      
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+      
+      // Format the report data for the client
+      const formattedReport = {
+        id: report.id,
+        upiId: report.upiId,
+        scamType: report.scamType,
+        description: report.description,
+        amountLost: report.amountLost ? (report.amountLost / 100).toFixed(2) : null, // Convert paise to rupees
+        timestamp: report.timestamp,
+        // Add any additional data needed for display
+      };
+      
+      res.json(formattedReport);
+    } catch (error) {
+      console.error('Error fetching scam report:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

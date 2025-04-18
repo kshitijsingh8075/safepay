@@ -48,6 +48,12 @@ export default function Account() {
       path: '/payment-methods'
     },
     {
+      icon: <AlertTriangle className="w-5 h-5" />,
+      title: 'My Reports',
+      description: 'View all scam reports you have submitted',
+      path: '/my-reports'
+    },
+    {
       icon: <Settings className="w-5 h-5" />,
       title: 'Settings',
       description: 'Adjust app preferences and security settings',

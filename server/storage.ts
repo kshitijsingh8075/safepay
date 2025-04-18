@@ -27,6 +27,8 @@ export interface IStorage {
   
   // Scam Report methods
   getScamReportsByUpiId(upiId: string): Promise<ScamReport[]>;
+  getScamReportsByUserId(userId: number): Promise<ScamReport[]>;
+  getScamReportById(id: number): Promise<ScamReport | undefined>;
   createScamReport(report: InsertScamReport): Promise<ScamReport>;
   getMostCommonScamType(upiId: string): Promise<string>;
   
@@ -664,6 +666,18 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(scamReports)
       .where(eq(scamReports.upiId, upiId))
       .orderBy(desc(scamReports.timestamp));
+  }
+  
+  async getScamReportsByUserId(userId: number): Promise<ScamReport[]> {
+    return await db.select().from(scamReports)
+      .where(eq(scamReports.userId, userId))
+      .orderBy(desc(scamReports.timestamp));
+  }
+  
+  async getScamReportById(id: number): Promise<ScamReport | undefined> {
+    const [report] = await db.select().from(scamReports)
+      .where(eq(scamReports.id, id));
+    return report;
   }
 
   async createScamReport(insertReport: InsertScamReport): Promise<ScamReport> {
