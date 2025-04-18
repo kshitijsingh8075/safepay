@@ -213,6 +213,15 @@ function Router() {
 }
 
 function App() {
+  const [location, setLocation] = useLocation();
+  
+  // Redirect to home if on root path for quicker preview
+  useEffect(() => {
+    if (location === "/") {
+      setLocation("/home");
+    }
+  }, [location, setLocation]);
+  
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
