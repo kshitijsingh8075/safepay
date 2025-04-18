@@ -377,7 +377,7 @@ Stay safe!`;
   };
   
   return (
-    <MainLayout className="flex flex-col p-0 h-[100dvh] max-h-[100dvh] overflow-hidden">
+    <MainLayout className="flex flex-col p-0 h-[100dvh] max-h-[100dvh] overflow-hidden bg-background">
       <Card className="flex flex-col h-full max-h-full border-0 rounded-none overflow-hidden">
         <CardHeader className="border-b bg-card px-4 py-3 flex-shrink-0">
           <CardTitle className="text-lg flex items-center justify-between">
@@ -391,16 +391,16 @@ Stay safe!`;
             </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 p-0 overflow-hidden">
-          <ScrollArea className="h-[calc(100dvh-11rem)] max-h-[calc(100dvh-11rem)] overflow-y-auto">
-            <div className="flex flex-col p-4 gap-4">
+        <CardContent className="flex-1 p-0 overflow-hidden relative">
+          <ScrollArea className="h-[calc(100dvh-10rem)] pb-20 overflow-y-auto overflow-x-hidden">
+            <div className="flex flex-col p-4 gap-4 overflow-hidden">
               {messages.map((message) => (
                 <div 
                   key={message.id} 
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`flex gap-2 max-w-[80%] ${
+                    className={`flex gap-2 max-w-[85%] overflow-hidden ${
                       message.role === 'user' 
                         ? 'flex-row-reverse' 
                         : 'flex-row'
@@ -416,10 +416,10 @@ Stay safe!`;
                       {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                     </div>
                     <div 
-                      className={`rounded-lg p-3 ${
+                      className={`rounded-lg p-3 shadow-sm max-w-full overflow-hidden ${
                         message.role === 'user' 
                           ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted'
+                          : 'bg-muted dark:bg-gray-800'
                       }`}
                     >
                       {message.isLoading ? (
@@ -428,7 +428,7 @@ Stay safe!`;
                           <span className="text-sm">Thinking...</span>
                         </div>
                       ) : (
-                        <div className="whitespace-pre-wrap">
+                        <div className="whitespace-pre-wrap break-words overflow-hidden">
                           {message.content}
                         </div>
                       )}
@@ -442,13 +442,14 @@ Stay safe!`;
         </CardContent>
         
         {quickReplies.length > 0 && (
-          <div className="px-4 pb-2">
-            <div className="flex flex-wrap gap-2">
+          <div className="px-4 py-2 absolute bottom-16 left-0 right-0 bg-background/90 backdrop-blur-sm border-t z-10">
+            <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar">
               {quickReplies.map((reply) => (
                 <Button
                   key={reply.id}
                   variant="outline"
                   size="sm"
+                  className="whitespace-nowrap flex-shrink-0 shadow-sm text-xs"
                   onClick={() => handleQuickReply(reply.text)}
                   disabled={isSubmitting}
                 >

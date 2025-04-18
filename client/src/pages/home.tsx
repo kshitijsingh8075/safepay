@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -14,15 +14,6 @@ export default function Home() {
   const [upiInput, setUpiInput] = useState('');
   const { toast } = useToast();
   const { isDark, setTheme } = useTheme();
-  
-  // Add component mounted toast message to show loading is complete
-  useEffect(() => {
-    toast({
-      title: "आपका ऐप लोड हो गया है",
-      description: "सभी फंक्शन अब उपलब्ध हैं",
-      variant: "default",
-    });
-  }, []);
 
   const handleAlertClick = () => {
     setShowNotification(true);
