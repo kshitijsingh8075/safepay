@@ -25,6 +25,9 @@ export default function SetupSecurity() {
   const params = new URLSearchParams(location.split('?')[1]);
   const userId = params.get('userId') || localStorage.getItem('userId') || '';
   
+  // Log user ID for debugging
+  console.log('Setup Security - User ID:', userId);
+  
   // Auto-reset error state
   useEffect(() => {
     if (pinError) {
@@ -38,8 +41,18 @@ export default function SetupSecurity() {
   // Setup PIN mutation
   const setupPinMutation = useMutation({
     mutationFn: async () => {
+      // For PIN setup, the user ID should be a number
+      const numericUserId = userId ? parseInt(userId) : 0;
+      
+      console.log('Setting up PIN with:', { userId: numericUserId, pin });
+      
+      // Validate that we have a valid user ID
+      if (!numericUserId) {
+        throw new Error('Valid user ID is required for PIN setup');
+      }
+      
       const res = await apiRequest("POST", "/api/auth/setup-pin", { 
-        userId, 
+        userId: numericUserId, 
         pin 
       });
       return await res.json();
@@ -63,8 +76,18 @@ export default function SetupSecurity() {
   // Setup biometric mutation
   const setupBiometricMutation = useMutation({
     mutationFn: async () => {
+      // For biometric setup, the user ID should be a number
+      const numericUserId = userId ? parseInt(userId) : 0;
+      
+      console.log('Setting up biometric with:', { userId: numericUserId, enable: useBiometric });
+      
+      // Validate that we have a valid user ID
+      if (!numericUserId) {
+        throw new Error('Valid user ID is required for biometric setup');
+      }
+      
       const res = await apiRequest("POST", "/api/auth/biometric", { 
-        userId, 
+        userId: numericUserId, 
         enable: useBiometric,
         deviceId: "device_" + Date.now() // In a real app, get actual device ID
       });
