@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,10 +14,13 @@ import {
 } from "@/components/ui/select";
 import { ScamType } from '@/lib/scam-detection';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { useAuthState } from '@/hooks/use-auth-state';
 
 export default function ReportScam() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { authState } = useAuthState();
   
   const [upiId, setUpiId] = useState('onlineshopping123@upi');
   const [scamType, setScamType] = useState<ScamType>(ScamType.Unknown);
@@ -31,7 +34,7 @@ export default function ReportScam() {
     setAmountLost(value);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validate inputs
     if (!upiId) {
       toast({
@@ -41,19 +44,54 @@ export default function ReportScam() {
       });
       return;
     }
+
+    if (!authState.isLoggedIn || !authState.userId) {
+      toast({
+        title: "Login Required",
+        description: "Please login to submit a scam report",
+        variant: "destructive"
+      });
+      setLocation('/login');
+      return;
+    }
     
     setIsSubmitting(true);
     
-    // Simulate API call to submit report
-    setTimeout(() => {
-      toast({
-        title: "Report Submitted",
-        description: "Thank you for helping make UPI safer for everyone.",
-        variant: "default"
+    // Convert amount to numeric value (paise/cents)
+    const amountLostNumeric = amountLost ? 
+      Math.round(parseFloat(amountLost.replace(/,/g, '')) * 100) : 
+      null;
+
+    try {
+      const response = await apiRequest('POST', '/api/scam-reports', {
+        userId: parseInt(authState.userId),
+        upiId,
+        scamType,
+        amountLost: amountLostNumeric,
+        description: description || null
       });
+
+      if (response.ok) {
+        toast({
+          title: "Report Submitted",
+          description: "Thank you for helping make UPI safer for everyone.",
+          variant: "default"
+        });
+        setLocation('/home');
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to submit report');
+      }
+    } catch (err) {
+      const error = err as Error;
+      toast({
+        title: "Submission Failed",
+        description: error.message || "An error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
       setIsSubmitting(false);
-      setLocation('/home');
-    }, 1500);
+    }
   };
 
   return (

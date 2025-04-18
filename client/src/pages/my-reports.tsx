@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ScamReport } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuthState } from '@/hooks/use-auth-state';
 import { 
   Dialog, 
   DialogContent, 
