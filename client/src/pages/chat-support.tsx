@@ -377,72 +377,74 @@ Stay safe!`;
   };
   
   return (
-    <MainLayout className="flex flex-col p-0 h-[100dvh] max-h-[100dvh] overflow-hidden">
-      <Card className="flex flex-col h-full max-h-full border-0 rounded-none overflow-hidden">
-        <CardHeader className="border-b bg-card px-4 py-3 flex-shrink-0">
-          <CardTitle className="text-lg flex items-center justify-between">
-            <div>AI Safety Assistant</div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setLocation('/home')}
+    <div className="flex flex-col h-screen w-full bg-white dark:bg-gray-900">
+      {/* Fixed header */}
+      <div className="border-b bg-card px-4 py-3 flex-shrink-0 z-10">
+        <div className="text-lg flex items-center justify-between">
+          <div>AI Safety Assistant</div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setLocation('/home')}
+          >
+            Close
+          </Button>
+        </div>
+      </div>
+      
+      {/* Message area - scrollable content */}
+      <div className="flex-1 overflow-y-auto" style={{ paddingBottom: "140px" }}>
+        <div className="flex flex-col p-4 gap-4">
+          {messages.map((message) => (
+            <div 
+              key={message.id} 
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              Close
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 p-0 overflow-hidden">
-          <ScrollArea className="h-[calc(100dvh-11rem)] max-h-[calc(100dvh-11rem)] overflow-y-auto">
-            <div className="flex flex-col p-4 gap-4">
-              {messages.map((message) => (
+              <div 
+                className={`flex gap-2 max-w-[80%] ${
+                  message.role === 'user' 
+                    ? 'flex-row-reverse' 
+                    : 'flex-row'
+                }`}
+              >
                 <div 
-                  key={message.id} 
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                    message.role === 'user' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted'
+                  }`}
                 >
-                  <div 
-                    className={`flex gap-2 max-w-[80%] ${
-                      message.role === 'user' 
-                        ? 'flex-row-reverse' 
-                        : 'flex-row'
-                    }`}
-                  >
-                    <div 
-                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                        message.role === 'user' 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted'
-                      }`}
-                    >
-                      {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
-                    </div>
-                    <div 
-                      className={`rounded-lg p-3 ${
-                        message.role === 'user' 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted'
-                      }`}
-                    >
-                      {message.isLoading ? (
-                        <div className="flex items-center gap-2 h-6">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="text-sm">Thinking...</span>
-                        </div>
-                      ) : (
-                        <div className="whitespace-pre-wrap">
-                          {message.content}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                 </div>
-              ))}
-              <div ref={messagesEndRef} />
+                <div 
+                  className={`rounded-lg p-3 ${
+                    message.role === 'user' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted'
+                  }`}
+                >
+                  {message.isLoading ? (
+                    <div className="flex items-center gap-2 h-6">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Thinking...</span>
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap">
+                      {message.content}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </ScrollArea>
-        </CardContent>
-        
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+      
+      {/* Fixed bottom area - quick replies and input */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t">
         {quickReplies.length > 0 && (
-          <div className="px-4 pb-2">
+          <div className="px-4 py-2 border-b bg-white dark:bg-gray-800">
             <div className="flex flex-wrap gap-2">
               {quickReplies.map((reply) => (
                 <Button
@@ -459,7 +461,7 @@ Stay safe!`;
           </div>
         )}
         
-        <CardFooter className="p-4 pt-2 border-t flex-shrink-0">
+        <div className="p-4 pt-2 bg-white dark:bg-gray-800">
           {isRecording ? (
             <div className="w-full flex items-center gap-4">
               <div className="flex-1 bg-muted rounded-lg p-3 flex items-center">
@@ -504,8 +506,8 @@ Stay safe!`;
               </Button>
             </form>
           )}
-        </CardFooter>
-      </Card>
-    </MainLayout>
+        </div>
+      </div>
+    </div>
   );
 }
