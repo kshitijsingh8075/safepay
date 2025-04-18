@@ -820,6 +820,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Optimized QR scanner routes
   registerOptimizedQRScanRoutes(app);
+  
+  // Register Advanced ML-based QR scan routes
+  registerAdvancedQRScanRoutes(app);
+  
   registerPoliceComplaintRoutes(app);
   
   // No test pages anymore

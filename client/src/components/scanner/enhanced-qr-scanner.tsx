@@ -5,6 +5,7 @@ import jsQR from 'jsqr';
 import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
 import { analyzeQRWithML, extractUPIPaymentInfo, QRScanResult } from '@/lib/ml-qr-scanner';
 import { analyzeQRWithOptimizedML } from '@/lib/enhanced-optimized-qr-scanner';
+import { analyzeQRWithAdvancedML } from '@/lib/advanced-qr-scanner';
 
 interface QRScannerProps {
   onScan: (data: string) => void;
@@ -193,9 +194,20 @@ export function EnhancedQRScanner({ onScan, onClose, className }: QRScannerProps
       setScanProgress(85); // Update progress to show ML analysis
       console.log('Analyzing QR code with ML service...');
       
-      // Use optimized ML scanner for faster analysis
-      const mlResult = await analyzeQRWithOptimizedML(qrData);
-      console.log('ML analysis result:', mlResult);
+      // First try the new advanced ML scanner
+      let mlResult;
+      
+      try {
+        mlResult = await analyzeQRWithAdvancedML(qrData);
+        console.log('Advanced ML analysis result:', mlResult);
+        console.log('Using advanced ML analysis result');
+      } catch (advancedError) {
+        console.warn('Advanced ML analysis failed, falling back to optimized scanner:', advancedError);
+        
+        // Fall back to optimized ML scanner
+        mlResult = await analyzeQRWithOptimizedML(qrData);
+        console.log('Fallback ML analysis result:', mlResult);
+      }
       
       // Store the ML result for display
       setMlScanResult(mlResult);
