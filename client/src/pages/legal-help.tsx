@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import MainLayout from '@/layouts/main-layout';
 import { Card } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -14,7 +14,21 @@ import {
   TabsList, 
   TabsTrigger 
 } from '@/components/ui/tabs';
-import { AlertCircle, ArrowLeft, Check } from 'lucide-react';
+import { 
+  AlertCircle, 
+  ArrowLeft, 
+  Check, 
+  Mic, 
+  MicOff, 
+  Send, 
+  Calendar, 
+  User, 
+  Loader2,
+  Mail,
+  Phone,
+  Home,
+  Edit
+} from 'lucide-react';
 
 // Legal resources with exact URLs
 const legalResources = [
