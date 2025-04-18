@@ -102,10 +102,7 @@ export default function Home() {
           </Button>
         </div>
         
-        {/* Menu header */}
-        <div className="px-4 mb-2">
-          <h2 className="text-lg font-medium dark:text-white transition-colors duration-300">Menu</h2>
-        </div>
+        {/* Menu items - removed header as requested */}
         
         {/* Quick actions grid - made more compact */}
         <div className="px-4">
