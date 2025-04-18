@@ -107,9 +107,9 @@ export default function LegalHelp() {
   // Voice input state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const timerRef = useRef(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Handle voice recording for description
   const startRecording = async () => {
@@ -242,7 +242,7 @@ export default function LegalHelp() {
   }, [isRecording]);
   
   // Format recording duration as mm:ss
-  const formatDuration = (seconds) => {
+  const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
