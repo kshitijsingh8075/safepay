@@ -55,6 +55,10 @@ function Router() {
         )}
       </Route>
       <Route path="/scan" component={Scan} />
+      <Route path="/simplified-scan" component={() => import("@/pages/simplified-scan").then(module => {
+        const SimplifiedScan = module.default;
+        return <SimplifiedScan />;
+      })} />
       <Route path="/confirm-transaction" component={ConfirmTransaction} />
       <Route path="/payment" component={Payment} />
       <Route path="/checkout" component={Checkout} /> 
