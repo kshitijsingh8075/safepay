@@ -20,7 +20,4 @@ dependencies = [
     "requests>=2.32.3",
     "scikit-learn>=1.6.1",
     "matplotlib>=3.10.1",
-    "opencv-python>=4.11.0.86",
-    "pyzbar>=0.1.9",
-    "python-multipart>=0.0.20",
 ]

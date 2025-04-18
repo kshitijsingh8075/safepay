@@ -1,130 +1,120 @@
-import { apiRequest } from "./queryClient";
+/**
+ * Integration between Enhanced QR Scanner UI and Optimized QR Scanner Service
+ * Combines the UI capabilities with the high-performance backend
+ */
 
-export interface QRScanResult {
-  risk_score: number;
-  risk_level: 'Low' | 'Medium' | 'High';
-  reasons: string[];
-  qr_type: string;
-  latency_ms: number;
-}
-
-export interface UPIPaymentInfo {
-  pa: string;         // Payment address (UPI ID)
-  pn: string;         // Payee name
-  am?: number;        // Amount
-  tn?: string;        // Transaction note
-  cu?: string;        // Currency
-  valid: boolean;     // Is valid UPI format
-}
+import { QRScanResult, UPIPaymentInfo, extractUPIPaymentInfo } from './ml-qr-scanner';
+import { analyzeQRCode, classifyRiskLevel } from './optimized-qr-scanner';
 
 /**
- * Analyze QR code using the optimized ML service
- * @param qrText Text from QR code
- * @returns Analysis result
+ * Analyze a QR code with the optimized ML service
+ * @param qrText The raw text from the QR code scan
+ * @returns Promise with QR scan risk analysis results (compatible with existing UI)
  */
 export async function analyzeQRWithOptimizedML(qrText: string): Promise<QRScanResult> {
   try {
-    const response = await apiRequest('POST', '/api/optimized-qr/analyze', {
-      qr_text: qrText
-    });
+    // Use optimized service for analysis
+    const optimizedResult = await analyzeQRCode(qrText);
     
-    if (!response.ok) {
-      throw new Error(`QR analysis error: ${response.status} ${response.statusText}`);
+    // Get normalized risk score (0-100)
+    const riskScore = optimizedResult.risk_score;
+    
+    // Convert to 0-1 scale for internal functions
+    const normalizedScore = riskScore / 100;
+    
+    // Determine risk level based on classification
+    const riskLevel = classifyRiskLevel(riskScore);
+    
+    // Use existing functions to determine recommendation based on risk level
+    let recommendation: 'Allow' | 'Verify' | 'Block';
+    if (riskLevel === 'low') {
+      recommendation = 'Allow';
+    } else if (riskLevel === 'medium') {
+      recommendation = 'Verify';
+    } else {
+      recommendation = 'Block';
     }
     
-    const result = await response.json();
+    // Generate features based on optimized result
+    // Use the features from the optimized service if available
+    const features = optimizedResult.features 
+      ? {
+          pattern_match: optimizedResult.features.urgent ? 0.8 : 0.3,
+          domain_check: optimizedResult.features.has_upi ? 0.2 : 0.9,
+          syntax_validation: 1 - (normalizedScore * 0.3),
+          entropy: (optimizedResult.features.length / 100) * 0.9,
+          length_score: Math.min(optimizedResult.features.length / 80, 1) // Normalize length
+        }
+      : {
+          // Fallback when features are not available
+          pattern_match: normalizedScore * 0.8,
+          domain_check: normalizedScore * 0.9,
+          syntax_validation: 1 - (normalizedScore * 0.3),
+          entropy: normalizedScore * 0.7,
+          length_score: 0.7
+        };
     
-    // Ensure we have a consistent format
+    // Convert risk level to match expected format
+    const formattedRiskLevel = riskLevel === 'low' ? 'Low' : 
+                              (riskLevel === 'medium' ? 'Medium' : 'High');
+    
+    // Return formatted result compatible with existing UI
     return {
-      risk_score: result.risk_score || 0,
-      risk_level: result.risk_level || 'Low',
-      reasons: result.reasons || [],
-      qr_type: result.qr_type || 'unknown',
-      latency_ms: result.latency_ms || 0
+      risk_score: riskScore,
+      risk_level: formattedRiskLevel,
+      recommendation: recommendation,
+      confidence: optimizedResult.cached ? 0.95 : 0.9, // Higher confidence for cached results
+      features: features,
+      scan_time_ms: optimizedResult.latency_ms,
+      detected_patterns: []
     };
   } catch (error) {
-    console.error('Error in optimized QR analysis:', error);
+    console.error('Error analyzing QR code with optimized ML:', error);
     
-    // Return a fallback analysis result
+    // Fallback to a moderate risk result
     return {
-      risk_score: 50,
+      risk_score: 35,
       risk_level: 'Medium',
-      reasons: ['Error analyzing QR code', 'Using fallback analysis'],
-      qr_type: qrText.startsWith('upi://') ? 'upi' : 
-               qrText.startsWith('http') ? 'url' : 'text',
-      latency_ms: 0
+      recommendation: 'Verify',
+      confidence: 0.5,
+      features: {
+        pattern_match: 0.3,
+        domain_check: 0.4,
+        syntax_validation: 0.6,
+        entropy: 0.5,
+        length_score: 0.7
+      },
+      scan_time_ms: 0,
+      detected_patterns: ['OPTIMIZED_API_ERROR']
     };
   }
 }
 
 /**
- * Extract UPI payment details from QR text
+ * Extract UPI payment information from QR code text
+ * This is a wrapper to maintain compatibility with the existing function
+ * @param qrText Raw text from QR code scan
+ * @returns UPI payment info object with parsed information
  */
-export async function extractUPIDetails(qrText: string): Promise<UPIPaymentInfo | null> {
-  if (!qrText.startsWith('upi://')) {
-    return null;
-  }
+export { extractUPIPaymentInfo };
+
+/**
+ * Full QR analysis including UPI extraction and optimized ML risk analysis
+ * @param qrText Raw text from the QR code
+ * @returns Complete analysis with UPI details and risk assessment
+ */
+export async function analyzeFullQRData(qrText: string): Promise<{
+  paymentInfo: UPIPaymentInfo;
+  riskAnalysis: QRScanResult;
+}> {
+  // Extract UPI information
+  const paymentInfo = extractUPIPaymentInfo(qrText);
   
-  try {
-    // Try server-side extraction first
-    try {
-      const response = await apiRequest('POST', '/api/direct-qr/extract-upi', { 
-        qr_text: qrText 
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result && result.pa) {
-          return result;
-        }
-      }
-    } catch (e) {
-      console.warn('Server UPI extraction failed, falling back to client-side:', e);
-    }
-    
-    // Client-side fallback
-    const result: UPIPaymentInfo = {
-      pa: '',
-      pn: '',
-      valid: false
-    };
-    
-    // Extract parameters
-    const paMatch = qrText.match(/pa=([^&]+)/);
-    const pnMatch = qrText.match(/pn=([^&]+)/);
-    const amMatch = qrText.match(/am=([^&]+)/);
-    const tnMatch = qrText.match(/tn=([^&]+)/);
-    const cuMatch = qrText.match(/cu=([^&]+)/);
-    
-    if (paMatch) {
-      result.pa = decodeURIComponent(paMatch[1]);
-    }
-    
-    if (pnMatch) {
-      result.pn = decodeURIComponent(pnMatch[1]);
-    }
-    
-    if (amMatch) {
-      const amount = parseFloat(amMatch[1]);
-      if (!isNaN(amount)) {
-        result.am = amount;
-      }
-    }
-    
-    if (tnMatch) {
-      result.tn = decodeURIComponent(tnMatch[1]);
-    }
-    
-    if (cuMatch) {
-      result.cu = decodeURIComponent(cuMatch[1]);
-    }
-    
-    // Check if UPI ID is valid
-    result.valid = !!result.pa && result.pa.includes('@');
-    
-    return result;
-  } catch (error) {
-    console.error('Error extracting UPI details:', error);
-    return null;
-  }
+  // Get risk analysis from optimized service
+  const riskAnalysis = await analyzeQRWithOptimizedML(qrText);
+  
+  return {
+    paymentInfo,
+    riskAnalysis
+  };
 }

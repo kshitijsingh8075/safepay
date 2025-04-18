@@ -377,133 +377,135 @@ Stay safe!`;
   };
   
   return (
-    <Card className="flex flex-col h-full max-h-full border-0 rounded-none overflow-hidden">
-      <CardHeader className="border-b bg-card px-4 py-3 flex-shrink-0">
-        <CardTitle className="text-lg flex items-center justify-between">
-          <div>AI Safety Assistant</div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setLocation('/home')}
-          >
-            Close
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 p-0 overflow-hidden">
-        <ScrollArea className="h-[calc(100dvh-11rem)] max-h-[calc(100dvh-11rem)] overflow-y-auto">
-          <div className="flex flex-col p-4 gap-4">
-            {messages.map((message) => (
-              <div 
-                key={message.id} 
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+    <MainLayout className="flex flex-col p-0 h-[100dvh] max-h-[100dvh] overflow-hidden">
+      <Card className="flex flex-col h-full max-h-full border-0 rounded-none overflow-hidden">
+        <CardHeader className="border-b bg-card px-4 py-3 flex-shrink-0">
+          <CardTitle className="text-lg flex items-center justify-between">
+            <div>AI Safety Assistant</div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setLocation('/home')}
+            >
+              Close
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 p-0 overflow-hidden">
+          <ScrollArea className="h-[calc(100dvh-11rem)] max-h-[calc(100dvh-11rem)] overflow-y-auto">
+            <div className="flex flex-col p-4 gap-4">
+              {messages.map((message) => (
                 <div 
-                  className={`flex gap-2 max-w-[80%] ${
-                    message.role === 'user' 
-                      ? 'flex-row-reverse' 
-                      : 'flex-row'
-                  }`}
+                  key={message.id} 
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                    className={`flex gap-2 max-w-[80%] ${
                       message.role === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted'
+                        ? 'flex-row-reverse' 
+                        : 'flex-row'
                     }`}
                   >
-                    {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
-                  </div>
-                  <div 
-                    className={`rounded-lg p-3 ${
-                      message.role === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted'
-                    }`}
-                  >
-                    {message.isLoading ? (
-                      <div className="flex items-center gap-2 h-6">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">Thinking...</span>
-                      </div>
-                    ) : (
-                      <div className="whitespace-pre-wrap">
-                        {message.content}
-                      </div>
-                    )}
+                    <div 
+                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                        message.role === 'user' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted'
+                      }`}
+                    >
+                      {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                    </div>
+                    <div 
+                      className={`rounded-lg p-3 ${
+                        message.role === 'user' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted'
+                      }`}
+                    >
+                      {message.isLoading ? (
+                        <div className="flex items-center gap-2 h-6">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">Thinking...</span>
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap">
+                          {message.content}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+        </CardContent>
+        
+        {quickReplies.length > 0 && (
+          <div className="px-4 pb-2">
+            <div className="flex flex-wrap gap-2">
+              {quickReplies.map((reply) => (
+                <Button
+                  key={reply.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickReply(reply.text)}
+                  disabled={isSubmitting}
+                >
+                  {reply.text}
+                </Button>
+              ))}
+            </div>
           </div>
-        </ScrollArea>
-      </CardContent>
-      
-      {quickReplies.length > 0 && (
-        <div className="px-4 pb-2">
-          <div className="flex flex-wrap gap-2">
-            {quickReplies.map((reply) => (
-              <Button
-                key={reply.id}
+        )}
+        
+        <CardFooter className="p-4 pt-2 border-t flex-shrink-0">
+          {isRecording ? (
+            <div className="w-full flex items-center gap-4">
+              <div className="flex-1 bg-muted rounded-lg p-3 flex items-center">
+                <div className="flex-1 flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                  <span>Recording... {recordingDuration}s</span>
+                </div>
+              </div>
+              <Button 
+                variant="destructive"
+                size="icon"
+                onClick={stopRecording}
+              >
+                <MicOff size={18} />
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="w-full flex items-center gap-2">
+              <Input 
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your message..."
+                disabled={isSubmitting}
+                className="flex-1"
+              />
+              <Button 
+                variant="default"
+                size="icon"
+                type="submit"
+                disabled={!input.trim() || isSubmitting}
+              >
+                <Send size={18} />
+              </Button>
+              <Button 
                 variant="outline"
-                size="sm"
-                onClick={() => handleQuickReply(reply.text)}
+                size="icon"
+                type="button"
+                onClick={startRecording}
                 disabled={isSubmitting}
               >
-                {reply.text}
+                <Mic size={18} />
               </Button>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      <CardFooter className="p-4 pt-2 border-t flex-shrink-0">
-        {isRecording ? (
-          <div className="w-full flex items-center gap-4">
-            <div className="flex-1 bg-muted rounded-lg p-3 flex items-center">
-              <div className="flex-1 flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                <span>Recording... {recordingDuration}s</span>
-              </div>
-            </div>
-            <Button 
-              variant="destructive"
-              size="icon"
-              onClick={stopRecording}
-            >
-              <MicOff size={18} />
-            </Button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="w-full flex items-center gap-2">
-            <Input 
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              disabled={isSubmitting}
-              className="flex-1"
-            />
-            <Button 
-              variant="default"
-              size="icon"
-              type="submit"
-              disabled={!input.trim() || isSubmitting}
-            >
-              <Send size={18} />
-            </Button>
-            <Button 
-              variant="outline"
-              size="icon"
-              type="button"
-              onClick={startRecording}
-              disabled={isSubmitting}
-            >
-              <Mic size={18} />
-            </Button>
-          </form>
-        )}
-      </CardFooter>
-    </Card>
+            </form>
+          )}
+        </CardFooter>
+      </Card>
+    </MainLayout>
   );
 }
