@@ -81,45 +81,271 @@ export default function LegalHelp() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("resources");
   
-  // Police complaint form state
-  const [upiId, setUpiId] = useState('');
-  const [name, setName] = useState('');
+  // Police complaint form state - User info
+  const [userFullName, setUserFullName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [userAddress, setUserAddress] = useState('');
+  
+  // Police complaint form state - Scammer info
+  const [scammerUpiId, setScammerUpiId] = useState('');
+  const [scammerName, setScammerName] = useState('');
   const [amount, setAmount] = useState('');
+  const [dateOfScam, setDateOfScam] = useState(new Date().toISOString().split('T')[0]);
+  const [description, setDescription] = useState('');
+  
+  // Form navigation and UI state
+  const [formStep, setFormStep] = useState(1); // 1: User Info, 2: Scammer Info, 3: Description, 4: Preview Email
   const [showComplaintPreview, setShowComplaintPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
+  const [generatedEmail, setGeneratedEmail] = useState('');
+  const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
   
-  // Handle form submission
-  const handleSubmitComplaint = async () => {
-    // Validate fields
-    if (!upiId || !name) {
+  // Voice input state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const timerRef = useRef(null);
+  
+  // Handle voice recording for description
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        
+        // Create form data to send to server
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+        
+        try {
+          // Use browser's built-in speech recognition if available
+          if ('webkitSpeechRecognition' in window) {
+            const SpeechRecognition = window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-IN';
+            
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            
+            recognition.onresult = (event) => {
+              const transcript = event.results[0][0].transcript;
+              setDescription(prev => prev + ' ' + transcript);
+            };
+            
+            recognition.onerror = (event) => {
+              console.error('Speech recognition error', event.error);
+              toast({
+                title: "Speech recognition failed",
+                description: "Please try again or type your description manually",
+                variant: "destructive",
+              });
+            };
+            
+            audio.onended = () => {
+              recognition.stop();
+            };
+            
+            recognition.start();
+            audio.play();
+          } else {
+            // Fall back to server-side speech-to-text using OpenAI
+            toast({
+              title: "Processing voice input",
+              description: "Converting your voice to text...",
+            });
+            
+            const response = await fetch('/api/voice-to-text', {
+              method: 'POST',
+              body: formData
+            });
+            
+            if (!response.ok) {
+              throw new Error('Failed to convert speech to text');
+            }
+            
+            const data = await response.json();
+            if (data.text) {
+              setDescription(prev => prev + ' ' + data.text);
+            }
+          }
+        } catch (error) {
+          console.error('Error processing voice input:', error);
+          toast({
+            title: "Voice processing failed",
+            description: "Please try again or type your description manually",
+            variant: "destructive",
+          });
+        }
+        
+        // Clean up the media stream
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      mediaRecorder.start();
+      setIsRecording(true);
+      
+      // Set up a timer to track recording duration
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({
+        title: "Microphone access denied",
+        description: "Please enable microphone access to use voice input",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      
+      // Clear the timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      
+      setRecordingDuration(0);
+    }
+  };
+  
+  // Clean up function for voice recording
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, [isRecording]);
+  
+  // Format recording duration as mm:ss
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // Generate email using OpenAI
+  const generateComplaintEmail = async () => {
+    // Validate required fields
+    const requiredFields = [
+      { field: userFullName, name: 'Full Name' },
+      { field: userEmail, name: 'Email' },
+      { field: userPhone, name: 'Phone Number' },
+      { field: userAddress, name: 'Address' },
+      { field: scammerUpiId, name: 'Scammer UPI ID' },
+      { field: amount, name: 'Fraud Amount' },
+      { field: description, name: 'Description' }
+    ];
+    
+    const missingFields = requiredFields.filter(({field}) => !field.trim());
+    
+    if (missingFields.length > 0) {
       toast({
         title: "Missing information",
-        description: "Please provide both UPI ID and recipient name",
+        description: `Please provide: ${missingFields.map(f => f.name).join(', ')}`,
         variant: "destructive"
       });
       return;
     }
     
-    setIsSubmitting(true);
+    setIsGeneratingEmail(true);
     
     try {
-      const response = await fetch('/api/report/police-complaint', {
+      const response = await fetch('/api/generate-complaint-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          upiId,
-          name,
+          userFullName,
+          userEmail,
+          userPhone,
+          userAddress,
+          scammerUpiId,
+          scammerName,
           amount,
-          transactionDate: new Date().toISOString(),
-          description: `Complaint against UPI ID ${upiId} belonging to ${name} for fraudulent transaction of Rs. ${amount}`
+          dateOfScam,
+          description
         })
       });
       
       if (!response.ok) {
-        throw new Error('Failed to submit police complaint');
+        throw new Error('Failed to generate complaint email');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.emailContent) {
+        setGeneratedEmail(data.emailContent);
+        setShowComplaintPreview(true);
+      } else {
+        throw new Error('Failed to generate email content');
+      }
+    } catch (error) {
+      console.error('Error generating email:', error);
+      toast({
+        title: "Email Generation Failed",
+        description: "There was an error generating your complaint email. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingEmail(false);
+    }
+  };
+  
+  // Handle form submission (sending email)
+  const handleSubmitComplaint = async () => {
+    setIsSubmitting(true);
+    
+    try {
+      const complaintData = {
+        userFullName,
+        userEmail,
+        userPhone,
+        userAddress,
+        scammerUpiId,
+        scammerName,
+        amount,
+        dateOfScam,
+        description
+      };
+      
+      const response = await fetch('/api/send-complaint-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          complaintData,
+          emailContent: generatedEmail
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to send complaint email');
       }
       
       const data = await response.json();
@@ -127,13 +353,13 @@ export default function LegalHelp() {
       setSubmissionSuccess(true);
       toast({
         title: "Complaint Submitted",
-        description: `Your complaint has been sent to the police. Reference ID: ${data.complaintId}`,
+        description: "Your complaint has been emailed to the Delhi Police. A copy has also been sent to your email address.",
       });
     } catch (error) {
       console.error('Error submitting complaint:', error);
       toast({
         title: "Submission Failed",
-        description: "There was an error submitting your complaint. Please try again.",
+        description: "There was an error sending your complaint. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -141,43 +367,27 @@ export default function LegalHelp() {
     }
   };
   
-  // Police complaint letter preview
-  const complaintLetter = `
-Complaint Letter
-Date: April ${new Date().getDate()}, ${new Date().getFullYear()}
-To:
-The Station House Officer
-Cyber Crime Police Station,
-New Delhi
-
-Subject: Complaint regarding online scam
-
-Dear Sir/Madam,
-
-I am writing to file a complaint regarding an online scam.
-On April 13, 2025, I transferred ₹${amount || '0'} to John Smith using 
-UPI ID ${upiId || 'paytm@upi'}. I later realized that I was a victim of a scam.
-
-Here are the details of the fraudulent transaction:
-- UPI ID of the recipient: ${upiId || 'paytm@upi'}
-- Name of the recipient: ${name || 'John Smith'}
-- Amount transferred: ₹${amount || '0'}
-
-I request you to kindly look into this matter and take appropriate action.
-
-Thank you.
-Sincerely,
-[Your Name]
-[Your Phone Number]
-[Your Email ID]
-`;
-  
+  // Reset form fields
   const resetForm = () => {
-    setUpiId('');
-    setName('');
+    // User info
+    setUserFullName('');
+    setUserEmail('');
+    setUserPhone('');
+    setUserAddress('');
+    
+    // Scammer info
+    setScammerUpiId('');
+    setScammerName('');
     setAmount('');
+    setDateOfScam(new Date().toISOString().split('T')[0]);
+    setDescription('');
+    
+    // UI state
+    setFormStep(1);
     setShowComplaintPreview(false);
     setSubmissionSuccess(false);
+    setGeneratedEmail('');
+    setIsEditingEmail(false);
   };
   
   const renderResourcesTab = () => (

@@ -6,6 +6,11 @@ from streamlit_folium import folium_static
 from geopy.geocoders import Nominatim
 from datetime import datetime
 import os
+import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
+import io
+import base64
 
 # Set page configuration
 st.set_page_config(
@@ -56,12 +61,20 @@ st.markdown("""
 def load_data():
     """Load scam data from CSV file"""
     try:
-        df = pd.read_csv('scam_data.csv')
+        # First try to load the enhanced dataset with scam type information
+        try:
+            df = pd.read_csv('updated_scam_data.csv')
+            has_scam_types = True
+        except:
+            # If it's not available, load the original dataset
+            df = pd.read_csv('scam_data.csv')
+            has_scam_types = False
+        
         df['Last Reported Date'] = pd.to_datetime(df['Last Reported Date'])
-        return df
+        return df, has_scam_types
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame(), False
 
 def generate_map(df, center_lat=20.5937, center_lng=78.9629, zoom=5, search_city=None):
     """Generate an interactive map with scam data"""
@@ -140,11 +153,58 @@ def geocode_city(city_name, country="India"):
         st.error(f"Error geocoding {city_name}: {e}")
         return None, None
 
-def add_new_city(df, city, state, scam_cases):
+def create_scam_type_chart(city_data):
+    """Create a pie chart showing the breakdown of different scam types for a city"""
+    # Get scam type columns (they all start with an uppercase letter and have an underscore)
+    scam_type_cols = [col for col in city_data.index if '_' in col]
+    
+    if not scam_type_cols:
+        return None  # No scam type data available
+    
+    # Get values and labels
+    values = [city_data[col] for col in scam_type_cols]
+    labels = [col.replace('_', ' ') for col in scam_type_cols]
+    
+    # If there are too many small segments, combine them into "Others"
+    threshold = 0.05  # 5% threshold
+    total = sum(values)
+    small_indices = [i for i, v in enumerate(values) if v/total < threshold]
+    
+    if small_indices:
+        others_value = sum(values[i] for i in small_indices)
+        new_values = [v for i, v in enumerate(values) if i not in small_indices]
+        new_labels = [l for i, l in enumerate(labels) if i not in small_indices]
+        
+        new_values.append(others_value)
+        new_labels.append('Others')
+        
+        values = new_values
+        labels = new_labels
+    
+    # Create pie chart with Plotly
+    fig = go.Figure(data=[go.Pie(
+        labels=labels,
+        values=values,
+        hole=.3,
+        marker=dict(colors=px.colors.qualitative.Safe)
+    )])
+    
+    fig.update_layout(
+        title_text=f"Scam Type Distribution in {city_data['City']}",
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+        margin=dict(t=40, b=40, l=40, r=40),
+        height=400
+    )
+    
+    return fig
+
+def add_new_city(df, city, state, scam_cases, has_scam_types=False):
     """Add a new city to the dataset"""
     lat, lng = geocode_city(f"{city}, {state}")
     
     if lat and lng:
+        # Basic entry for all datasets
         new_entry = {
             "City": city,
             "State": state,
@@ -154,8 +214,26 @@ def add_new_city(df, city, state, scam_cases):
             "Last Reported Date": datetime.now().strftime('%Y-%m-%d')
         }
         
+        # Add scam type data if using enhanced dataset
+        if has_scam_types:
+            # Distribute the scam cases across different types
+            # This is a simple distribution for demonstration
+            new_entry["UPI_Fraud"] = int(scam_cases * 0.4)  # 40% UPI Fraud
+            new_entry["Fake_Store"] = int(scam_cases * 0.2)  # 20% Fake Store
+            new_entry["Phishing"] = int(scam_cases * 0.15)  # 15% Phishing
+            new_entry["Investment"] = int(scam_cases * 0.15)  # 15% Investment
+            new_entry["QR_Code"] = int(scam_cases * 0.05)  # 5% QR Code
+            new_entry["Others"] = scam_cases - sum([new_entry["UPI_Fraud"], new_entry["Fake_Store"], 
+                                               new_entry["Phishing"], new_entry["Investment"], 
+                                               new_entry["QR_Code"]])  # Remainder to make sure it adds up
+        
+        # Save to appropriate file
         new_df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
-        new_df.to_csv('scam_data.csv', index=False)
+        if has_scam_types:
+            new_df.to_csv('updated_scam_data.csv', index=False)
+        else:
+            new_df.to_csv('scam_data.csv', index=False)
+        
         return new_df, True
     
     return df, False
