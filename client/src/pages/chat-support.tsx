@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation, Link } from 'wouter';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Send, Mic, AlertTriangle, MicOff, User, Bot, Home, QrCode } from 'lucide-react';
+import { Loader2, Send, Mic, AlertTriangle, MicOff, User, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import MainLayout from '@/layouts/main-layout';
 
@@ -377,10 +377,9 @@ Stay safe!`;
   };
   
   return (
-    <div className="flex flex-col h-screen w-full bg-background">
-      {/* Fixed header */}
-      <div className="border-b bg-card px-4 py-3 flex-shrink-0 z-10">
-        <div className="text-lg flex items-center justify-between">
+    <Card className="flex flex-col h-full max-h-full border-0 rounded-none overflow-hidden">
+      <CardHeader className="border-b bg-card px-4 py-3 flex-shrink-0">
+        <CardTitle className="text-lg flex items-center justify-between">
           <div>AI Safety Assistant</div>
           <Button 
             variant="outline" 
@@ -389,145 +388,122 @@ Stay safe!`;
           >
             Close
           </Button>
-        </div>
-      </div>
-      
-      {/* Message area - scrollable content */}
-      <div className="flex-1 overflow-y-auto pb-32">
-        <div className="flex flex-col p-4 gap-4">
-          {messages.map((message) => (
-            <div 
-              key={message.id} 
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 p-0 overflow-hidden">
+        <ScrollArea className="h-[calc(100dvh-11rem)] max-h-[calc(100dvh-11rem)] overflow-y-auto">
+          <div className="flex flex-col p-4 gap-4">
+            {messages.map((message) => (
               <div 
-                className={`flex gap-2 max-w-[80%] ${
-                  message.role === 'user' 
-                    ? 'flex-row-reverse' 
-                    : 'flex-row'
-                }`}
+                key={message.id} 
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div 
-                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                  className={`flex gap-2 max-w-[80%] ${
                     message.role === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted'
+                      ? 'flex-row-reverse' 
+                      : 'flex-row'
                   }`}
                 >
-                  {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
-                </div>
-                <div 
-                  className={`rounded-lg p-3 ${
-                    message.role === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted'
-                  }`}
-                >
-                  {message.isLoading ? (
-                    <div className="flex items-center gap-2 h-6">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Thinking...</span>
-                    </div>
-                  ) : (
-                    <div className="whitespace-pre-wrap">
-                      {message.content}
-                    </div>
-                  )}
+                  <div 
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                      message.role === 'user' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted'
+                    }`}
+                  >
+                    {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                  </div>
+                  <div 
+                    className={`rounded-lg p-3 ${
+                      message.role === 'user' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted'
+                    }`}
+                  >
+                    {message.isLoading ? (
+                      <div className="flex items-center gap-2 h-6">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Thinking...</span>
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap">
+                        {message.content}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-      
-      {/* Fixed bottom area - quick replies and input */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t">
-        {quickReplies.length > 0 && (
-          <div className="px-4 py-2 border-b">
-            <div className="flex flex-wrap gap-2">
-              {quickReplies.map((reply) => (
-                <Button
-                  key={reply.id}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickReply(reply.text)}
-                  disabled={isSubmitting}
-                >
-                  {reply.text}
-                </Button>
-              ))}
-            </div>
+            ))}
+            <div ref={messagesEndRef} />
           </div>
-        )}
-        
-        <div className="p-4">
-          {isRecording ? (
-            <div className="w-full flex items-center gap-4">
-              <div className="flex-1 bg-muted rounded-lg p-3 flex items-center">
-                <div className="flex-1 flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                  <span>Recording... {recordingDuration}s</span>
-                </div>
-              </div>
-              <Button 
-                variant="destructive"
-                size="icon"
-                onClick={stopRecording}
-              >
-                <MicOff size={18} />
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="w-full flex items-center gap-2">
-              <Input 
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type your message..."
-                disabled={isSubmitting}
-                className="flex-1"
-              />
-              <Button 
-                variant="default"
-                size="icon"
-                type="submit"
-                disabled={!input.trim() || isSubmitting}
-              >
-                <Send size={18} />
-              </Button>
-              <Button 
-                variant="outline"
-                size="icon"
-                type="button"
-                onClick={startRecording}
-                disabled={isSubmitting}
-              >
-                <Mic size={18} />
-              </Button>
-            </form>
-          )}
-        </div>
-      </div>
+        </ScrollArea>
+      </CardContent>
       
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-2 flex justify-center items-center z-50 h-14">
-        <div className="w-full max-w-md flex items-center justify-center gap-6 px-4">
-          <Link 
-            href="/home"
-            className="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400"
-          >
-            <Home className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-medium">Home</span>
-          </Link>
-          <Link 
-            href="/scan"
-            className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400"
-          >
-            <QrCode className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-medium">Scan QR</span>
-          </Link>
+      {quickReplies.length > 0 && (
+        <div className="px-4 pb-2">
+          <div className="flex flex-wrap gap-2">
+            {quickReplies.map((reply) => (
+              <Button
+                key={reply.id}
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickReply(reply.text)}
+                disabled={isSubmitting}
+              >
+                {reply.text}
+              </Button>
+            ))}
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+      
+      <CardFooter className="p-4 pt-2 border-t flex-shrink-0">
+        {isRecording ? (
+          <div className="w-full flex items-center gap-4">
+            <div className="flex-1 bg-muted rounded-lg p-3 flex items-center">
+              <div className="flex-1 flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                <span>Recording... {recordingDuration}s</span>
+              </div>
+            </div>
+            <Button 
+              variant="destructive"
+              size="icon"
+              onClick={stopRecording}
+            >
+              <MicOff size={18} />
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="w-full flex items-center gap-2">
+            <Input 
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your message..."
+              disabled={isSubmitting}
+              className="flex-1"
+            />
+            <Button 
+              variant="default"
+              size="icon"
+              type="submit"
+              disabled={!input.trim() || isSubmitting}
+            >
+              <Send size={18} />
+            </Button>
+            <Button 
+              variant="outline"
+              size="icon"
+              type="button"
+              onClick={startRecording}
+              disabled={isSubmitting}
+            >
+              <Mic size={18} />
+            </Button>
+          </form>
+        )}
+      </CardFooter>
+    </Card>
   );
 }

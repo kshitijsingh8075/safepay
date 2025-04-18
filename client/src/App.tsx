@@ -101,7 +101,13 @@ function Router() {
           </MainLayout>
         )}
       </Route>
-      <Route path="/chat-support" component={ChatSupport} />
+      <Route path="/chat-support">
+        {() => (
+          <MainLayout>
+            <ChatSupport />
+          </MainLayout>
+        )}
+      </Route>
       <Route path="/account">
         {() => (
           <MainLayout>
