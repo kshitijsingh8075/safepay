@@ -1,0 +1,130 @@
+Objective:
+
+Use the attached CSV file containing anonymized UPI transaction data to build a robust and intelligent fraud detection and prevention system. This system should be capable of real-time fraud detection, user behavior analysis, heatmap-based geographic visualization, and scam message recognition — all while learning from historical fraudulent and legitimate transaction patterns.
+
+🔹 PART 1: TRAIN A MACHINE LEARNING MODEL TO DETECT FRAUDULENT TRANSACTIONS
+Use the column IS_FRAUD as the target variable. This column indicates whether a transaction was fraudulent or not.
+
+Instructions:
+
+Use the following features to train your model:
+AMOUNT, TXN_TIMESTAMP, TRN_STATUS, RESPONSE_CODE, PAYER_IFSC, BENEFICIARY_IFSC, INITIATION_MODE, TRANSACTION_TYPE, PAYMENT_INSTRUMENT
+
+Engineer additional features such as:
+
+TXN_HOUR, TXN_WEEKDAY, TXN_DAY
+
+Encoding of status, mode, type
+
+Normalize the data using StandardScaler
+
+Train a classifier (preferably Random Forest or XGBoost)
+
+Evaluate with precision, recall, F1-score
+
+Output should include a fraud probability score (0-1) per transaction
+
+🔹 PART 2: ENHANCE TRANSACTION RISK SCORING ENGINE
+Create a custom scoring mechanism that learns from the dataset patterns.
+
+Requirements:
+
+Transactions with high amount, unusual hours (midnight-3am), or with failed statuses should score higher.
+
+The engine should evolve based on feedback from fraud outcomes (learning from both completed and failed fraudulent attempts).
+
+Use supervised and unsupervised models (e.g., Isolation Forest, LOF) to assign anomaly scores.
+
+Output: Each transaction must get a RISK_SCORE between 0–10 and ALERT_LEVEL (LOW, MEDIUM, HIGH).
+
+🔹 PART 3: BUILD FRAUD MAP VISUALIZATION SYSTEM
+Leverage LATITUDE and LONGITUDE fields to visualize fraud clusters across geographies.
+
+Tasks:
+
+Decode or preprocess geolocation fields if encoded.
+
+Plot all fraudulent transactions on a heatmap.
+
+Use libraries like Folium or Plotly to build an interactive dashboard.
+
+Optionally, animate changes in fraud hotspots over time (e.g., daily heatmaps).
+
+🔹 PART 4: USER TRANSACTION HISTORY ANALYSIS MODULE
+Analyze behavior for each PAYER_ACCOUNT:
+
+Insights to Extract:
+
+Typical transaction time range, amount range, and frequency
+
+Detect deviations from baseline patterns
+
+Identify users with high sudden spikes in amount or transaction attempts
+
+Output unusual transactions per user based on their personal historical profile
+
+🔹 PART 5: FRAUD PATTERN ALERT SYSTEM
+Develop a rule-based and ML-enhanced alert engine.
+
+How It Works:
+
+For every transaction, check if a similar PAYER_ACCOUNT ➝ BENEFICIARY_ACCOUNT pair has been involved in past frauds
+
+If yes, raise an alert
+
+Output format:
+
+sql
+Copy
+Edit
+Alert: Transaction from PAYER_X to BENEFICIARY_Y matches a known fraud pattern!
+🔹 PART 6: IMPROVE VOICE & WHATSAPP SCAM DETECTION
+Extract patterns from the TXN_DESCRIPTION or other free-text fields to assist in scam detection.
+
+Steps:
+
+Create a keyword library with common scam words (e.g., "urgent", "OTP", "reward", "KYC", "blocked")
+
+Use NLP techniques (TF-IDF, keyword extraction, sentiment) to match scam-like language
+
+Cross-check with voice or WhatsApp message analysis (optional advanced integration)
+
+Tag such transactions for additional verification
+
+🔹 PART 7: REAL-TIME SECURITY CHECKS BASED ON DEVICE/IP
+Leverage DEVICE_ID, IP_ADDRESS, and INITIATION_MODE to build a smart device fingerprinting and anomaly detection system.
+
+Actions to Take:
+
+Maintain a reputation score per device/IP
+
+Block or delay high-risk devices and IPs automatically
+
+Flag transactions if:
+
+Device/IP is new or has high fraud history
+
+Initiation mode is unusual for this user
+
+Add step-up authentication for high-risk patterns
+
+🔹 OPTIONAL BONUSES (if model allows):
+Anomaly-Based Transaction Blocking System
+
+Use Isolation Forest/LOF to automatically flag suspicious transactions without labeled data.
+
+Explainable AI Layer
+
+Use SHAP or LIME to explain why a transaction was marked risky or fraudulent.
+
+Exportable Report
+
+Generate reports for internal audit showing:
+
+Top fraud-prone users
+
+Most dangerous times
+
+High-risk device/IP clusters
+
+List of scam phrases that triggered alerts
