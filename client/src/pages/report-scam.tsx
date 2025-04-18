@@ -22,10 +22,10 @@ export default function ReportScam() {
   const { toast } = useToast();
   const { authState } = useAuthState();
   
-  const [upiId, setUpiId] = useState('onlineshopping123@upi');
+  const [upiId, setUpiId] = useState('');
   const [scamType, setScamType] = useState<ScamType>(ScamType.Unknown);
-  const [amountLost, setAmountLost] = useState('2,500');
-  const [description, setDescription] = useState('I ordered products online through this UPI ID but never received the items. The seller stopped responding after payment.');
+  const [amountLost, setAmountLost] = useState('');
+  const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {

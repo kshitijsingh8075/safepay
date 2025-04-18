@@ -395,6 +395,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get scam reports for a specific user
+  app.get('/api/user/:userId/scam-reports', async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: 'Invalid user ID' });
+      }
+      
+      const reports = await storage.getScamReportsByUserId(userId);
+      
+      // Format the report data for the client
+      const formattedReports = reports.map(report => ({
+        id: report.id,
+        upiId: report.upiId,
+        scamType: report.scamType,
+        description: report.description,
+        amountLost: report.amountLost ? report.amountLost.toFixed(2) : null,
+        timestamp: report.timestamp
+      }));
+      
+      res.json(formattedReports);
+    } catch (error) {
+      console.error('Error fetching user scam reports:', error);
+      res.status(500).json({ error: 'Failed to retrieve scam reports' });
+    }
+  });
+  
   // Police complaint routes
   app.post('/api/report/police-complaint', async (req, res) => {
     try {
