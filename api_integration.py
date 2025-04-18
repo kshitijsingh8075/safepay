@@ -267,5 +267,98 @@ def main():
     print(f"Starting UPI Fraud Detection API on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
 
+def process_command_line():
+    """Process command line arguments"""
+    import argparse
+    import json
+    
+    parser = argparse.ArgumentParser(description='UPI Fraud Detection API')
+    parser.add_argument('--check-upi', help='Check UPI ID (input JSON file)')
+    parser.add_argument('--analyze-message', help='Analyze message (input JSON file)')
+    parser.add_argument('--score-transaction', help='Score transaction (input JSON file)')
+    parser.add_argument('--health-check', action='store_true', help='Perform health check')
+    
+    args = parser.parse_args()
+    
+    # Process command line options
+    if args.check_upi:
+        try:
+            with open(args.check_upi, 'r') as f:
+                data = json.load(f)
+            
+            # Convert data to request model
+            request = UPICheckRequest(**data)
+            
+            # Process the request
+            result = asyncio.run(check_upi(request))
+            
+            # Print the result as JSON
+            print(json.dumps(result))
+            
+        except Exception as e:
+            print(json.dumps({
+                "status": "error",
+                "message": str(e)
+            }))
+    
+    elif args.analyze_message:
+        try:
+            with open(args.analyze_message, 'r') as f:
+                data = json.load(f)
+            
+            # Convert data to request model
+            request = MessageAnalysisRequest(**data)
+            
+            # Process the request
+            result = asyncio.run(analyze_message(request))
+            
+            # Print the result as JSON
+            print(json.dumps(result))
+            
+        except Exception as e:
+            print(json.dumps({
+                "status": "error",
+                "message": str(e)
+            }))
+    
+    elif args.score_transaction:
+        try:
+            with open(args.score_transaction, 'r') as f:
+                data = json.load(f)
+            
+            # Convert data to request model
+            request = TransactionRiskRequest(**data)
+            
+            # Process the request
+            result = asyncio.run(score_transaction(request))
+            
+            # Print the result as JSON
+            print(json.dumps(result))
+            
+        except Exception as e:
+            print(json.dumps({
+                "status": "error",
+                "message": str(e)
+            }))
+    
+    elif args.health_check:
+        try:
+            # Perform health check
+            result = asyncio.run(health_check())
+            
+            # Print the result as JSON
+            print(json.dumps(result))
+            
+        except Exception as e:
+            print(json.dumps({
+                "status": "error",
+                "message": str(e)
+            }))
+    
+    else:
+        # Run the API server
+        main()
+
 if __name__ == "__main__":
-    main()
+    import asyncio
+    process_command_line()
