@@ -27,10 +27,7 @@ export default function PhoneLogin() {
     try {
       console.log('Skipping login and navigating to', returnUrl);
       skipLogin();
-      toast({
-        title: "Skipped Login",
-        description: "You can browse most features, but payment will require login",
-      });
+      // Removed toast notification as requested
       setTimeout(() => {
         setLocation('/home');
       }, 500);
@@ -101,10 +98,7 @@ export default function PhoneLogin() {
         skipLogin(); // Clear any previous skipped state
         login(data.userId.toString(), phoneNumber);
         
-        toast({
-          title: "Login Successful",
-          description: "You have successfully logged in.",
-        });
+        // Removed toast notification as requested
 
         // Check if it's a new user who needs to set up security
         if (data.isNewUser) {
