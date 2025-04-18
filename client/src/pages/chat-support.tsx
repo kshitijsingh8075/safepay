@@ -377,8 +377,8 @@ Stay safe!`;
   };
   
   return (
-    <MainLayout className="flex flex-col p-0 h-[100dvh] max-h-[100dvh] overflow-hidden bg-background">
-      <Card className="flex flex-col h-full max-h-full border-0 rounded-none overflow-hidden">
+    <MainLayout className="flex flex-col p-0 h-full bg-background">
+      <Card className="flex flex-col h-full border-0 rounded-none">
         <CardHeader className="border-b bg-card px-4 py-3 flex-shrink-0">
           <CardTitle className="text-lg flex items-center justify-between">
             <div>AI Safety Assistant</div>
@@ -391,16 +391,16 @@ Stay safe!`;
             </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 p-0 overflow-hidden relative">
-          <ScrollArea className="h-[calc(100dvh-10rem)] pb-20 overflow-y-auto overflow-x-hidden">
-            <div className="flex flex-col p-4 gap-4 overflow-hidden">
+        <CardContent className="flex-1 p-0 relative">
+          <ScrollArea className="h-[calc(100vh-11rem)]">
+            <div className="flex flex-col p-4 gap-4">
               {messages.map((message) => (
                 <div 
                   key={message.id} 
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`flex gap-2 max-w-[85%] overflow-hidden ${
+                    className={`flex gap-2 max-w-[85%] ${
                       message.role === 'user' 
                         ? 'flex-row-reverse' 
                         : 'flex-row'
@@ -416,7 +416,7 @@ Stay safe!`;
                       {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                     </div>
                     <div 
-                      className={`rounded-lg p-3 shadow-sm max-w-full overflow-hidden ${
+                      className={`rounded-lg p-3 shadow-sm max-w-full ${
                         message.role === 'user' 
                           ? 'bg-primary text-primary-foreground' 
                           : 'bg-muted dark:bg-gray-800'
@@ -428,7 +428,7 @@ Stay safe!`;
                           <span className="text-sm">Thinking...</span>
                         </div>
                       ) : (
-                        <div className="whitespace-pre-wrap break-words overflow-hidden">
+                        <div className="whitespace-pre-wrap break-words">
                           {message.content}
                         </div>
                       )}
