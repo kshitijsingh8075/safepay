@@ -32,13 +32,29 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Effect to initialize theme from localStorage, cookie, or system preference
   useEffect(() => {
-    // Check if theme is saved in localStorage or cookie
-    const savedTheme = localStorage.getItem('theme') || 
-                      Cookies.get('theme') || 
-                      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    // First try to get theme from localStorage
+    let savedTheme = localStorage.getItem('theme');
     
-    if (savedTheme === 'dark' || savedTheme === 'light') {
-      setTheme(savedTheme);
+    // If not found in localStorage, try cookies
+    if (!savedTheme) {
+      const cookieTheme = Cookies.get('theme');
+      if (cookieTheme) {
+        savedTheme = cookieTheme as string;
+      }
+    }
+    
+    // If still not found, check system preference
+    if (!savedTheme) {
+      savedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    
+    // Apply theme immediately on page load, before React rendering
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+      setTheme('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      setTheme('light');
     }
   }, []);
 
