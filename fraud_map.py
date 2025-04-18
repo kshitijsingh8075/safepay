@@ -238,6 +238,27 @@ def add_new_city(df, city, state, scam_cases, has_scam_types=False):
     
     return df, False
 
+def generate_india_map_background():
+    """Generate a base map of India with state boundaries"""
+    # Create a map centered on India
+    india_map = folium.Map(
+        location=[20.5937, 78.9629],
+        zoom_start=5,
+        tiles="CartoDB positron"
+    )
+    
+    # Add GeoJSON data for India boundaries
+    # Note: This is a simplified approach as real GeoJSON would require external files
+    # For a real implementation, you would use a proper India GeoJSON file
+    
+    # Add title to the map
+    title_html = '''
+        <h3 align="center" style="font-size:16px"><b>UPI Scam Density Map of India</b></h3>
+    '''
+    india_map.get_root().html.add_child(folium.Element(title_html))
+    
+    return india_map
+
 def main():
     """Main function for the Streamlit app"""
     # Header
@@ -254,16 +275,46 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Load data
-    df = load_data()
+    # Load data with scam type information
+    df, has_scam_types = load_data()
     
     if df.empty:
         st.warning("No data available. Please check the data file.")
         return
     
-    # Create sidebar for controls
+    # Create sidebar for enhanced controls
     with st.sidebar:
         st.header("Map Controls")
+        
+        # Improved search functionality with city input
+        st.subheader("Search Location")
+        
+        # Allow manual city input or selection from dropdown
+        search_option = st.radio("Search method:", ["Select from list", "Enter city name"])
+        
+        search_city = ""
+        if search_option == "Select from list":
+            search_city = st.selectbox(
+                "Select a city to highlight:",
+                options=[""] + sorted(df['City'].unique().tolist())
+            )
+        else:
+            # Direct city input with autocomplete suggestion
+            city_input = st.text_input("Enter city name:")
+            if city_input:
+                # Find closest match in the dataframe
+                matching_cities = [city for city in df['City'].unique() 
+                                  if city_input.lower() in city.lower()]
+                if matching_cities:
+                    search_city = st.selectbox(
+                        "Did you mean:",
+                        options=matching_cities
+                    )
+                    # If user confirms a city, use it
+                    if st.button("Confirm City"):
+                        search_city = search_city
+                else:
+                    st.warning(f"No cities found matching '{city_input}'")
         
         # Date filter
         st.subheader("Filter by Date")
@@ -279,13 +330,6 @@ def main():
         # Filter data by date
         filtered_df = df[df['Last Reported Date'].dt.date <= selected_date]
         
-        # Search functionality
-        st.subheader("Search Location")
-        search_city = st.selectbox(
-            "Select a city to highlight:",
-            options=[""] + sorted(df['City'].unique().tolist())
-        )
-        
         # Display city stats if selected
         if search_city:
             city_data = df[df['City'] == search_city].iloc[0]
@@ -300,6 +344,11 @@ def main():
             risk_level = "High Risk" if city_data['Scam Cases'] > 400 else "Medium Risk" if city_data['Scam Cases'] > 200 else "Low Risk"
             risk_color = "red" if risk_level == "High Risk" else "orange" if risk_level == "Medium Risk" else "green"
             st.markdown(f"- **Risk Level:** <span style='color:{risk_color};font-weight:bold;'>{risk_level}</span>", unsafe_allow_html=True)
+            
+            # Show View Details button for scam type breakdown
+            if has_scam_types and st.button("View Scam Type Details"):
+                st.session_state['show_scam_types'] = True
+            
         
         # Add new city section (admin only)
         st.subheader("Add New City (Admin)")
@@ -310,46 +359,117 @@ def main():
             
             if st.button("Add City"):
                 if new_city and new_state:
-                    updated_df, success = add_new_city(df, new_city, new_state, new_cases)
+                    updated_df, success = add_new_city(df, new_city, new_state, new_cases, has_scam_types)
                     if success:
                         st.success(f"Added {new_city}, {new_state} with {new_cases} scam cases")
-                        df = updated_df
+                        # Refresh the page to load new data
+                        st.experimental_rerun()
                     else:
                         st.error(f"Failed to geocode {new_city}, {new_state}")
                 else:
                     st.warning("Please enter both city and state")
     
-    # Main content area for map
-    zoom_level = 5
-    center_lat = 20.5937
-    center_lng = 78.9629
+    # Main content area for map and visualizations
     
-    # If a city is selected, center the map on it
-    if search_city:
-        city_data = df[df['City'] == search_city].iloc[0]
-        center_lat = city_data['Latitude']
-        center_lng = city_data['Longitude']
-        zoom_level = 8
+    # Set up tabs for different visualizations
+    tab1, tab2 = st.tabs(["Scam Map", "Scam Analytics"])
     
-    # Generate and display the map
-    m = generate_map(
-        filtered_df, 
-        center_lat=center_lat, 
-        center_lng=center_lng,
-        zoom=zoom_level,
-        search_city=search_city if search_city else None
-    )
+    with tab1:
+        # Map settings
+        zoom_level = 5
+        center_lat = 20.5937
+        center_lng = 78.9629
+        
+        # If a city is selected, center the map on it
+        if search_city:
+            city_data = df[df['City'] == search_city].iloc[0]
+            center_lat = city_data['Latitude']
+            center_lng = city_data['Longitude']
+            zoom_level = 8
+        
+        # Generate and display the map
+        m = generate_map(
+            filtered_df, 
+            center_lat=center_lat, 
+            center_lng=center_lng,
+            zoom=zoom_level,
+            search_city=search_city if search_city else None
+        )
+        
+        # Show the map with increased width to fit the entire India map
+        folium_static(m, width=1100, height=600)
+        
+        # Display pie chart for selected city if applicable
+        if search_city and has_scam_types and st.session_state.get('show_scam_types', False):
+            city_data = df[df['City'] == search_city].iloc[0]
+            
+            st.subheader(f"Scam Type Breakdown for {search_city}")
+            fig = create_scam_type_chart(city_data)
+            if fig:
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("No scam type data available for this city")
     
-    folium_static(m, width=1100, height=600)
-    
-    # Display data table
-    st.subheader("Scam Data by City")
-    st.dataframe(
-        filtered_df[['City', 'State', 'Scam Cases', 'Last Reported Date']].sort_values(
-            by='Scam Cases', ascending=False
-        ),
-        use_container_width=True
-    )
+    with tab2:
+        st.subheader("Scam Data Analytics")
+        
+        # Data table with enhanced filtering
+        st.write("Filter and sort the table to explore scam data:")
+        
+        # Add more filtering options
+        col1, col2 = st.columns(2)
+        with col1:
+            state_filter = st.multiselect(
+                "Filter by State:", 
+                options=sorted(df['State'].unique()),
+                default=[]
+            )
+        
+        with col2:
+            risk_filter = st.multiselect(
+                "Filter by Risk Level:",
+                options=["High Risk", "Medium Risk", "Low Risk"],
+                default=[]
+            )
+        
+        # Apply filters
+        display_df = filtered_df.copy()
+        
+        if state_filter:
+            display_df = display_df[display_df['State'].isin(state_filter)]
+        
+        if risk_filter:
+            risk_conditions = []
+            if "High Risk" in risk_filter:
+                risk_conditions.append(display_df['Scam Cases'] > 400)
+            if "Medium Risk" in risk_filter:
+                risk_conditions.append((display_df['Scam Cases'] > 200) & (display_df['Scam Cases'] <= 400))
+            if "Low Risk" in risk_filter:
+                risk_conditions.append(display_df['Scam Cases'] <= 200)
+            
+            if risk_conditions:
+                display_df = display_df[pd.concat(risk_conditions, axis=1).any(axis=1)]
+        
+        # Display the enhanced data table
+        st.dataframe(
+            display_df[['City', 'State', 'Scam Cases', 'Last Reported Date']].sort_values(
+                by='Scam Cases', ascending=False
+            ),
+            use_container_width=True
+        )
+        
+        # Show summary statistics
+        st.subheader("Summary Statistics")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Total Scam Cases", display_df['Scam Cases'].sum())
+        
+        with col2:
+            st.metric("Average Cases per City", round(display_df['Scam Cases'].mean(), 1))
+        
+        with col3:
+            st.metric("Cities Monitored", len(display_df))
     
     # Download options
     col1, col2 = st.columns(2)

@@ -35,6 +35,13 @@ async function comparePasswords(supplied: string, stored: string): Promise<boole
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+// Import for nodemailer to handle sending emails
+import nodemailer from "nodemailer";
+
+// OpenAI client for generating formal email content
+import OpenAI from "openai";
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // OTP Authentication routes
   app.post('/api/auth/request-otp', async (req, res) => {

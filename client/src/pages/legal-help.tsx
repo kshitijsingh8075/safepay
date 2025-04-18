@@ -17,17 +17,18 @@ import {
 import { 
   AlertCircle, 
   ArrowLeft, 
-  Check, 
-  Mic, 
-  MicOff, 
-  Send, 
-  Calendar, 
-  User, 
-  Loader2,
+  Check,
+  Mic,
+  MicOff,
+  Calendar,
+  User,
   Mail,
   Phone,
   Home,
-  Edit
+  Send,
+  Loader2,
+  Edit,
+  ExternalLink
 } from 'lucide-react';
 
 // Legal resources with exact URLs
@@ -462,8 +463,8 @@ export default function LegalHelp() {
           </div>
           <h2 className="text-xl font-bold mb-2">Complaint Submitted!</h2>
           <p className="text-center text-gray-600 mb-6">
-            Your complaint has been successfully submitted to the police. 
-            They will contact you if they need more information.
+            Your complaint has been successfully emailed to the Delhi Police Cyber Cell. 
+            A copy has also been sent to your email address for your records.
           </p>
           <Button onClick={resetForm} className="w-full bg-primary text-white mb-3">
             File Another Complaint
@@ -493,14 +494,51 @@ export default function LegalHelp() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-lg font-semibold">Complaint Preview</h2>
+          <h2 className="text-lg font-semibold">Email Preview</h2>
         </div>
         
-        <Card className="mb-6">
-          <pre className="whitespace-pre-wrap text-sm p-4 bg-gray-50 rounded-lg">
-            {complaintLetter}
-          </pre>
-        </Card>
+        {isEditingEmail ? (
+          <div className="mb-4">
+            <Textarea
+              className="font-mono text-sm h-[400px] mb-4"
+              value={generatedEmail}
+              onChange={(e) => setGeneratedEmail(e.target.value)}
+            />
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsEditingEmail(false)}
+              className="mb-4"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              Done Editing
+            </Button>
+          </div>
+        ) : (
+          <Card className="mb-6">
+            <div className="flex justify-between items-center p-3 border-b">
+              <div className="text-sm text-gray-600">
+                <span className="font-semibold">To:</span> jointcp.ifsosplcell@delhipolice.gov.in
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setIsEditingEmail(true)}
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+            </div>
+            <div className="p-3 border-b">
+              <div className="text-sm text-gray-600">
+                <span className="font-semibold">Subject:</span> UPI Fraud Complaint: {scammerUpiId}
+              </div>
+            </div>
+            <pre className="whitespace-pre-wrap text-sm p-4 bg-gray-50 rounded-b-lg max-h-[350px] overflow-y-auto">
+              {generatedEmail}
+            </pre>
+          </Card>
+        )}
         
         <div className="flex flex-col gap-3">
           <Button 
@@ -508,7 +546,17 @@ export default function LegalHelp() {
             disabled={isSubmitting}
             className="w-full bg-primary text-white"
           >
-            {isSubmitting ? "Submitting..." : "Submit Complaint"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Sending email...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                Send Complaint Email
+              </>
+            )}
           </Button>
           
           <Button 
@@ -538,67 +586,256 @@ export default function LegalHelp() {
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 flex items-start">
             <AlertCircle className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-yellow-700">
-              This will generate an official complaint to be sent directly to the cyber crime police department.
+              This will generate an official complaint email to the Delhi Police Cyber Cell. 
+              Please provide accurate information for proper investigation.
             </p>
           </div>
           
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="upi-id" className="text-sm text-gray-500">UPI ID</Label>
-              <Input
-                id="upi-id"
-                type="text"
-                value={upiId}
-                onChange={(e) => setUpiId(e.target.value)}
-                placeholder="Enter scammer's UPI ID"
-                className="mt-1"
-              />
+          {/* Form Steps Navigation */}
+          <div className="flex mb-6">
+            <div 
+              className={`flex-1 py-2 text-center relative font-medium text-sm ${formStep === 1 ? 'text-primary border-b-2 border-primary' : 'text-gray-500 cursor-pointer'}`} 
+              onClick={() => formStep > 1 && setFormStep(1)}
+            >
+              1. Your Details
             </div>
-            
-            <div>
-              <Label htmlFor="name" className="text-sm text-gray-500">NAME</Label>
-              <Input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter recipient's name"
-                className="mt-1"
-              />
+            <div 
+              className={`flex-1 py-2 text-center relative font-medium text-sm ${formStep === 2 ? 'text-primary border-b-2 border-primary' : 'text-gray-500 cursor-pointer'}`}
+              onClick={() => formStep > 2 && setFormStep(2)}
+            >
+              2. Scammer Details
             </div>
-            
-            <div>
-              <Label htmlFor="amount" className="text-sm text-gray-500">AMOUNT</Label>
-              <div className="flex items-center mt-1">
-                <span className="text-gray-900 mr-2 ml-3">₹</span>
-                <Input
-                  id="amount"
-                  type="text"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value.replace(/[^0-9,.]/g, ''))}
-                  placeholder="Enter amount lost"
-                  className="flex-1"
-                />
-              </div>
+            <div 
+              className={`flex-1 py-2 text-center relative font-medium text-sm ${formStep === 3 ? 'text-primary border-b-2 border-primary' : 'text-gray-500'}`}
+            >
+              3. Description
             </div>
           </div>
+          
+          {/* Form Step 1: Your Information */}
+          {formStep === 1 && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="user-full-name" className="text-sm text-gray-500">
+                  <User className="h-4 w-4 inline mr-1" />
+                  Your Full Name
+                </Label>
+                <Input
+                  id="user-full-name"
+                  type="text"
+                  value={userFullName}
+                  onChange={(e) => setUserFullName(e.target.value)}
+                  placeholder="e.g. Rahul Sharma"
+                  className="mt-1"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="user-email" className="text-sm text-gray-500">
+                  <Mail className="h-4 w-4 inline mr-1" />
+                  Your Email
+                </Label>
+                <Input
+                  id="user-email"
+                  type="email"
+                  value={userEmail}
+                  onChange={(e) => setUserEmail(e.target.value)}
+                  placeholder="e.g. rahul.sharma@gmail.com"
+                  className="mt-1"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="user-phone" className="text-sm text-gray-500">
+                  <Phone className="h-4 w-4 inline mr-1" />
+                  Your Phone Number
+                </Label>
+                <Input
+                  id="user-phone"
+                  type="tel"
+                  value={userPhone}
+                  onChange={(e) => setUserPhone(e.target.value)}
+                  placeholder="e.g. 9876543210"
+                  className="mt-1"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="user-address" className="text-sm text-gray-500">
+                  <Home className="h-4 w-4 inline mr-1" />
+                  Your Address
+                </Label>
+                <Textarea
+                  id="user-address"
+                  value={userAddress}
+                  onChange={(e) => setUserAddress(e.target.value)}
+                  placeholder="Your full current address"
+                  className="mt-1"
+                  required
+                />
+              </div>
+              
+              <Button 
+                onClick={() => setFormStep(2)}
+                className="w-full bg-primary text-white mt-2"
+                disabled={!userFullName || !userEmail || !userPhone || !userAddress}
+              >
+                Next Step
+              </Button>
+            </div>
+          )}
+          
+          {/* Form Step 2: Scammer Information */}
+          {formStep === 2 && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="scammer-upi-id" className="text-sm text-gray-500">Scammer's UPI ID</Label>
+                <Input
+                  id="scammer-upi-id"
+                  type="text"
+                  value={scammerUpiId}
+                  onChange={(e) => setScammerUpiId(e.target.value)}
+                  placeholder="e.g. fraudster@okaxis"
+                  className="mt-1"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="scammer-name" className="text-sm text-gray-500">Scammer's Name (if known)</Label>
+                <Input
+                  id="scammer-name"
+                  type="text"
+                  value={scammerName}
+                  onChange={(e) => setScammerName(e.target.value)}
+                  placeholder="e.g. John Smith"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="fraud-amount" className="text-sm text-gray-500">Fraud Amount (₹)</Label>
+                <Input
+                  id="fraud-amount"
+                  type="text"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="e.g. 5000"
+                  className="mt-1"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="date-of-scam" className="text-sm text-gray-500">
+                  <Calendar className="h-4 w-4 inline mr-1" />
+                  Date of Fraud
+                </Label>
+                <Input
+                  id="date-of-scam"
+                  type="date"
+                  value={dateOfScam}
+                  onChange={(e) => setDateOfScam(e.target.value)}
+                  className="mt-1"
+                  required
+                />
+              </div>
+              
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline"
+                  onClick={() => setFormStep(1)}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                
+                <Button 
+                  onClick={() => setFormStep(3)}
+                  className="flex-1 bg-primary text-white"
+                  disabled={!scammerUpiId || !amount}
+                >
+                  Next Step
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Form Step 3: Description with Voice Input */}
+          {formStep === 3 && (
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <Label htmlFor="fraud-description" className="text-sm text-gray-500">
+                    Fraud Description
+                  </Label>
+                  
+                  {/* Voice recording button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={isRecording ? "animate-pulse bg-red-50 text-red-500 border-red-200" : ""}
+                  >
+                    {isRecording ? (
+                      <>
+                        <MicOff className="h-4 w-4 mr-2" />
+                        Stop Recording ({formatDuration(recordingDuration)})
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="h-4 w-4 mr-2" />
+                        Voice Input
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <Textarea
+                  id="fraud-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe how the fraud happened in detail. Include how you were contacted, what was promised, how the payment was made, etc."
+                  className="mt-1"
+                  rows={8}
+                  required
+                />
+                
+                <p className="text-xs text-gray-500 mt-1">
+                  You can use the voice input button to dictate your description.
+                </p>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline"
+                  onClick={() => setFormStep(2)}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                
+                <Button 
+                  onClick={generateComplaintEmail}
+                  className="flex-1 bg-primary text-white"
+                  disabled={!description || isGeneratingEmail}
+                >
+                  {isGeneratingEmail ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate Email"
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
-        
-        <Card className="p-5 mb-6">
-          <h3 className="font-medium mb-3">Complaint Letter</h3>
-          <p className="text-sm text-gray-600 mb-2">
-            A complaint letter will be generated with the details you provided.
-            You'll be able to review it before submission.
-          </p>
-        </Card>
-        
-        <Button 
-          onClick={() => setShowComplaintPreview(true)}
-          disabled={!upiId || !name}
-          className="w-full bg-primary text-white"
-        >
-          Preview Complaint
-        </Button>
       </div>
     );
   };
