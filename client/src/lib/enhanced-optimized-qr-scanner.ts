@@ -1,209 +1,130 @@
 import { apiRequest } from "./queryClient";
 
-/**
- * Enhanced Optimized QR Scanner Service
- * High-performance QR analysis with ML and rule-based checks
- */
-
 export interface QRScanResult {
   risk_score: number;
   risk_level: 'Low' | 'Medium' | 'High';
-  recommendation: 'Allow' | 'Verify' | 'Block';
-  qr_type?: 'upi' | 'url' | 'text';
-  latency_ms?: number;
-  reasons?: string[];
+  reasons: string[];
+  qr_type: string;
+  latency_ms: number;
 }
 
 export interface UPIPaymentInfo {
-  pa: string;  // UPI ID (payee address)
-  pn?: string; // Payee name
-  am?: number; // Amount
-  tn?: string; // Transaction note/reference
-  cu?: string; // Currency
-  valid: boolean;
+  pa: string;         // Payment address (UPI ID)
+  pn: string;         // Payee name
+  am?: number;        // Amount
+  tn?: string;        // Transaction note
+  cu?: string;        // Currency
+  valid: boolean;     // Is valid UPI format
 }
 
 /**
- * Analyze a QR code using the optimized ML service
- * @param qrText Text content of QR code
- * @returns Analysis result with risk assessment
+ * Analyze QR code using the optimized ML service
+ * @param qrText Text from QR code
+ * @returns Analysis result
  */
 export async function analyzeQRWithOptimizedML(qrText: string): Promise<QRScanResult> {
   try {
-    const startTime = Date.now();
     const response = await apiRequest('POST', '/api/optimized-qr/analyze', {
       qr_text: qrText
     });
     
     if (!response.ok) {
-      throw new Error(`Optimized QR analysis error: ${response.status} ${response.statusText}`);
+      throw new Error(`QR analysis error: ${response.status} ${response.statusText}`);
     }
     
     const result = await response.json();
-    const endTime = Date.now();
     
-    // Structure the result in expected format
+    // Ensure we have a consistent format
     return {
       risk_score: result.risk_score || 0,
-      risk_level: mapRiskLevel(result.risk_score || 0),
-      recommendation: mapRecommendation(result.risk_score || 0),
-      latency_ms: result.latency_ms || (endTime - startTime),
-      qr_type: determineQRType(qrText),
-      reasons: result.reasons || []
+      risk_level: result.risk_level || 'Low',
+      reasons: result.reasons || [],
+      qr_type: result.qr_type || 'unknown',
+      latency_ms: result.latency_ms || 0
     };
   } catch (error) {
-    console.error('Optimized QR analysis failed:', error);
+    console.error('Error in optimized QR analysis:', error);
     
-    // Fallback to basic analysis
-    return performBasicAnalysis(qrText);
+    // Return a fallback analysis result
+    return {
+      risk_score: 50,
+      risk_level: 'Medium',
+      reasons: ['Error analyzing QR code', 'Using fallback analysis'],
+      qr_type: qrText.startsWith('upi://') ? 'upi' : 
+               qrText.startsWith('http') ? 'url' : 'text',
+      latency_ms: 0
+    };
   }
 }
 
 /**
- * Extract UPI payment information from QR text
- * @param qrText UPI QR code text
- * @returns Payment information or null
+ * Extract UPI payment details from QR text
  */
-export function extractUPIPaymentInfo(qrText: string): any {
+export async function extractUPIDetails(qrText: string): Promise<UPIPaymentInfo | null> {
   if (!qrText.startsWith('upi://')) {
     return null;
   }
   
   try {
-    // Extract payment parameters from UPI URI
-    const upiId = qrText.match(/pa=([^&]+)/);
-    const name = qrText.match(/pn=([^&]+)/);
-    const amount = qrText.match(/am=([^&]+)/);
-    const note = qrText.match(/tn=([^&]+)/);
-    const currency = qrText.match(/cu=([^&]+)/);
-    
-    // Validate that we extracted a UPI ID
-    const valid = !!upiId && upiId[1].includes('@');
-    
-    if (!valid) {
-      return null;
+    // Try server-side extraction first
+    try {
+      const response = await apiRequest('POST', '/api/direct-qr/extract-upi', { 
+        qr_text: qrText 
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result && result.pa) {
+          return result;
+        }
+      }
+    } catch (e) {
+      console.warn('Server UPI extraction failed, falling back to client-side:', e);
     }
     
-    // Format the extracted information
-    return {
-      valid,
-      upiId: upiId ? decodeURIComponent(upiId[1]) : '',
-      name: name ? decodeURIComponent(name[1]) : '',
-      amount: amount ? amount[1] : '',
-      note: note ? decodeURIComponent(note[1]) : '',
-      currency: currency ? currency[1] : 'INR'
+    // Client-side fallback
+    const result: UPIPaymentInfo = {
+      pa: '',
+      pn: '',
+      valid: false
     };
-  } catch (error) {
-    console.error('Error extracting UPI payment info:', error);
-    return null;
-  }
-}
-
-/**
- * Basic function to analyze QR text when API is unavailable
- * @param qrText QR code text
- * @returns Simple risk assessment
- */
-function performBasicAnalysis(qrText: string): QRScanResult {
-  const startTime = Date.now();
-  const qrType = determineQRType(qrText);
-  let riskScore = 0;
-  const reasons: string[] = [];
-  
-  // Apply some basic heuristic checks
-  if (qrType === 'url') {
-    // Check for HTTP (non-secure)
-    if (qrText.startsWith('http://')) {
-      riskScore += 30;
-      reasons.push('Non-secure HTTP connection');
+    
+    // Extract parameters
+    const paMatch = qrText.match(/pa=([^&]+)/);
+    const pnMatch = qrText.match(/pn=([^&]+)/);
+    const amMatch = qrText.match(/am=([^&]+)/);
+    const tnMatch = qrText.match(/tn=([^&]+)/);
+    const cuMatch = qrText.match(/cu=([^&]+)/);
+    
+    if (paMatch) {
+      result.pa = decodeURIComponent(paMatch[1]);
     }
     
-    // Check for suspicious URL keywords
-    const suspiciousTerms = ['login', 'signin', 'account', 'password', 'verify', 'bank', 'update'];
-    for (const term of suspiciousTerms) {
-      if (qrText.toLowerCase().includes(term)) {
-        riskScore += 15;
-        reasons.push(`Contains suspicious keyword: ${term}`);
-        break;
+    if (pnMatch) {
+      result.pn = decodeURIComponent(pnMatch[1]);
+    }
+    
+    if (amMatch) {
+      const amount = parseFloat(amMatch[1]);
+      if (!isNaN(amount)) {
+        result.am = amount;
       }
     }
     
-    // Check for shortened URLs
-    if (qrText.includes('bit.ly') || qrText.includes('goo.gl') || qrText.includes('tinyurl')) {
-      riskScore += 25;
-      reasons.push('Contains shortened URL (can mask destination)');
-    }
-  } else if (qrType === 'upi') {
-    // Validate UPI format
-    const upiInfo = extractUPIPaymentInfo(qrText);
-    if (!upiInfo || !upiInfo.valid) {
-      riskScore += 40;
-      reasons.push('Invalid UPI format');
+    if (tnMatch) {
+      result.tn = decodeURIComponent(tnMatch[1]);
     }
     
-    // Check for suspicious UPI ID patterns
-    if (qrText.toLowerCase().includes('verify') || qrText.toLowerCase().includes('update')) {
-      riskScore += 50;
-      reasons.push('UPI ID contains suspicious keywords');
+    if (cuMatch) {
+      result.cu = decodeURIComponent(cuMatch[1]);
     }
+    
+    // Check if UPI ID is valid
+    result.valid = !!result.pa && result.pa.includes('@');
+    
+    return result;
+  } catch (error) {
+    console.error('Error extracting UPI details:', error);
+    return null;
   }
-  
-  // Cap risk score at 100
-  riskScore = Math.min(100, riskScore);
-  
-  // If no specific issues found, add low baseline risk
-  if (reasons.length === 0) {
-    if (qrType === 'url') {
-      reasons.push('No specific issues detected, but use caution with any URL');
-      riskScore = Math.max(riskScore, 15);
-    } else if (qrType === 'upi') {
-      reasons.push('No specific issues detected in UPI QR');
-      riskScore = Math.max(riskScore, 10);
-    } else {
-      reasons.push('Plain text QR code');
-      riskScore = Math.max(riskScore, 5);
-    }
-  }
-  
-  return {
-    risk_score: riskScore,
-    risk_level: mapRiskLevel(riskScore),
-    recommendation: mapRecommendation(riskScore),
-    qr_type: qrType,
-    latency_ms: Date.now() - startTime,
-    reasons
-  };
-}
-
-/**
- * Map numeric risk score to risk level
- * @param score Risk score (0-100)
- * @returns Risk level classification
- */
-function mapRiskLevel(score: number): 'Low' | 'Medium' | 'High' {
-  if (score >= 70) return 'High';
-  if (score >= 40) return 'Medium';
-  return 'Low';
-}
-
-/**
- * Map risk score to action recommendation
- * @param score Risk score (0-100)
- * @returns Recommended action
- */
-function mapRecommendation(score: number): 'Allow' | 'Verify' | 'Block' {
-  if (score >= 70) return 'Block';
-  if (score >= 40) return 'Verify';
-  return 'Allow';
-}
-
-/**
- * Determine QR code type from content
- * @param qrText QR code text
- * @returns QR type classification
- */
-function determineQRType(qrText: string): 'upi' | 'url' | 'text' {
-  if (qrText.startsWith('upi://')) return 'upi';
-  if (qrText.startsWith('http://') || qrText.startsWith('https://')) return 'url';
-  return 'text';
 }
