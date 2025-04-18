@@ -392,15 +392,15 @@ Stay safe!`;
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 p-0 overflow-hidden relative">
-          <ScrollArea className="h-[calc(100dvh-10rem)] pb-20 overflow-y-auto">
-            <div className="flex flex-col p-4 gap-4">
+          <ScrollArea className="h-[calc(100dvh-10rem)] pb-20 overflow-y-auto overflow-x-hidden">
+            <div className="flex flex-col p-4 gap-4 overflow-hidden">
               {messages.map((message) => (
                 <div 
                   key={message.id} 
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`flex gap-2 max-w-[80%] ${
+                    className={`flex gap-2 max-w-[85%] overflow-hidden ${
                       message.role === 'user' 
                         ? 'flex-row-reverse' 
                         : 'flex-row'
@@ -416,7 +416,7 @@ Stay safe!`;
                       {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                     </div>
                     <div 
-                      className={`rounded-lg p-3 shadow-sm ${
+                      className={`rounded-lg p-3 shadow-sm max-w-full overflow-hidden ${
                         message.role === 'user' 
                           ? 'bg-primary text-primary-foreground' 
                           : 'bg-muted dark:bg-gray-800'
@@ -428,7 +428,7 @@ Stay safe!`;
                           <span className="text-sm">Thinking...</span>
                         </div>
                       ) : (
-                        <div className="whitespace-pre-wrap">
+                        <div className="whitespace-pre-wrap break-words overflow-hidden">
                           {message.content}
                         </div>
                       )}
