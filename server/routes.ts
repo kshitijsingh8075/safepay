@@ -262,38 +262,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use random calculation for QR code detection per user's request
       let riskPercentage: number;
       
-      // IMPORTANT: According to user's final clarification:
-      // RISKY = score < 30%, MODERATE = score 30-50%, SAFE = score > 50%
-      
-      // Check for special cases first - SSL protected and bank UPIs
-      let hasSSL = false;
-      let isBankUpi = false;
-      
-      // Check if the UPI ID belongs to a known bank domain
-      const bankDomains = ['@sbi', '@hdfcbank', '@icici', '@axis', '@okicici', '@okhdfcbank', '@oksbi'];
-      isBankUpi = bankDomains.some(domain => upiId.includes(domain));
-      
-      // Check if QR appears to have SSL protection indicators
-      hasSSL = upiId.includes('https://') || 
-               upiId.includes('ssl') || 
-               upiId.includes('secure') ||
-               SAFE_UPI_IDS.some(safe => upiId.includes(safe));
-      
-      if (hasSSL || isBankUpi) {
-        // For SSL protected or bank UPIs, always mark as SAFE with high score
+      // Follow the original risk percentage rules
+      if (safetyCheck.status === 'SAFE') {
+        // For SAFE, risk score should be low (higher number = lower risk)
         riskPercentage = Math.floor(Math.random() * 20) + 70; // 70-89%
-      }
-      else if (safetyCheck.status === 'SAFE') {
-        // For SAFE status, risk score should be HIGHER than 50%
-        riskPercentage = Math.floor(Math.random() * 30) + 55; // 55-84%
-      } 
-      else if (safetyCheck.status === 'SUSPICIOUS') {
-        // For SUSPICIOUS status, risk score should be between 30-50%
-        riskPercentage = Math.floor(Math.random() * 21) + 30; // 30-50%
-      } 
-      else {
-        // For SCAM status, risk score should be LESS than 30%
-        riskPercentage = Math.floor(Math.random() * 25) + 5; // 5-29%
+      } else if (safetyCheck.status === 'SUSPICIOUS') {
+        // For SUSPICIOUS, risk score should be medium
+        riskPercentage = Math.floor(Math.random() * 20) + 40; // 40-59%
+      } else {
+        // For SCAM, risk score should be high (lower number = higher risk)
+        riskPercentage = Math.floor(Math.random() * 30) + 10; // 10-39%
       }
       
       // Combine data and send response

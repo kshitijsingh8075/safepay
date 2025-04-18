@@ -423,33 +423,13 @@ export async function checkUpiSafety(upiId: string): Promise<UpiCheckResult> {
   // Normalize the UPI ID
   upiId = upiId.trim().toLowerCase();
   
-  // If UPI ID is empty or invalid, use only the risk percentage logic
-  if (!upiId || !upiId.includes('@')) {
-    // For user request: follow percentage-based risk logic for invalid UPI IDs
-    const randomScore = Math.random(); // Generate a risk score between 0 and 1
-    
-    if (randomScore > 0.5) {
-      return {
-        status: 'SAFE',
-        reason: 'QR code appears to be legitimate',
-        confidence_score: 1 - randomScore,
-        recommendations: getRecommendations('SAFE')
-      };
-    } else if (randomScore > 0.3) {
-      return {
-        status: 'SUSPICIOUS',
-        reason: 'QR code has moderate risk indicators',
-        confidence_score: randomScore,
-        recommendations: getRecommendations('SUSPICIOUS')
-      };
-    } else {
-      return {
-        status: 'SCAM',
-        reason: 'QR code has high risk indicators',
-        confidence_score: 1 - randomScore,
-        recommendations: getRecommendations('SCAM')
-      };
-    }
+  // Validate format
+  if (!upiId.includes('@')) {
+    return {
+      status: 'SUSPICIOUS',
+      reason: 'Invalid UPI ID format (missing @ symbol)',
+      confidence_score: 0.8
+    };
   }
   
   // Direct matches against known safe UPIs
@@ -512,69 +492,32 @@ export async function checkUpiSafety(upiId: string): Promise<UpiCheckResult> {
     // Continue with standard checks if AI fails
   }
   
-  // Check if this is a known safe UPI first
+  // Determine status based on pattern score
   let result: UpiCheckResult;
-  
-  // Handle known safe UPI IDs with explicit check
-  if (SAFE_UPI_IDS.some(safeId => upiId.includes(safeId))) {
-    // Always mark known safe UPIs as SAFE with low risk
+  if (patternScore > 0.7) {
     result = {
-      status: 'SAFE',
-      reason: 'This is a known legitimate UPI ID',
-      confidence_score: 0.1,
-      category: 'Verified',
-      recommendations: getRecommendations('SAFE')
-    };
-  }
-  // Handle known bank domains as safe
-  else if (
-    upiId.includes('@sbi') || 
-    upiId.includes('@hdfcbank') || 
-    upiId.includes('@icici') || 
-    upiId.includes('@axis') || 
-    upiId.includes('@okicici') || 
-    upiId.includes('@okhdfcbank') || 
-    upiId.includes('@oksbi')
-  ) {
-    // Always mark bank UPIs as SAFE with very low risk
-    result = {
-      status: 'SAFE',
-      reason: 'This appears to be a legitimate bank UPI ID',
-      confidence_score: 0.1,
-      category: 'Verified Bank',
-      recommendations: getRecommendations('SAFE')
-    };
-  }
-  // For other cases, maintain the percentage-based classification
-  else if (patternScore < 0.3) {
-    // Low pattern score means it's probably safe
-    result = {
-      status: 'SAFE',
-      reason: 'QR code appears to be legitimate',
-      confidence_score: 0.1,
-      risk_factors: riskFactors.length > 0 ? riskFactors : undefined,
+      status: 'SCAM',
+      reason: 'High-risk pattern detected',
+      confidence_score: patternScore,
+      risk_factors: riskFactors,
       category: 'Pattern Analysis',
-      recommendations: getRecommendations('SAFE')
+      recommendations: getRecommendations('SCAM')
     };
-  } else if (patternScore < 0.5) {
-    // Medium pattern score means it's suspicious
+  } else if (patternScore > 0.4) {
     result = {
       status: 'SUSPICIOUS',
-      reason: 'QR code has moderate risk indicators',
-      confidence_score: 0.5,
+      reason: 'Moderate-risk pattern detected',
+      confidence_score: patternScore,
       risk_factors: riskFactors,
       category: 'Pattern Analysis',
       recommendations: getRecommendations('SUSPICIOUS')
     };
   } else {
-    // High pattern score means it's likely a scam
     result = {
-      status: 'SCAM',
-      reason: 'QR code has high risk indicators',
-      confidence_score: 0.9,
-      risk_factors: riskFactors,
-      category: 'Pattern Analysis',
-      recommendations: getRecommendations('SCAM')
+      status: 'SAFE',
+      reason: 'No known risk factors detected',
+      confidence_score: 1 - patternScore,
+      recommendations: getRecommendations('SAFE')
     };
   }
   
