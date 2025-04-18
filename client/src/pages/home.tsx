@@ -135,10 +135,10 @@ export default function Home() {
             </button>
             
             <button 
-              onClick={() => setLocation('/upi-check')}
+              onClick={() => setLocation('/scam-news')}
               className="flex flex-col items-center"
             >
-              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-1 transition-colors duration-300">
+              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-1 transition-colors duration-300 relative">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
@@ -150,11 +150,14 @@ export default function Home() {
                   <path 
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
-                    d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" 
+                    d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"
                   />
                 </svg>
+                <div className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold">
+                  !
+                </div>
               </div>
-              <span className="text-[10px] text-center dark:text-gray-300">UPI Scam Check</span>
+              <span className="text-[10px] text-center dark:text-gray-300">Scam News</span>
             </button>
             
             <button 
@@ -207,7 +210,7 @@ export default function Home() {
           {/* Second row */}
           <div className="grid grid-cols-4 gap-2 mb-4">
             <button 
-              onClick={() => setLocation('/scam-news')}
+              onClick={() => setLocation('/upi-check')}
               className="flex flex-col items-center"
             >
               <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
@@ -222,11 +225,11 @@ export default function Home() {
                   <path 
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
-                    d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" 
+                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center dark-text-secondary">Scam News</span>
+              <span className="text-[10px] text-center dark-text-secondary">UPI Check</span>
             </button>
             
             <button 
