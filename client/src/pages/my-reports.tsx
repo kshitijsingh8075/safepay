@@ -40,14 +40,26 @@ export default function MyReports() {
   const [, setLocation] = useLocation();
   const [selectedReport, setSelectedReport] = React.useState<FormattedReport | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const { authState, requireLogin } = useAuthState();
   
-  // In a real app, this would come from authentication
-  const userId = 1;
+  // Redirect if not logged in
+  React.useEffect(() => {
+    if (!authState.isLoggedIn) {
+      setLocation('/login');
+    }
+  }, [authState.isLoggedIn, setLocation]);
+  
+  // Get user ID from auth state
+  const userId = authState.isLoggedIn && authState.userId ? parseInt(authState.userId) : null;
   
   // Fetch user scam reports
   const { data: reports, isLoading, error } = useQuery({
     queryKey: ['/api/user/scam-reports', userId],
     queryFn: async () => {
+      if (!userId) {
+        throw new Error('User not logged in');
+      }
+      
       const res = await apiRequest('GET', `/api/user/${userId}/scam-reports`);
       const data = await res.json();
       

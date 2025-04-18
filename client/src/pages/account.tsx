@@ -16,22 +16,36 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuthState } from '@/hooks/use-auth-state';
 
 export default function Account() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { authState, logout } = useAuthState();
 
-  // Get user ID (for demo purposes)
-  const userId = 1;
+  // Redirect if not logged in
+  React.useEffect(() => {
+    if (!authState.isLoggedIn) {
+      setLocation('/login');
+    }
+  }, [authState.isLoggedIn, setLocation]);
+
+  // Get user ID from auth state
+  const userId = authState.isLoggedIn && authState.userId ? parseInt(authState.userId) : null;
 
   // Fetch user profile data
   const { data: user, isLoading } = useQuery({
     queryKey: ['/api/users', userId],
     queryFn: async () => {
-      const res = await fetch(`/api/users/${userId}`);
+      if (!userId) {
+        throw new Error('User not logged in');
+      }
+      
+      const res = await apiRequest('GET', `/api/users/${userId}`);
       if (!res.ok) throw new Error('Failed to load user profile');
       return res.json();
     },
+    enabled: !!userId,
   });
 
   // Menu items for the account section

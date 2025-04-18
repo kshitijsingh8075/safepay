@@ -320,6 +320,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // New API endpoint for client compatibility
+  app.post('/api/scam-reports', async (req, res) => {
+    try {
+      const { upiId, userId, scamType, description, amountLost } = req.body;
+      
+      // Data validation
+      if (!upiId) {
+        return res.status(400).json({ error: 'UPI ID is required' });
+      }
+      
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+      }
+      
+      // Convert amount to number if needed
+      let numericAmount = null;
+      if (amountLost) {
+        const cleanAmount = amountLost.toString().replace(/[^\d.]/g, '');
+        numericAmount = parseFloat(cleanAmount);
+      }
+      
+      // Map string scam type to enum if needed
+      let finalScamType = scamType;
+      if (typeof scamType === 'string') {
+        switch(scamType.toLowerCase()) {
+          case 'banking':
+          case 'banking scam':
+            finalScamType = ScamType.Banking;
+            break;
+          case 'kyc':
+          case 'kyc verification scam':
+            finalScamType = ScamType.KYC;
+            break;
+          case 'lottery':
+          case 'lottery scam':
+            finalScamType = ScamType.Lottery;
+            break;
+          case 'refund':
+          case 'refund scam':
+            finalScamType = ScamType.Refund;
+            break;
+          case 'phishing':
+          case 'phishing attempt':
+            finalScamType = ScamType.Phishing;
+            break;
+          case 'reward':
+          case 'reward scam':
+            finalScamType = ScamType.Reward;
+            break;
+          default:
+            finalScamType = ScamType.Unknown;
+        }
+      }
+      
+      const report = await storage.createScamReport({
+        upiId,
+        userId: parseInt(userId.toString()),
+        scamType: finalScamType,
+        description: description || null,
+        amountLost: numericAmount
+      });
+      
+      // Update UPI risk score
+      await storage.updateUpiRiskScore(upiId);
+      
+      res.status(201).json({
+        message: 'Scam report submitted successfully',
+        reportId: report.id
+      });
+    } catch (error) {
+      console.error('Error creating scam report:', error);
+      res.status(500).json({ error: 'Failed to submit scam report' });
+    }
+  });
+  
   // Police complaint routes
   app.post('/api/report/police-complaint', async (req, res) => {
     try {
