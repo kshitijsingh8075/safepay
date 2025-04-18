@@ -15,6 +15,7 @@ import { registerRiskAnalysisRoutes } from "./routes/risk-analysis";
 import { registerSimSwapProtectionRoutes } from "./routes/sim-swap-protection";
 import { registerMLQRScanRoutes } from "./routes/ml-qr-scan";
 import { registerOptimizedQRScanRoutes } from "./routes/register-optimized-qr-scan";
+import { registerEnhancedQRScanRoutes } from "./routes/register-enhanced-qr-scan";
 import { registerPoliceComplaintRoutes } from "./routes/police-complaint";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -812,6 +813,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Optimized QR scanner routes
   registerOptimizedQRScanRoutes(app);
+  
+  // Register Enhanced QR scanner routes with improved scam detection
+  registerEnhancedQRScanRoutes(app);
+  
+  // Register Police Complaint routes
   registerPoliceComplaintRoutes(app);
   
   // No test pages anymore
