@@ -23,7 +23,7 @@ export interface UnifiedQRAnalysisResult {
   };
   
   // Additional metadata
-  qr_type: 'upi' | 'url' | 'text';
+  qr_type: 'upi' | 'url' | 'text' | 'unknown';
   service_used: 'enhanced' | 'optimized' | 'direct' | 'basic';
   processing_time_ms: number;
   timestamp: string;
@@ -56,7 +56,7 @@ export async function analyzeQRCode(qrText: string): Promise<UnifiedQRAnalysisRe
         risk_score: enhancedResult.risk_score,
         risk_level: enhancedResult.risk_level as 'Low' | 'Medium' | 'High',
         reasons: enhancedResult.reasons,
-        qr_type: enhancedResult.qr_type,
+        qr_type: enhancedResult.qr_type as 'upi' | 'url' | 'text' | 'unknown',
         service_used: 'enhanced',
         processing_time_ms: enhancedResult.latency_ms,
         timestamp: new Date().toISOString()
@@ -95,7 +95,7 @@ export async function analyzeQRCode(qrText: string): Promise<UnifiedQRAnalysisRe
         risk_score: optimizedResult.risk_score,
         risk_level: optimizedResult.risk_level as 'Low' | 'Medium' | 'High',
         reasons: optimizedResult.reasons || [],
-        qr_type: optimizedResult.qr_type as 'upi' | 'url' | 'text',
+        qr_type: optimizedResult.qr_type as 'upi' | 'url' | 'text' | 'unknown',
         service_used: 'optimized',
         processing_time_ms: optimizedResult.latency_ms || Date.now() - startTime,
         timestamp: new Date().toISOString()
@@ -131,7 +131,7 @@ export async function analyzeQRCode(qrText: string): Promise<UnifiedQRAnalysisRe
         risk_score: directResult.analysis.risk_score,
         risk_level: directResult.analysis.risk_level as 'Low' | 'Medium' | 'High',
         reasons: directResult.analysis.reasons,
-        qr_type: directResult.analysis.qr_type,
+        qr_type: directResult.analysis.qr_type as 'upi' | 'url' | 'text' | 'unknown',
         service_used: 'direct',
         processing_time_ms: directResult.analysis.latency_ms,
         timestamp: new Date().toISOString()
