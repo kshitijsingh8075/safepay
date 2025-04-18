@@ -13,6 +13,7 @@ import { useAuthState } from "@/hooks/use-auth-state";
 
 export default function PhoneLogin() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [displayOtp, setDisplayOtp] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -54,6 +55,8 @@ export default function PhoneLogin() {
       // In development, we show the OTP in a toast for ease of testing
       console.log("OTP response:", data);
       if (data?.otp) {
+        // Store OTP to display on screen for hackathon demo
+        setDisplayOtp(data.otp);
         toast({
           title: "OTP Generated",
           description: `Your OTP is: ${data.otp}`,
@@ -172,9 +175,13 @@ export default function PhoneLogin() {
                 </div>
                 <Input
                   type="tel"
-                  placeholder="Enter your phone number"
+                  placeholder="10 digit mobile number"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={(e) => {
+                    // Only allow numbers
+                    const value = e.target.value.replace(/\D/g, '');
+                    setPhoneNumber(value);
+                  }}
                   className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                   maxLength={10}
                 />
@@ -215,6 +222,13 @@ export default function PhoneLogin() {
             </form>
           ) : (
             <div className="space-y-4">
+              {displayOtp && (
+                <div className="bg-blue-50 p-3 rounded-md mb-3 text-center">
+                  <p className="text-sm text-muted-foreground mb-1">For Demo Purpose Only</p>
+                  <p className="text-xl font-bold text-primary">{displayOtp}</p>
+                </div>
+              )}
+              
               <OtpInput 
                 length={6} 
                 onComplete={handleOtpComplete}

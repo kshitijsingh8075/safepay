@@ -55,22 +55,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate OTP for the phone number
       const otp = generateOtp(phoneNumber);
       
-      // In a production environment, you would send the OTP via SMS
-      // For development, we'll return it in the response
+      // Always include the OTP in the response for the hackathon
       console.log(`Generated OTP for ${phoneNumber}: ${otp}`);
       
-      // In development, always include the OTP in the response
-      // In production, this would only log the OTP on the server
-      if (process.env.NODE_ENV === 'development') {
-        res.status(200).json({
-          message: 'OTP sent successfully',
-          otp: otp
-        });
-      } else {
-        res.status(200).json({
-          message: 'OTP sent successfully'
-        });
-      }
+      // Always return the OTP in the response 
+      res.status(200).json({
+        message: 'OTP sent successfully',
+        otp: otp
+      });
     } catch (error) {
       console.error('Error generating OTP:', error);
       res.status(500).json({ message: 'Failed to generate OTP' });
