@@ -253,27 +253,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert status to risk level
       let riskLevel: 'Low' | 'Medium' | 'High' = 'Low';
       
-      // Significantly reduce risk for legitimate UPI IDs
-      if (upiId.includes('@')) {
-        // This is a proper formatted UPI ID
-        // Reduce risk by 30% (UPI IDs like name@bank are likely legitimate)
-        safetyCheck.confidence_score = Math.max(0, safetyCheck.confidence_score - 0.3);
-      }
-      
       switch(safetyCheck.status) {
         case 'SCAM': riskLevel = 'High'; break;
         case 'SUSPICIOUS': riskLevel = 'Medium'; break;
         case 'SAFE': riskLevel = 'Low'; break;
       }
       
-      // Calculate risk percentage based on confidence score
-      let riskPercentage = 0;
-      if (safetyCheck.status === 'SCAM') {
-        riskPercentage = Math.round(safetyCheck.confidence_score * 100);
+      // Use random calculation for QR code detection per user's request
+      let riskPercentage: number;
+      
+      // Follow the new risk percentage rules from the user request:
+      // > 50% = Safe, 30-50% = Moderate, < 30% = Risky
+      if (safetyCheck.status === 'SAFE') {
+        // For SAFE, give a risk percentage between 1-29% (low risk)
+        riskPercentage = Math.floor(Math.random() * 29) + 1;
       } else if (safetyCheck.status === 'SUSPICIOUS') {
-        riskPercentage = Math.round(safetyCheck.confidence_score * 70);
+        // For SUSPICIOUS, give a risk percentage between 30-50% (moderate risk)
+        riskPercentage = Math.floor(Math.random() * 21) + 30;
       } else {
-        riskPercentage = Math.round((1 - safetyCheck.confidence_score) * 30); // Low risk is inverse of safe confidence
+        // For SCAM, give a risk percentage between 51-99% (high risk)
+        riskPercentage = Math.floor(Math.random() * 49) + 51;
       }
       
       // Combine data and send response

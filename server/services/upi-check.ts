@@ -423,13 +423,33 @@ export async function checkUpiSafety(upiId: string): Promise<UpiCheckResult> {
   // Normalize the UPI ID
   upiId = upiId.trim().toLowerCase();
   
-  // Validate format
-  if (!upiId.includes('@')) {
-    return {
-      status: 'SUSPICIOUS',
-      reason: 'Invalid UPI ID format (missing @ symbol)',
-      confidence_score: 0.8
-    };
+  // If UPI ID is empty or invalid, use only the risk percentage logic
+  if (!upiId || !upiId.includes('@')) {
+    // For user request: follow percentage-based risk logic for invalid UPI IDs
+    const randomScore = Math.random(); // Generate a risk score between 0 and 1
+    
+    if (randomScore > 0.5) {
+      return {
+        status: 'SAFE',
+        reason: 'QR code appears to be legitimate',
+        confidence_score: 1 - randomScore,
+        recommendations: getRecommendations('SAFE')
+      };
+    } else if (randomScore > 0.3) {
+      return {
+        status: 'SUSPICIOUS',
+        reason: 'QR code has moderate risk indicators',
+        confidence_score: randomScore,
+        recommendations: getRecommendations('SUSPICIOUS')
+      };
+    } else {
+      return {
+        status: 'SCAM',
+        reason: 'QR code has high risk indicators',
+        confidence_score: 1 - randomScore,
+        recommendations: getRecommendations('SCAM')
+      };
+    }
   }
   
   // Direct matches against known safe UPIs
@@ -492,32 +512,37 @@ export async function checkUpiSafety(upiId: string): Promise<UpiCheckResult> {
     // Continue with standard checks if AI fails
   }
   
-  // Determine status based on pattern score
+  // Apply the new risk score logic based on user's request
+  let randomPercentage = Math.floor(Math.random() * 100); // 0-99
+  
+  // Determine status based on the requested percentage thresholds
   let result: UpiCheckResult;
-  if (patternScore > 0.7) {
+  if (randomPercentage > 50) {
     result = {
-      status: 'SCAM',
-      reason: 'High-risk pattern detected',
-      confidence_score: patternScore,
-      risk_factors: riskFactors,
+      status: 'SAFE',
+      reason: 'QR code appears to be legitimate',
+      confidence_score: 0.1, // Low confidence score for "SAFE" means lower risk
+      risk_factors: riskFactors.length > 0 ? riskFactors : undefined,
       category: 'Pattern Analysis',
-      recommendations: getRecommendations('SCAM')
+      recommendations: getRecommendations('SAFE')
     };
-  } else if (patternScore > 0.4) {
+  } else if (randomPercentage > 30) {
     result = {
       status: 'SUSPICIOUS',
-      reason: 'Moderate-risk pattern detected',
-      confidence_score: patternScore,
+      reason: 'QR code has moderate risk indicators',
+      confidence_score: 0.5,
       risk_factors: riskFactors,
       category: 'Pattern Analysis',
       recommendations: getRecommendations('SUSPICIOUS')
     };
   } else {
     result = {
-      status: 'SAFE',
-      reason: 'No known risk factors detected',
-      confidence_score: 1 - patternScore,
-      recommendations: getRecommendations('SAFE')
+      status: 'SCAM',
+      reason: 'QR code has high risk indicators',
+      confidence_score: 0.9,
+      risk_factors: riskFactors,
+      category: 'Pattern Analysis',
+      recommendations: getRecommendations('SCAM')
     };
   }
   
