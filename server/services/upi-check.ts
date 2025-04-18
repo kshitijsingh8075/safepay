@@ -512,21 +512,52 @@ export async function checkUpiSafety(upiId: string): Promise<UpiCheckResult> {
     // Continue with standard checks if AI fails
   }
   
-  // Apply the new risk score logic based on user's request
-  let randomPercentage = Math.floor(Math.random() * 100); // 0-99
-  
-  // Determine status based on the requested percentage thresholds
+  // Check if this is a known safe UPI first
   let result: UpiCheckResult;
-  if (randomPercentage > 50) {
+  
+  // Handle known safe UPI IDs with explicit check
+  if (SAFE_UPI_IDS.some(safeId => upiId.includes(safeId))) {
+    // Always mark known safe UPIs as SAFE with low risk
+    result = {
+      status: 'SAFE',
+      reason: 'This is a known legitimate UPI ID',
+      confidence_score: 0.1,
+      category: 'Verified',
+      recommendations: getRecommendations('SAFE')
+    };
+  }
+  // Handle known bank domains as safe
+  else if (
+    upiId.includes('@sbi') || 
+    upiId.includes('@hdfcbank') || 
+    upiId.includes('@icici') || 
+    upiId.includes('@axis') || 
+    upiId.includes('@okicici') || 
+    upiId.includes('@okhdfcbank') || 
+    upiId.includes('@oksbi')
+  ) {
+    // Always mark bank UPIs as SAFE with very low risk
+    result = {
+      status: 'SAFE',
+      reason: 'This appears to be a legitimate bank UPI ID',
+      confidence_score: 0.1,
+      category: 'Verified Bank',
+      recommendations: getRecommendations('SAFE')
+    };
+  }
+  // For other cases, maintain the percentage-based classification
+  else if (patternScore < 0.3) {
+    // Low pattern score means it's probably safe
     result = {
       status: 'SAFE',
       reason: 'QR code appears to be legitimate',
-      confidence_score: 0.1, // Low confidence score for "SAFE" means lower risk
+      confidence_score: 0.1,
       risk_factors: riskFactors.length > 0 ? riskFactors : undefined,
       category: 'Pattern Analysis',
       recommendations: getRecommendations('SAFE')
     };
-  } else if (randomPercentage > 30) {
+  } else if (patternScore < 0.5) {
+    // Medium pattern score means it's suspicious
     result = {
       status: 'SUSPICIOUS',
       reason: 'QR code has moderate risk indicators',
@@ -536,6 +567,7 @@ export async function checkUpiSafety(upiId: string): Promise<UpiCheckResult> {
       recommendations: getRecommendations('SUSPICIOUS')
     };
   } else {
+    // High pattern score means it's likely a scam
     result = {
       status: 'SCAM',
       reason: 'QR code has high risk indicators',

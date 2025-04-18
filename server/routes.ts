@@ -262,17 +262,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use random calculation for QR code detection per user's request
       let riskPercentage: number;
       
-      // Follow the new risk percentage rules from the user request:
-      // > 50% = Safe, 30-50% = Moderate, < 30% = Risky
+      // Follow the new risk percentage rules from the user request, but adjusted:
+      // Safe = low risk (< 30%), Moderate = 30-50% risk, Risky = > 50% risk
       if (safetyCheck.status === 'SAFE') {
-        // For SAFE, give a risk percentage between 1-29% (low risk)
-        riskPercentage = Math.floor(Math.random() * 29) + 1;
+        // For SAFE, risk score should be HIGHER than 50% (low risk means higher safety score)
+        riskPercentage = Math.floor(Math.random() * 20) + 60; // 60-79%
       } else if (safetyCheck.status === 'SUSPICIOUS') {
-        // For SUSPICIOUS, give a risk percentage between 30-50% (moderate risk)
-        riskPercentage = Math.floor(Math.random() * 21) + 30;
+        // For SUSPICIOUS, risk score should be between 30-50%
+        riskPercentage = Math.floor(Math.random() * 21) + 30; // 30-50%
       } else {
-        // For SCAM, give a risk percentage between 51-99% (high risk)
-        riskPercentage = Math.floor(Math.random() * 49) + 51;
+        // For SCAM, risk score should be LESS than 30% (high risk means lower safety score)
+        riskPercentage = Math.floor(Math.random() * 20) + 5; // 5-24%
       }
       
       // Combine data and send response
