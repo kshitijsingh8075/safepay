@@ -392,7 +392,7 @@ Stay safe!`;
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 p-0 overflow-hidden relative">
-          <ScrollArea className="h-[calc(100dvh-11rem)] pb-20 overflow-y-auto">
+          <ScrollArea className="h-[calc(100dvh-10rem)] pb-20 overflow-y-auto">
             <div className="flex flex-col p-4 gap-4">
               {messages.map((message) => (
                 <div 
@@ -460,48 +460,51 @@ Stay safe!`;
           </div>
         )}
         
-        <CardFooter className="p-4 pt-3 border-t flex-shrink-0 bg-background">
+        <CardFooter className="p-3 px-4 border-t flex-shrink-0 bg-background">
           {isRecording ? (
-            <div className="w-full flex items-center gap-4">
-              <div className="flex-1 bg-muted rounded-lg p-3 flex items-center">
-                <div className="flex-1 flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                  <span>Recording... {recordingDuration}s</span>
+            <div className="w-full flex items-center gap-2 max-w-full">
+              <div className="flex-1 bg-muted rounded-lg p-2 flex items-center overflow-hidden">
+                <div className="flex-1 flex items-center gap-2 whitespace-nowrap overflow-hidden">
+                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                  <span className="text-sm truncate">Recording... {recordingDuration}s</span>
                 </div>
               </div>
               <Button 
                 variant="destructive"
                 size="icon"
+                className="h-10 w-10 flex-shrink-0"
                 onClick={stopRecording}
               >
-                <MicOff size={18} />
+                <MicOff size={16} />
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="w-full flex items-center gap-2">
+            <form onSubmit={handleSubmit} className="w-full flex items-center gap-2 max-w-full">
               <Input 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message..."
                 disabled={isSubmitting}
-                className="flex-1"
+                className="flex-1 min-w-0"
               />
               <Button 
                 variant="default"
                 size="icon"
                 type="submit"
+                className="h-10 w-10 flex-shrink-0"
                 disabled={!input.trim() || isSubmitting}
               >
-                <Send size={18} />
+                <Send size={16} />
               </Button>
               <Button 
                 variant="outline"
                 size="icon"
                 type="button"
+                className="h-10 w-10 flex-shrink-0"
                 onClick={startRecording}
                 disabled={isSubmitting}
               >
-                <Mic size={18} />
+                <Mic size={16} />
               </Button>
             </form>
           )}
