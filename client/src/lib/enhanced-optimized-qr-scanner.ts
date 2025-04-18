@@ -5,6 +5,7 @@
 
 import { QRScanResult, UPIPaymentInfo, extractUPIPaymentInfo } from './ml-qr-scanner';
 import { analyzeQRCode, classifyRiskLevel } from './optimized-qr-scanner';
+import { analyzeQRWithEnhancedScanner, getRiskLevel, getRecommendedAction } from './enhanced-qr-service';
 
 /**
  * Analyze a QR code with the optimized ML service
@@ -13,7 +14,50 @@ import { analyzeQRCode, classifyRiskLevel } from './optimized-qr-scanner';
  */
 export async function analyzeQRWithOptimizedML(qrText: string): Promise<QRScanResult> {
   try {
-    // Use optimized service for analysis
+    // First try the enhanced scanner with advanced security features
+    try {
+      console.log('Attempting to use enhanced QR scanner...');
+      const enhancedResult = await analyzeQRWithEnhancedScanner(qrText);
+      console.log('Enhanced QR scanner result:', enhancedResult);
+      
+      // Get normalized risk score (0-100)
+      const riskScore = enhancedResult.risk_score;
+      
+      // Convert to 0-1 scale for internal functions
+      const normalizedScore = riskScore / 100;
+      
+      // Get risk level and recommendation
+      const riskLevel = getRiskLevel(riskScore);
+      const recommendation = getRecommendedAction(riskScore);
+      
+      // Generate features based on enhanced result
+      const features = {
+        pattern_match: enhancedResult.analysis.heuristic_flags > 0 ? 0.9 : 0.3,
+        domain_check: enhancedResult.qr_type === 'upi' ? 0.2 : 0.8,
+        syntax_validation: 1 - (normalizedScore * 0.3),
+        entropy: normalizedScore * 0.8,
+        length_score: Math.min(enhancedResult.latency_ms / 100, 0.9) 
+      };
+      
+      // Create detected patterns based on reasons
+      const detectedPatterns = enhancedResult.reasons.slice(0, 3);
+      
+      // Return formatted result compatible with existing UI
+      return {
+        risk_score: riskScore,
+        risk_level: riskLevel,
+        recommendation: recommendation,
+        confidence: enhancedResult.cached ? 0.98 : 0.95, // Higher confidence with enhanced scanner
+        features: features,
+        scan_time_ms: enhancedResult.latency_ms,
+        detected_patterns: detectedPatterns
+      };
+    } catch (enhancedError) {
+      console.warn('Enhanced QR scanner error, falling back to optimized scanner:', enhancedError);
+      // Fall back to optimized scanner if enhanced scanner fails
+    }
+    
+    // Fallback to optimized service for analysis
     const optimizedResult = await analyzeQRCode(qrText);
     
     // Get normalized risk score (0-100)
