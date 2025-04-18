@@ -36,7 +36,7 @@ export default function Home() {
       queryParams.append('upiId', upiInput);
       queryParams.append('fromSearch', 'true');
       
-      setLocation(`/simplified-scan?${queryParams.toString()}`);
+      setLocation(`/scan?${queryParams.toString()}`);
     } else {
       // Not in UPI format, add a default provider for demo
       const demoUpiId = upiInput + '@okaxis';
@@ -49,7 +49,7 @@ export default function Home() {
       queryParams.append('upiId', demoUpiId);
       queryParams.append('fromSearch', 'true');
       
-      setLocation(`/simplified-scan?${queryParams.toString()}`);
+      setLocation(`/scan?${queryParams.toString()}`);
     }
   };
 
@@ -109,7 +109,7 @@ export default function Home() {
           {/* First row */}
           <div className="grid grid-cols-4 gap-2 mb-4">
             <button 
-              onClick={() => setLocation('/simplified-scan')}
+              onClick={() => setLocation('/scan')}
               className="flex flex-col items-center"
             >
               <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-1 transition-colors duration-300">

@@ -56,12 +56,7 @@ function Router() {
         )}
       </Route>
       <Route path="/scan" component={Scan} />
-      <Route path="/simplified-scan">
-        {() => {
-          const SimplifiedScan = require("@/pages/simplified-scan").default;
-          return <SimplifiedScan />;
-        }}
-      </Route>
+      <Route path="/simplified-scan" component={Scan} />
       <Route path="/confirm-transaction" component={ConfirmTransaction} />
       <Route path="/payment" component={Payment} />
       <Route path="/checkout" component={Checkout} /> 
