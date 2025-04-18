@@ -207,29 +207,6 @@ export default function Home() {
           {/* Second row */}
           <div className="grid grid-cols-4 gap-2 mb-4">
             <button 
-              onClick={() => setLocation('/upi-check')}
-              className="flex flex-col items-center"
-            >
-              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  strokeWidth={1.5} 
-                  stroke="currentColor" 
-                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
-                  />
-                </svg>
-              </div>
-              <span className="text-[10px] text-center dark-text-secondary">UPI Check</span>
-            </button>
-            
-            <button 
               onClick={() => setLocation('/voice-check')}
               className="flex flex-col items-center"
             >
@@ -291,15 +268,38 @@ export default function Home() {
                   <path 
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
-                    d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" 
+                    d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352a5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" 
                   />
                 </svg>
               </div>
               <span className="text-[10px] text-center dark-text-secondary">Legal Help</span>
             </button>
+            
+            <button 
+              onClick={() => setLocation('/security-settings')}
+              className="flex flex-col items-center"
+            >
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  strokeWidth={1.5} 
+                  stroke="currentColor" 
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                  />
+                </svg>
+              </div>
+              <span className="text-[10px] text-center dark-text-secondary">Security</span>
+            </button>
           </div>
           
-          {/* Third row - Add Risk Score Demo and Fraud Map */}
+          {/* Third row - Just Risk Score Demo */}
           <div className="grid grid-cols-4 gap-2 mb-4">
             <button 
               onClick={() => setLocation('/risk-score-demo')}
@@ -325,7 +325,7 @@ export default function Home() {
             </button>
             
             <button 
-              onClick={() => setLocation('/fraud-map')}
+              onClick={() => setLocation('/message-check')}
               className="flex flex-col items-center"
             >
               <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
@@ -340,15 +340,15 @@ export default function Home() {
                   <path 
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
-                    d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" 
+                    d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" 
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center dark-text-secondary">Fraud Map</span>
+              <span className="text-[10px] text-center dark-text-secondary">Message Check</span>
             </button>
             
             <button 
-              onClick={() => setLocation('/security-settings')}
+              onClick={() => setLocation('/my-reports')}
               className="flex flex-col items-center"
             >
               <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
@@ -363,11 +363,34 @@ export default function Home() {
                   <path 
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
-                    d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" 
+                    d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" 
                   />
                 </svg>
               </div>
-              <span className="text-[10px] text-center dark-text-secondary">SIM Swap & MFA</span>
+              <span className="text-[10px] text-center dark-text-secondary">My Reports</span>
+            </button>
+            
+            <button 
+              onClick={() => setLocation('/help-support')}
+              className="flex flex-col items-center"
+            >
+              <div className="w-12 h-12 dark-bg-tertiary rounded-lg flex items-center justify-center mb-1">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  strokeWidth={1.5} 
+                  stroke="currentColor" 
+                  className="w-5 h-5 text-blue-500 dark:text-blue-400"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" 
+                  />
+                </svg>
+              </div>
+              <span className="text-[10px] text-center dark-text-secondary">Help & Support</span>
             </button>
           </div>
         </div>
