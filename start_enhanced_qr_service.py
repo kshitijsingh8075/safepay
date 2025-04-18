@@ -21,6 +21,9 @@ def main():
     # Start the FastAPI service
     cmd = [sys.executable, "enhanced_qr_scanner.py"]
     
+    # Initialize process variable
+    process = None
+    
     try:
         # Run the QR service
         logger.info(f"Executing: {' '.join(cmd)}")
@@ -34,8 +37,9 @@ def main():
         
         # Stream the output
         logger.info("QR service starting...")
-        for line in process.stdout:
-            print(line, end='')
+        if process.stdout:
+            for line in process.stdout:
+                print(line, end='')
         
         # If process exits, report it
         return_code = process.wait()
@@ -46,13 +50,14 @@ def main():
         
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt, shutting down")
-        process.terminate()
-        try:
-            process.wait(timeout=5)
-            logger.info("QR service terminated gracefully")
-        except subprocess.TimeoutExpired:
-            logger.error("QR service did not terminate in time, killing it")
-            process.kill()
+        if process:
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+                logger.info("QR service terminated gracefully")
+            except subprocess.TimeoutExpired:
+                logger.error("QR service did not terminate in time, killing it")
+                process.kill()
     except Exception as e:
         logger.error(f"Error starting QR service: {e}")
         return 1

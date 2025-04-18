@@ -39,6 +39,10 @@ app.add_middleware(
 # Cache setup
 cache = Cache('./prediction_cache', size_limit=1e8)  # 100MB cache
 
+# Initialize model variables
+ml_model = None
+text_model = None
+
 # Model and data file paths
 QR_MODEL_FILE = "enhanced_qr_model.joblib"
 TEXT_MODEL_FILE = "qr_text_model.joblib"
