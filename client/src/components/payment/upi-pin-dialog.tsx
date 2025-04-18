@@ -86,8 +86,11 @@ export function UpiPinDialog({
             />
           </div>
           
-          <p className="text-xs text-muted-foreground">
-            Enter the 6-digit PIN (979480) linked to your UPI account
+          <p className="text-sm font-medium text-blue-600">
+            DEMO PIN: 979480 (Use this for testing)
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Enter the 6-digit PIN linked to your UPI account
           </p>
         </div>
         

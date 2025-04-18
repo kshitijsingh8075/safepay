@@ -7,7 +7,7 @@ import os
 import re
 import pandas as pd
 import numpy as np
-from flask import Flask, request, jsonify, escape
+from flask import Flask, request, jsonify
 from sklearn.ensemble import RandomForestClassifier
 import joblib
 import requests
@@ -62,7 +62,7 @@ def extract_upi_info(raw_text):
 def predict():
     try:
         data = request.json
-        raw_text = escape(data.get('qr_text', ''))
+        raw_text = data.get('qr_text', '')
         
         # Extract UPI ID and amount
         bene_vpa, amount = extract_upi_info(raw_text)
