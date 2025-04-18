@@ -1,3 +1,4 @@
+import React from "react";
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -55,10 +56,12 @@ function Router() {
         )}
       </Route>
       <Route path="/scan" component={Scan} />
-      <Route path="/simplified-scan" component={() => import("@/pages/simplified-scan").then(module => {
-        const SimplifiedScan = module.default;
-        return <SimplifiedScan />;
-      })} />
+      <Route path="/simplified-scan">
+        {() => {
+          const SimplifiedScan = require("@/pages/simplified-scan").default;
+          return <SimplifiedScan />;
+        }}
+      </Route>
       <Route path="/confirm-transaction" component={ConfirmTransaction} />
       <Route path="/payment" component={Payment} />
       <Route path="/checkout" component={Checkout} /> 
