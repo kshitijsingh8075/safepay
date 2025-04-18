@@ -38,6 +38,7 @@ import HistoryPage from "@/pages/history-new";
 import RiskScoreDemo from "@/pages/risk-score-demo";
 import SecuritySettings from "@/pages/security-settings";
 import MyReports from "@/pages/my-reports";
+import AdvancedUpiCheck from "@/pages/advanced-upi-check";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
