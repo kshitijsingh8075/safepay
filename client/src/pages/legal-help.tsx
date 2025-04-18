@@ -16,25 +16,25 @@ import {
 } from '@/components/ui/tabs';
 import { AlertCircle, ArrowLeft, Check } from 'lucide-react';
 
-// Sample legal resources
+// Legal resources with exact URLs
 const legalResources = [
   {
     id: 1,
     title: 'File a Cyber Crime Complaint',
     description: 'Report financial frauds and cyber crimes to the National Cyber Crime Reporting Portal',
-    link: 'https://cybercrime.gov.in/'
+    link: 'https://cybercrime.gov.in'
   },
   {
     id: 2,
     title: 'Contact RBI Ombudsman',
-    description: 'Escalate payment related complaints through the RBI Ombudsman Scheme',
-    link: 'https://cms.rbi.org.in/'
+    description: 'Escalate payment related complaints through the RBI Complaint Management System',
+    link: 'https://cms.rbi.org.in/rbi/vividflow/run/rbi?language=Auto'
   },
   {
     id: 3,
     title: 'NPCI Dispute Management System',
-    description: 'Raise disputes for UPI transactions through your bank or payment app',
-    link: 'https://www.npci.org.in/'
+    description: 'Raise disputes for UPI transactions through NPCI\'s Dispute Management System',
+    link: 'https://www.npci.org.in/what-we-do/upi/dispute-redressal-mechanism'
   }
 ];
 
@@ -187,9 +187,11 @@ Sincerely,
           <Card key={resource.id} className="p-4 rounded-xl">
             <h3 className="font-medium mb-1">{resource.title}</h3>
             <p className="text-sm text-gray-600 mb-3">{resource.description}</p>
-            <Button variant="outline" className="w-full border-primary text-primary">
-              Visit Website
-            </Button>
+            <a href={resource.link} target="_blank" rel="noopener noreferrer" className="w-full">
+              <Button variant="outline" className="w-full border-primary text-primary">
+                Visit Website
+              </Button>
+            </a>
           </Card>
         ))}
       </div>
