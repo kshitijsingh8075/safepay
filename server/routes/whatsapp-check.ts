@@ -5,6 +5,8 @@ import fs from "fs";
 import { ParamsDictionary } from "express-serve-static-core";
 import { ParsedQs } from "qs";
 import { analyzeWhatsAppMessage } from "../services/openai";
+import { analyzeTextForScamKeywords } from "../data/scam-keywords";
+import { extractTextFromImage } from "../services/ocr";
 
 // Configure multer for image upload
 const storage = multer.diskStorage({
@@ -68,12 +70,23 @@ export function registerWhatsAppCheckRoutes(app: Express): void {
     try {
       const description = req.body.description || "";
       let imageBase64 = null;
+      let extractedText = "";
       
       // If image is uploaded, read it and convert to base64
       if (req.file) {
         const imagePath = req.file.path;
         const imageBuffer = fs.readFileSync(imagePath);
         imageBase64 = imageBuffer.toString("base64");
+        
+        try {
+          // Extract text from the image using OCR
+          console.log("Performing OCR on WhatsApp screenshot...");
+          extractedText = await extractTextFromImage(imageBase64);
+          console.log(`OCR extracted ${extractedText.length} characters`);
+        } catch (ocrError) {
+          console.error("OCR extraction failed:", ocrError);
+          // Continue with the process even if OCR fails
+        }
         
         // Clean up the uploaded file after processing
         fs.unlinkSync(imagePath);
@@ -87,10 +100,77 @@ export function registerWhatsAppCheckRoutes(app: Express): void {
         });
       }
       
-      // Analyze the message using OpenAI
-      const analysis = await analyzeWhatsAppMessage(imageBase64, description);
+      // Combine extracted text with manual description for keyword analysis
+      const combinedText = [extractedText, description].filter(Boolean).join("\n");
       
-      res.json(analysis);
+      // Perform keyword-based analysis
+      console.log("Performing keyword analysis...");
+      const keywordAnalysis = analyzeTextForScamKeywords(combinedText);
+      
+      // Set initial status based on keyword analysis score threshold
+      let keywordBasedStatus = "Safe Message";
+      if (keywordAnalysis.score > 0.7) {
+        keywordBasedStatus = "Scam Likely";
+      } else if (keywordAnalysis.score > 0.4) {
+        keywordBasedStatus = "Suspicious Message";
+      }
+      
+      console.log(`Keyword analysis score: ${keywordAnalysis.score}, status: ${keywordBasedStatus}`);
+      
+      // Analyze the message using OpenAI
+      console.log("Performing AI analysis...");
+      const aiAnalysis = await analyzeWhatsAppMessage(imageBase64, combinedText);
+      
+      // Combine both analyses for a more comprehensive result
+      // Trust the AI analysis but boost confidence if keywords strongly suggest scam
+      const isSuspicious = 
+        aiAnalysis.is_scam || 
+        keywordAnalysis.score > 0.7 || 
+        (keywordAnalysis.score > 0.5 && aiAnalysis.confidence < 0.7);
+      
+      // Adjust confidence based on keyword matches
+      let adjustedConfidence = aiAnalysis.confidence;
+      if (keywordAnalysis.matches.length > 0) {
+        // Boost confidence if keywords found, but avoid extremes
+        adjustedConfidence = Math.min(
+          0.95, 
+          Math.max(
+            0.3,
+            // Weight AI more heavily (70%) but consider keywords (30%)
+            (aiAnalysis.confidence * 0.7) + (keywordAnalysis.score * 0.3)
+          )
+        );
+      }
+      
+      // Prepare the final analysis result
+      const result = {
+        is_scam: isSuspicious,
+        confidence: adjustedConfidence,
+        status: isSuspicious ? 
+          (adjustedConfidence > 0.7 ? "Scam Likely" : "Suspicious Message") : 
+          "Safe Message",
+        scam_type: isSuspicious ? (aiAnalysis.scam_type || "Potential Fraud") : null,
+        scam_indicators: [
+          ...(aiAnalysis.scam_indicators || []),
+          ...keywordAnalysis.matches.map(match => 
+            `Contains suspicious phrase: "${match.keyword}" (${match.category})`
+          )
+        ],
+        ocr_text: extractedText || null,
+        keyword_analysis: {
+          score: keywordAnalysis.score,
+          match_count: keywordAnalysis.matches.length,
+          categories: keywordAnalysis.categories
+        },
+        ai_analysis: {
+          is_scam: aiAnalysis.is_scam,
+          confidence: aiAnalysis.confidence,
+          scam_type: aiAnalysis.scam_type
+        }
+      };
+      
+      console.log("WhatsApp analysis complete");
+      res.json(result);
     } catch (error: any) {
       console.error("Error analyzing WhatsApp message:", error);
       res.status(500).json({

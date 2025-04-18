@@ -9,6 +9,29 @@ import { AlertCircle, Upload, Check, Loader2, AlertTriangle } from "lucide-react
 import { apiRequest } from "@/lib/queryClient";
 import MainLayout from "@/layouts/main-layout";
 
+interface KeywordAnalysis {
+  score: number;
+  match_count: number;
+  categories: Record<string, number>;
+}
+
+interface AIAnalysis {
+  is_scam: boolean;
+  confidence: number;
+  scam_type: string | null;
+}
+
+interface WhatsAppAnalysisResult {
+  is_scam: boolean;
+  confidence: number;
+  status: "Scam Likely" | "Suspicious Message" | "Safe Message";
+  scam_type: string | null;
+  scam_indicators: string[];
+  ocr_text: string | null;
+  keyword_analysis: KeywordAnalysis;
+  ai_analysis: AIAnalysis;
+}
+
 const WhatsAppCheck = () => {
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -113,9 +136,9 @@ const WhatsAppCheck = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Analyze WhatsApp Messages</CardTitle>
+            <CardTitle>WhatsApp Scam Detector</CardTitle>
             <CardDescription>
-              Upload a screenshot or provide the message text to check for potential scams
+              Upload a WhatsApp screenshot or paste message text to analyze for potential scams. Our system combines AI analysis, text extraction, and scam keyword matching to provide comprehensive protection.
             </CardDescription>
           </CardHeader>
           
@@ -187,35 +210,146 @@ const WhatsAppCheck = () => {
             </div>
             
             {result && (
-              <div className={`w-full p-3 rounded-lg ${result.is_scam ? 'bg-red-50' : 'bg-green-50'}`}>
+              <div className={`w-full p-4 rounded-lg ${
+                result.status === "Scam Likely" ? 'bg-red-50 dark:bg-red-900/30' : 
+                result.status === "Suspicious Message" ? 'bg-amber-50 dark:bg-amber-900/30' : 
+                'bg-green-50 dark:bg-green-900/30'
+              }`}>
                 <div className="flex items-start">
-                  {result.is_scam ? (
-                    <AlertTriangle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
+                  {result.status === "Scam Likely" ? (
+                    <AlertTriangle className="h-6 w-6 text-red-500 dark:text-red-400 mr-3 mt-0.5 flex-shrink-0" />
+                  ) : result.status === "Suspicious Message" ? (
+                    <AlertTriangle className="h-6 w-6 text-amber-500 dark:text-amber-400 mr-3 mt-0.5 flex-shrink-0" />
                   ) : (
-                    <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                    <Check className="h-6 w-6 text-green-500 dark:text-green-400 mr-3 mt-0.5 flex-shrink-0" />
                   )}
-                  <div>
-                    <h3 className={`font-medium ${result.is_scam ? 'text-red-800' : 'text-green-800'}`}>
-                      {result.is_scam ? 'Potential Scam Detected' : 'Message Appears Safe'}
+                  
+                  <div className="flex-1">
+                    <h3 className={`text-lg font-medium ${
+                      result.status === "Scam Likely" ? 'text-red-800 dark:text-red-300' : 
+                      result.status === "Suspicious Message" ? 'text-amber-800 dark:text-amber-300' : 
+                      'text-green-800 dark:text-green-300'
+                    }`}>
+                      {result.status}
                     </h3>
-                    <p className="text-sm mt-1">
-                      {result.is_scam ? result.scam_type : 'No suspicious patterns detected'}
-                    </p>
+                    
+                    <div className="flex items-center mt-1 mb-2">
+                      <div className="flex-1">
+                        <div className="h-2 relative rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                          <div 
+                            className={`h-full ${
+                              result.status === "Scam Likely" ? 'bg-red-500' : 
+                              result.status === "Suspicious Message" ? 'bg-amber-500' : 
+                              'bg-green-500'
+                            }`}
+                            style={{ width: `${Math.round(result.confidence * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className="ml-2 text-xs font-medium">
+                        {Math.round(result.confidence * 100)}% confidence
+                      </span>
+                    </div>
+                    
+                    {result.scam_type && (
+                      <div className="mb-3">
+                        <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+                          result.status === "Scam Likely" ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 
+                          'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                        }`}>
+                          {result.scam_type}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {result.ocr_text && (
+                      <div className="mb-3 p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Extracted text from image:</p>
+                        <p className="text-xs line-clamp-3">{result.ocr_text}</p>
+                      </div>
+                    )}
                     
                     {result.scam_indicators && result.scam_indicators.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-sm font-medium mb-1">Warning signs:</p>
-                        <ul className="text-xs list-disc list-inside">
+                      <div className="mt-3">
+                        <p className={`text-sm font-medium mb-1 ${
+                          result.status === "Scam Likely" ? 'text-red-700 dark:text-red-300' : 
+                          result.status === "Suspicious Message" ? 'text-amber-700 dark:text-amber-300' : 
+                          'text-green-700 dark:text-green-300'
+                        }`}>
+                          Warning signs detected:
+                        </p>
+                        <ul className="text-xs space-y-1 mt-2">
                           {result.scam_indicators.map((indicator: string, idx: number) => (
-                            <li key={idx} className="ml-2">{indicator}</li>
+                            <li key={idx} className="flex items-start">
+                              <span className="mr-1.5 mt-0.5">•</span>
+                              <span>{indicator}</span>
+                            </li>
                           ))}
                         </ul>
                       </div>
                     )}
                     
-                    <p className="text-xs mt-2">
-                      Confidence: {Math.round(result.confidence * 100)}%
-                    </p>
+                    {result.keyword_analysis && result.keyword_analysis.match_count > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          Categories of suspicious content detected:
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {Object.entries(result.keyword_analysis.categories || {}).map(([category, count], idx) => (
+                            <span 
+                              key={idx} 
+                              className="inline-block px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 rounded-full"
+                            >
+                              {category} ({String(count)})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {result.status === "Scam Likely" && (
+                      <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-sm font-medium text-red-700 dark:text-red-300">Recommended actions:</p>
+                        <ul className="text-xs mt-2 space-y-1">
+                          <li className="flex items-start">
+                            <span className="mr-1.5 mt-0.5">•</span>
+                            <span>Do not click on any links in this message</span>
+                          </li>
+                          <li className="flex items-start">
+                            <span className="mr-1.5 mt-0.5">•</span>
+                            <span>Do not share personal information or credentials</span>
+                          </li>
+                          <li className="flex items-start">
+                            <span className="mr-1.5 mt-0.5">•</span>
+                            <span>Block and report the sender</span>
+                          </li>
+                          <li className="flex items-start">
+                            <span className="mr-1.5 mt-0.5">•</span>
+                            <span>If you've already responded, secure your accounts immediately</span>
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {result.status === "Suspicious Message" && (
+                      <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Proceed with caution:</p>
+                        <ul className="text-xs mt-2 space-y-1">
+                          <li className="flex items-start">
+                            <span className="mr-1.5 mt-0.5">•</span>
+                            <span>Verify the sender through another communication channel</span>
+                          </li>
+                          <li className="flex items-start">
+                            <span className="mr-1.5 mt-0.5">•</span>
+                            <span>Do not share sensitive information without verification</span>
+                          </li>
+                          <li className="flex items-start">
+                            <span className="mr-1.5 mt-0.5">•</span>
+                            <span>Be cautious of any unusual requests</span>
+                          </li>
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
