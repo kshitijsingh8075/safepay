@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Send, Mic, AlertTriangle, MicOff, User, Bot } from 'lucide-react';
+import { Loader2, Send, Mic, AlertTriangle, MicOff, User, Bot, Home, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import MainLayout from '@/layouts/main-layout';
 
@@ -506,6 +506,26 @@ Stay safe!`;
               </Button>
             </form>
           )}
+        </div>
+      </div>
+      
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-2 flex justify-center items-center z-50 h-14">
+        <div className="w-full max-w-md flex items-center justify-center gap-6 px-4">
+          <Link 
+            href="/home"
+            className="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400"
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-medium">Home</span>
+          </Link>
+          <Link 
+            href="/scan"
+            className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400"
+          >
+            <QrCode className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-medium">Scan QR</span>
+          </Link>
         </div>
       </div>
     </div>
