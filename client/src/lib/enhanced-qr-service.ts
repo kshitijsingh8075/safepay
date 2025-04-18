@@ -1,150 +1,134 @@
+import { apiRequest } from "./queryClient";
+
 /**
- * Enhanced QR Scanner Service Client
- * Connects to the improved QR scanner with advanced security features
+ * Enhanced QR Scanner Service
+ * Provides interaction with the Python-based enhanced QR scanner service
  */
 
-// API endpoint for enhanced QR scanner
-const ENHANCED_QR_API_URL = '/api/enhanced-qr';
-
-// QR code analysis result interface
 export interface EnhancedQRAnalysisResult {
   risk_score: number;
   risk_level: string;
   reasons: string[];
-  analysis: {
-    ml_score: number;
-    heuristic_flags: number;
-    safe_browsing_check: boolean;
-    safe_browsing_unsafe: boolean;
-  };
   qr_type: 'upi' | 'url' | 'text';
   latency_ms: number;
-  cached?: boolean;
-}
-
-// Feedback request interface
-export interface QRFeedbackRequest {
-  qr_text: string;
-  is_scam: boolean;
-  reason?: string;
+  heuristic_score?: number;
+  ml_score?: number;
+  recommendations?: string[];
+  confidence?: number;
 }
 
 /**
- * Analyze a QR code using the enhanced scanner
- * @param qrText Text content from the QR code
- * @returns Enhanced QR analysis result
+ * Analyze a QR code using the enhanced Python scanner service
+ * @param qrText Text content of QR code
+ * @returns Analysis result with risk assessment
  */
 export async function analyzeQRWithEnhancedScanner(qrText: string): Promise<EnhancedQRAnalysisResult> {
   try {
-    const response = await fetch(`${ENHANCED_QR_API_URL}/predict`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ qr_text: qrText }),
+    const startTime = Date.now();
+    const response = await apiRequest('POST', '/api/enhanced-qr/analyze', {
+      qr_text: qrText
     });
-
-    if (!response.ok) {
-      throw new Error(`Enhanced QR scanner error: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error using enhanced QR scanner:', error);
-    throw error;
-  }
-}
-
-/**
- * Send feedback about a QR code scan to improve the model
- * @param feedback Feedback data including QR text and whether it's a scam
- * @returns Feedback acknowledgment
- */
-export async function sendQRFeedback(feedback: QRFeedbackRequest): Promise<{ status: string }> {
-  try {
-    const response = await fetch(`${ENHANCED_QR_API_URL}/feedback`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(feedback),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to send QR feedback: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error sending QR feedback:', error);
-    throw error;
-  }
-}
-
-/**
- * Convert risk score to a user-friendly risk level
- * @param riskScore Numerical risk score (0-100)
- * @returns Risk level category
- */
-export function getRiskLevel(riskScore: number): 'Low' | 'Medium' | 'High' {
-  if (riskScore < 30) return 'Low';
-  if (riskScore < 70) return 'Medium';
-  return 'High';
-}
-
-/**
- * Get recommended action based on risk score
- * @param riskScore Numerical risk score (0-100)
- * @returns Recommended action
- */
-export function getRecommendedAction(riskScore: number): 'Allow' | 'Verify' | 'Block' {
-  if (riskScore < 30) return 'Allow';
-  if (riskScore < 70) return 'Verify';
-  return 'Block';
-}
-
-/**
- * Batch analyze multiple QR codes in one request
- * @param qrTexts Array of QR code texts to analyze
- * @returns Array of analysis results
- */
-export async function batchAnalyzeQRCodes(qrTexts: string[]): Promise<EnhancedQRAnalysisResult[]> {
-  try {
-    const response = await fetch(`${ENHANCED_QR_API_URL}/batch-predict`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ qr_texts: qrTexts }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Batch QR analysis error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.results;
-  } catch (error) {
-    console.error('Error in batch QR analysis:', error);
-    throw error;
-  }
-}
-
-/**
- * Check if the enhanced QR scanner service is available
- * @returns Service status information
- */
-export async function checkEnhancedQRServiceStatus(): Promise<{ status: 'online' | 'offline', service: string }> {
-  try {
-    const response = await fetch(`${ENHANCED_QR_API_URL}/status`);
     
     if (!response.ok) {
-      return { status: 'offline', service: 'Enhanced QR Scanner' };
+      throw new Error(`Enhanced QR scanner error: ${response.status} ${response.statusText}`);
     }
     
-    return await response.json();
+    const result = await response.json();
+    const endTime = Date.now();
+    
+    // Add processing time if not included in response
+    if (!result.latency_ms) {
+      result.latency_ms = endTime - startTime;
+    }
+    
+    return {
+      risk_score: result.risk_score || 0,
+      risk_level: mapRiskLevel(result.risk_score || 0),
+      reasons: result.reasons || [],
+      qr_type: determineQRType(qrText),
+      latency_ms: result.latency_ms,
+      heuristic_score: result.heuristic_score,
+      ml_score: result.ml_score,
+      recommendations: result.recommendations,
+      confidence: result.confidence
+    };
   } catch (error) {
-    console.error('Error checking enhanced QR service status:', error);
-    return { status: 'offline', service: 'Enhanced QR Scanner' };
+    console.error('Enhanced QR scanner analysis failed:', error);
+    throw error;
   }
+}
+
+/**
+ * Extract payment information from a UPI QR code
+ * @param qrText UPI QR code text
+ * @returns Payment information or null if not a valid UPI QR
+ */
+export async function extractUPIPaymentInfoEnhanced(qrText: string): Promise<any> {
+  if (!qrText.startsWith('upi://')) {
+    return null;
+  }
+  
+  try {
+    const response = await apiRequest('POST', '/api/enhanced-qr/extract-upi', {
+      qr_text: qrText
+    });
+    
+    if (!response.ok) {
+      throw new Error(`UPI extraction error: ${response.status} ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Enhanced UPI payment info extraction failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Submit feedback about a QR scan to improve the model
+ * @param qrText QR code text
+ * @param isScam Whether the QR was determined to be a scam
+ * @param reason Optional reason for the classification
+ * @returns Success status
+ */
+export async function submitQRFeedback(
+  qrText: string, 
+  isScam: boolean,
+  reason?: string
+): Promise<boolean> {
+  try {
+    const response = await apiRequest('POST', '/api/enhanced-qr/feedback', {
+      qr_text: qrText,
+      is_scam: isScam,
+      reason: reason || ''
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error('Failed to submit QR feedback:', error);
+    return false;
+  }
+}
+
+/**
+ * Map a numeric risk score to a risk level string
+ * @param score Risk score (0-100)
+ * @returns Risk level classification
+ */
+function mapRiskLevel(score: number): string {
+  if (score >= 70) return 'High';
+  if (score >= 40) return 'Medium';
+  return 'Low';
+}
+
+/**
+ * Determine the type of QR code from its content
+ * @param qrText QR code text
+ * @returns Classification of QR type
+ */
+function determineQRType(qrText: string): 'upi' | 'url' | 'text' {
+  if (qrText.startsWith('upi://')) return 'upi';
+  if (qrText.startsWith('http://') || qrText.startsWith('https://')) return 'url';
+  return 'text';
 }

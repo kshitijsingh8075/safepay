@@ -1,6 +1,3 @@
-import { URL } from 'url';
-import { log } from '../vite';
-
 /**
  * Direct TypeScript implementation of QR code analysis
  * Used as a fallback when the Enhanced QR Scanner service is unavailable
@@ -26,39 +23,14 @@ export interface QRAnalysisResult {
   is_fallback: boolean;
 }
 
-// Suspicious keywords for different contexts
-const SUSPICIOUS_UPI_KEYWORDS = [
-  'verify', 'kyc', 'urgent', 'block', 'expire', 'alert', 'validate',
-  'update', 'confirm', 'warning', 'security', 'attention', 'check',
-  'activate', 'deactivate', 'mandatory', 'important'
-];
-
-const SUSPICIOUS_URL_KEYWORDS = [
-  'login', 'signin', 'account', 'password', 'secure', 'banking', 'verify',
-  'verification', 'authorize', 'authenticate', 'security', 'update',
-  'confirm', 'wallet', 'payment', 'transaction', 'access'
-];
-
-const SUSPICIOUS_UPI_DOMAINS = [
-  'verify', 'verification', 'alert', 'secure', 'update', 'block',
-  'security', 'bank', 'activate', 'confirm', 'official', 'support',
-  'refund', 'return', 'government', 'kyc', 'check'
-];
-
-const URL_SHORTENERS = [
-  'bit.ly', 'goo.gl', 'tinyurl.com', 't.co', 'is.gd', 'cli.gs', 'ow.ly',
-  'rebrand.ly', 'tiny.cc', 'cutt.ly', 'shorturl.at', 'buff.ly'
-];
-
-const SAFE_UPI_HANDLES = [
-  'ybl', 'okaxis', 'okicici', 'paytm', 'apl', 'ibl', 'upi', 'kotak',
-  'axisbank', 'sbi', 'hdfc', 'icici', 'jupiteraxis', 'fampay', 'yespay'
-];
-
 export function analyzeQRText(qrText: string): QRAnalysisResult {
   const startTime = Date.now();
   
-  // Initial result structure
+  // Determine QR type
+  const isUPI = qrText.startsWith('upi://');
+  const isURL = qrText.startsWith('http://') || qrText.startsWith('https://');
+  
+  // Initialize analysis object
   const result: QRAnalysisResult = {
     risk_score: 0,
     risk_level: 'Low',
@@ -67,344 +39,232 @@ export function analyzeQRText(qrText: string): QRAnalysisResult {
       heuristic_score: 0,
       pattern_score: 0,
       checks: {
-        is_upi: false,
-        is_url: false,
+        is_upi: isUPI,
+        is_url: isURL,
         is_suspicious_upi: false,
         is_suspicious_url: false,
         contains_suspicious_keywords: false
       }
     },
-    qr_type: 'text',
+    qr_type: isUPI ? 'upi' : (isURL ? 'url' : 'text'),
     latency_ms: 0,
     is_fallback: true
   };
   
-  // Basic classification
-  if (qrText.startsWith('upi://')) {
-    result.qr_type = 'upi';
-    result.analysis.checks.is_upi = true;
-    
-    // Extract UPI ID (pa parameter)
-    const paMatch = qrText.match(/pa=([^&]+)/);
-    const pnMatch = qrText.match(/pn=([^&]+)/);
-    const amMatch = qrText.match(/am=([^&]+)/);
-    
-    if (paMatch) {
-      const upiId = decodeURIComponent(paMatch[1]);
-      
-      // Extract VPA parts (username@handle)
-      if (upiId.includes('@')) {
-        const [username, handle] = upiId.split('@');
-        
-        // Check for suspicious username patterns
-        if (SUSPICIOUS_UPI_KEYWORDS.some(kw => username.toLowerCase().includes(kw))) {
-          result.analysis.checks.is_suspicious_upi = true;
-          result.reasons.push(`Suspicious UPI username: ${username}`);
-          result.analysis.heuristic_score += 25;
-        }
-        
-        // Check if handle is in the safe list
-        if (!SAFE_UPI_HANDLES.some(h => handle.toLowerCase() === h.toLowerCase())) {
-          result.analysis.heuristic_score += 10;
-          result.reasons.push(`Unknown UPI handle: ${handle}`);
-        }
-        
-        // Check for suspicious domains
-        if (SUSPICIOUS_UPI_DOMAINS.some(d => handle.toLowerCase().includes(d))) {
-          result.analysis.checks.is_suspicious_upi = true;
-          result.reasons.push(`Suspicious UPI handle: ${handle}`);
-          result.analysis.heuristic_score += 30;
-        }
-      }
-    }
-    
-    // Check for missing elements
-    if (!paMatch) {
-      result.analysis.heuristic_score += 15;
-      result.reasons.push("Missing UPI ID (pa parameter)");
-    }
-    
-    if (!pnMatch) {
-      result.analysis.heuristic_score += 10;
-      result.reasons.push("Missing payee name (pn parameter)");
-    }
-    
-    // Check for suspicious payee name
-    if (pnMatch) {
-      const payeeName = decodeURIComponent(pnMatch[1]);
-      if (SUSPICIOUS_UPI_KEYWORDS.some(kw => payeeName.toLowerCase().includes(kw))) {
-        result.analysis.checks.contains_suspicious_keywords = true;
-        result.reasons.push(`Suspicious payee name: ${payeeName}`);
-        result.analysis.heuristic_score += 20;
-      }
-    }
-    
-    // Check transaction note if present
-    const tnMatch = qrText.match(/tn=([^&]+)/);
-    if (tnMatch) {
-      const transactionNote = decodeURIComponent(tnMatch[1]);
-      if (SUSPICIOUS_UPI_KEYWORDS.some(kw => transactionNote.toLowerCase().includes(kw))) {
-        result.analysis.checks.contains_suspicious_keywords = true;
-        result.reasons.push(`Suspicious transaction note: ${transactionNote}`);
-        result.analysis.heuristic_score += 25;
-      }
-    }
-    
-    // Check for amount patterns that might indicate scams
-    if (amMatch) {
-      const amount = parseFloat(amMatch[1]);
-      if (amount === 1 || amount === 0 || amount === 0.01) {
-        result.analysis.heuristic_score += 15;
-        result.reasons.push(`Suspicious amount: ₹${amount} - often used in scams`);
-      }
-    }
-    
-    // Additional pattern matching for UPI QR
+  // Perform pattern analysis based on QR type
+  if (isUPI) {
     result.analysis.pattern_score = patternAnalysisUPI(qrText);
     
-  } else if (qrText.startsWith('http://') || qrText.startsWith('https://')) {
-    // URL analysis
-    result.qr_type = 'url';
-    result.analysis.checks.is_url = true;
+    // Check for suspicious UPI patterns
+    const suspiciousUPITerms = ['verify', 'kyc', 'confirm', 'validate', 'update', 'block', 'unblock'];
+    result.analysis.checks.is_suspicious_upi = suspiciousUPITerms.some(term => 
+      qrText.toLowerCase().includes(term)
+    );
     
-    try {
-      const url = new URL(qrText);
-      const domain = url.hostname;
-      const path = url.pathname;
-      
-      // Check for IP address instead of domain
-      if (/^\d+\.\d+\.\d+\.\d+$/.test(domain)) {
-        result.analysis.checks.is_suspicious_url = true;
-        result.reasons.push("IP address used instead of domain name");
-        result.analysis.heuristic_score += 35;
-      }
-      
-      // Check for shortened URLs
-      if (URL_SHORTENERS.some(shortener => domain.includes(shortener))) {
-        result.analysis.checks.is_suspicious_url = true;
-        result.reasons.push(`URL shortener detected: ${domain}`);
-        result.analysis.heuristic_score += 30;
-      }
-      
-      // Check for HTTP instead of HTTPS
-      if (qrText.startsWith('http://')) {
-        result.analysis.heuristic_score += 20;
-        result.reasons.push("Non-secure HTTP connection");
-      }
-      
-      // Check for suspicious keywords in domain/path
-      if (SUSPICIOUS_URL_KEYWORDS.some(kw => domain.toLowerCase().includes(kw) || path.toLowerCase().includes(kw))) {
-        result.analysis.checks.contains_suspicious_keywords = true;
-        result.reasons.push(`Suspicious keywords in URL`);
-        result.analysis.heuristic_score += 25;
-      }
-      
-      // Check domain characteristics
-      const domainParts = domain.split('.');
-      if (domainParts.length > 3) {
-        result.analysis.heuristic_score += 15;
-        result.reasons.push("Excessive subdomains");
-      }
-      
-      // Additional pattern matching for URL QR
-      result.analysis.pattern_score = patternAnalysisURL(qrText);
-      
-    } catch (error) {
-      // Invalid URL format
-      result.analysis.heuristic_score += 40;
-      result.reasons.push("Invalid URL format");
+    if (result.analysis.checks.is_suspicious_upi) {
+      result.reasons.push('Contains suspicious terms for UPI payment');
+    }
+    
+    // Extract UPI details for further analysis
+    const upiInfo = extractUPIInfo(qrText);
+    if (!upiInfo || !upiInfo.valid) {
+      result.analysis.pattern_score += 30;
+      result.reasons.push('Invalid UPI format or missing required parameters');
+    }
+  } else if (isURL) {
+    result.analysis.pattern_score = patternAnalysisURL(qrText);
+    
+    // Check for non-secure HTTP
+    if (qrText.startsWith('http://')) {
+      result.analysis.pattern_score += 20;
+      result.reasons.push('Non-secure HTTP connection');
+    }
+    
+    // Check for suspicious URL patterns
+    const suspiciousURLTerms = ['login', 'signin', 'account', 'password', 'bank', 'secure', 'verify'];
+    result.analysis.checks.is_suspicious_url = suspiciousURLTerms.some(term => 
+      qrText.toLowerCase().includes(term)
+    );
+    
+    if (result.analysis.checks.is_suspicious_url) {
+      result.reasons.push('URL contains potentially sensitive terms');
+    }
+    
+    // Check for URL shorteners
+    if (qrText.includes('bit.ly') || qrText.includes('tinyurl') || qrText.includes('goo.gl')) {
+      result.analysis.pattern_score += 25;
+      result.reasons.push('Uses URL shortener which may mask actual destination');
     }
   } else {
-    // Plain text analysis
-    result.qr_type = 'text';
-    
-    // Check for suspicious patterns in plain text
-    if (SUSPICIOUS_UPI_KEYWORDS.some(kw => qrText.toLowerCase().includes(kw))) {
-      result.analysis.checks.contains_suspicious_keywords = true;
-      result.reasons.push("Contains suspicious keywords");
-      result.analysis.heuristic_score += 20;
-    }
-    
-    // Simple pattern matching for text
+    // Plain text QR code
     result.analysis.pattern_score = patternAnalysisText(qrText);
   }
   
-  // Calculate final risk score
-  const baseScore = Math.min(100, Math.max(0, 
-    result.analysis.heuristic_score + result.analysis.pattern_score));
+  // Check for suspicious keywords that apply to any QR type
+  const generalSuspiciousTerms = ['urgent', 'immediate', 'warning', 'alert', 'action required', 'suspended'];
+  result.analysis.checks.contains_suspicious_keywords = generalSuspiciousTerms.some(term => 
+    qrText.toLowerCase().includes(term)
+  );
   
-  result.risk_score = Math.round(baseScore);
+  if (result.analysis.checks.contains_suspicious_keywords) {
+    result.reasons.push('Contains urgent or alarming language');
+  }
+  
+  // Calculate final risk score
+  result.analysis.heuristic_score = Math.min(100, Math.max(0, 
+    result.analysis.pattern_score + 
+    (result.analysis.checks.is_suspicious_upi ? 40 : 0) +
+    (result.analysis.checks.is_suspicious_url ? 35 : 0) +
+    (result.analysis.checks.contains_suspicious_keywords ? 30 : 0)
+  ));
+  
+  // Assign overall risk score
+  result.risk_score = result.analysis.heuristic_score;
   
   // Determine risk level
   if (result.risk_score >= 70) {
     result.risk_level = 'High';
-  } else if (result.risk_score >= 30) {
+  } else if (result.risk_score >= 40) {
     result.risk_level = 'Medium';
   } else {
     result.risk_level = 'Low';
   }
   
-  // Measure processing time
-  result.latency_ms = Date.now() - startTime;
+  // If no specific issues found but it's a URL, add baseline caution
+  if (result.reasons.length === 0 && isURL) {
+    result.reasons.push('No specific issues detected, but always verify URL destinations');
+  }
   
-  // Log the analysis
-  log(`Direct QR analysis: ${qrText} → ${result.risk_score}% (${result.risk_level})`, 'qrscan');
+  // If no reasons at all, add a default message
+  if (result.reasons.length === 0) {
+    if (isUPI) {
+      result.reasons.push('No specific issues detected in UPI QR code');
+    } else {
+      result.reasons.push('No specific issues detected');
+    }
+  }
+  
+  // Calculate processing time
+  result.latency_ms = Date.now() - startTime;
   
   return result;
 }
 
-// Pattern analysis functions for different QR types
+// Pattern analysis for UPI QR codes
 function patternAnalysisUPI(qrText: string): number {
   let score = 0;
   
-  // Check for unusual parameter combinations
-  const hasPA = qrText.includes('pa=');
-  const hasPN = qrText.includes('pn=');
-  const hasAM = qrText.includes('am=');
-  const hasTN = qrText.includes('tn=');
-  const hasMC = qrText.includes('mc=');
+  // Check if basic UPI parameters are present
+  const hasPayee = qrText.includes('pa=');
+  const hasPayeeName = qrText.includes('pn=');
   
-  // Legitimate UPIs usually have pa, pn and am
-  if (!hasPA || !hasPN) {
-    score += 15;
+  if (!hasPayee) {
+    score += 40; // Critical parameter missing
   }
   
-  // Check for unusual parameter count
-  const paramCount = (qrText.match(/&/g) || []).length + 1;
-  if (paramCount > 7) {
-    score += 10; // Unusual number of parameters
+  if (!hasPayeeName) {
+    score += 15; // Important but not critical
   }
   
-  // Check for unusual UPI structure
-  if (qrText.includes('verify') || qrText.includes('confirm')) {
-    score += 20;
-  }
-  
-  // Urgent/time-sensitive language is a red flag
-  if (qrText.toLowerCase().includes('urgent') || 
-      qrText.toLowerCase().includes('immediate') ||
-      qrText.toLowerCase().includes('expir')) {
-    score += 25;
+  // Check for unusual parameters in UPI QR
+  const unusualParams = ['url=', 'redirect=', 'method='];
+  for (const param of unusualParams) {
+    if (qrText.includes(param)) {
+      score += 30;
+      break;
+    }
   }
   
   return score;
 }
 
+// Pattern analysis for URL QR codes
 function patternAnalysisURL(qrText: string): number {
   let score = 0;
   
-  // Check URL length (very long URLs can be suspicious)
-  if (qrText.length > 100) {
-    score += 10;
+  // Check for IP addresses instead of domain names
+  const ipAddressPattern = /https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/;
+  if (ipAddressPattern.test(qrText)) {
+    score += 40;
   }
   
-  // Check for excessive query parameters
-  const queryParamCount = (qrText.match(/[?&][^=&?]+=/g) || []).length;
-  if (queryParamCount > 5) {
-    score += 15; // Lots of query params can indicate tracking or phishing
+  // Check for excessive subdomains
+  const parts = new URL(qrText).hostname.split('.');
+  if (parts.length > 3) {
+    score += 15;
   }
   
-  // Check for unusual characters in domain
-  try {
-    const url = new URL(qrText);
-    const domain = url.hostname;
-    
-    if (/[^a-zA-Z0-9.-]/.test(domain)) {
-      score += 20; // Non-standard characters in domain
-    }
-    
-    // Domain length (very long domains can be suspicious)
-    if (domain.length > 30) {
-      score += 15;
-    }
-    
-    // Check for domains that try to look like others
-    if (domain.includes('paypa1') || domain.includes('g00gle') || 
-        domain.includes('amaz0n') || domain.includes('faceb00k')) {
-      score += 40;
-    }
-  } catch (error) {
-    // Invalid URL will already be caught in main analysis
-  }
-  
-  return score;
-}
-
-function patternAnalysisText(qrText: string): number {
-  let score = 0;
-  
-  // Check for patterns that might indicate scams in plain text
-  if (qrText.toLowerCase().includes('account') && qrText.toLowerCase().includes('verify')) {
-    score += 25;
-  }
-  
-  if (qrText.toLowerCase().includes('password') || qrText.toLowerCase().includes('pin')) {
-    score += 30;
-  }
-  
-  if (qrText.toLowerCase().includes('bank') && qrText.toLowerCase().includes('urgent')) {
-    score += 35;
-  }
-  
-  // Check for excessive use of capital letters (shouting)
-  const capitalRatio = (qrText.match(/[A-Z]/g) || []).length / qrText.length;
-  if (capitalRatio > 0.7 && qrText.length > 10) {
+  // Check for suspicious TLDs
+  const suspiciousTLDs = ['.tk', '.xyz', '.info', '.pw'];
+  const tld = '.' + parts[parts.length - 1];
+  if (suspiciousTLDs.includes(tld)) {
     score += 20;
   }
   
+  // Look for data exfiltration via URL parameters
+  if (qrText.includes('email=') || qrText.includes('phone=') || qrText.includes('id=')) {
+    score += 25;
+  }
+  
   return score;
 }
 
-// Function to extract UPI information from a UPI QR code
+// Pattern analysis for plain text QR codes
+function patternAnalysisText(qrText: string): number {
+  let score = 0;
+  
+  // Check for sensitive patterns in plain text
+  if (qrText.match(/\b\d{10,16}\b/)) {
+    score += 40; // Possible card number or phone number
+  }
+  
+  if (qrText.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/)) {
+    score += 20; // Contains email address
+  }
+  
+  // Check for secret codes or OTPs
+  if (qrText.match(/\bOTP\b|\bcode\b|\bpin\b|\bpassword\b|\bsecret\b/i)) {
+    score += 30;
+  }
+  
+  return score;
+}
+
 export function extractUPIInfo(qrText: string): any {
   if (!qrText.startsWith('upi://')) {
     return null;
   }
   
   try {
-    const result: any = {
-      pa: null,
-      pn: null,
-      am: null,
-      tn: null,
-      valid: false
+    // Parse UPI parameters
+    const params = new URLSearchParams(qrText.substring(qrText.indexOf('?')));
+    
+    // Extract key parameters
+    const pa = params.get('pa'); // Payee address (UPI ID)
+    const pn = params.get('pn'); // Payee name
+    const am = params.get('am'); // Amount
+    const tn = params.get('tn'); // Transaction note
+    const cu = params.get('cu'); // Currency
+    
+    // Check if UPI ID is valid
+    const valid = !!pa && pa.includes('@');
+    
+    if (!valid) {
+      return null;
+    }
+    
+    const result = {
+      pa,
+      pn: pn || '',
+      am: am ? parseFloat(am) : undefined,
+      tn: tn || '',
+      cu: cu || 'INR',
+      valid
     };
-    
-    // Extract parameters
-    const paMatch = qrText.match(/pa=([^&]+)/);
-    const pnMatch = qrText.match(/pn=([^&]+)/);
-    const amMatch = qrText.match(/am=([^&]+)/);
-    const tnMatch = qrText.match(/tn=([^&]+)/);
-    
-    if (paMatch) {
-      result.pa = decodeURIComponent(paMatch[1]);
-      
-      // Extract VPA parts (username@handle)
-      if (result.pa.includes('@')) {
-        const [username, handle] = result.pa.split('@');
-        result.username = username;
-        result.handle = handle;
-      }
-    }
-    
-    if (pnMatch) {
-      result.pn = decodeURIComponent(pnMatch[1]);
-    }
-    
-    if (amMatch) {
-      result.am = parseFloat(amMatch[1]);
-    }
-    
-    if (tnMatch) {
-      result.tn = decodeURIComponent(tnMatch[1]);
-    }
-    
-    // Check if it's valid
-    result.valid = !!result.pa;
     
     return result;
   } catch (error) {
-    log(`Error extracting UPI info: ${error}`, 'qrscan');
+    console.error('Error extracting UPI info:', error);
     return null;
   }
 }
