@@ -391,8 +391,8 @@ Stay safe!`;
             </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 p-0 overflow-hidden">
-          <ScrollArea className="h-[calc(100dvh-11rem)] max-h-[calc(100dvh-11rem)] overflow-y-auto">
+        <CardContent className="flex-1 p-0 overflow-hidden relative">
+          <ScrollArea className="h-[calc(100dvh-11rem)] max-h-[calc(100dvh-11rem)] overflow-y-auto pb-4">
             <div className="flex flex-col p-4 gap-4">
               {messages.map((message) => (
                 <div 
