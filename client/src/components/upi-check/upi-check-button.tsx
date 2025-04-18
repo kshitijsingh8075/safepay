@@ -74,11 +74,18 @@ export default function UpiCheckButton() {
       
       if (response.ok) {
         // Process the enhanced response format with all needed details
+        const riskPercentage = data.status === 'SCAM' 
+          ? 90  // High risk for scam
+          : data.status === 'SUSPICIOUS' 
+            ? 60  // Medium risk for suspicious
+            : data.safety_score 
+              ? 100 - data.safety_score // Invert safety score for risk percentage
+              : Math.round((1 - data.confidence_score) * 30); // Default calculation
+              
         setResults({
           upiId: upiId,
           status: data.status,
-          riskPercentage: Math.round((data.status === 'SCAM' ? 90 : 
-                                     data.status === 'SUSPICIOUS' ? 60 : 20)),
+          riskPercentage: riskPercentage,
           riskLevel: data.status === 'SCAM' ? 'High' : 
                     data.status === 'SUSPICIOUS' ? 'Medium' : 'Low',
           reports: data.reports || 0,
@@ -168,7 +175,7 @@ export default function UpiCheckButton() {
           UPI Scam Check
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Check UPI ID For Scams</DialogTitle>
           <DialogDescription>

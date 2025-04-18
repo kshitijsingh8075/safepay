@@ -8,7 +8,7 @@ export default function UpiCheck() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="flex flex-col px-6 py-8">
+    <div className="flex flex-col px-6 py-8 min-h-screen overflow-y-auto">
       <div className="flex justify-between items-center mb-8">
         <button
           onClick={() => setLocation('/home')}
@@ -25,18 +25,18 @@ export default function UpiCheck() {
         <UpiCheckButton />
       </div>
       
-      <div className="mt-6 space-y-6">
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h3 className="font-medium text-blue-800 mb-2">What is UPI Scam Check?</h3>
-          <p className="text-blue-700 text-sm">
+      <div className="mt-6 space-y-6 pb-6">
+        <div className="bg-blue-50 rounded-lg p-4 dark:bg-blue-950">
+          <h3 className="font-medium text-blue-800 mb-2 dark:text-blue-300">What is UPI Scam Check?</h3>
+          <p className="text-blue-700 text-sm dark:text-blue-400">
             Our advanced system scans UPI IDs for potential fraud risks. It combines machine learning, historical data, and 
             real-time threat intelligence to provide a comprehensive risk assessment.
           </p>
         </div>
         
-        <div className="bg-orange-50 rounded-lg p-4">
-          <h3 className="font-medium text-orange-800 mb-2">How It Works</h3>
-          <ol className="text-orange-700 text-sm space-y-2 list-decimal pl-4">
+        <div className="bg-orange-50 rounded-lg p-4 dark:bg-orange-950">
+          <h3 className="font-medium text-orange-800 mb-2 dark:text-orange-300">How It Works</h3>
+          <ol className="text-orange-700 text-sm space-y-2 list-decimal pl-4 dark:text-orange-400">
             <li>Enter any UPI ID you want to check</li>
             <li>Our system analyzes it against multiple data sources</li>
             <li>Review the risk assessment and recommended actions</li>
