@@ -101,6 +101,13 @@ if (!fs.existsSync(indexPath)) {
         margin-bottom: 20px;
         font-size: 18px;
       }
+      
+      .footer {
+        margin-top: 30px;
+        text-align: center;
+        font-size: 14px;
+        color: #666;
+      }
     </style>
   </head>
   <body>
@@ -122,6 +129,10 @@ if (!fs.existsSync(indexPath)) {
         <button class="action-button">Scan QR</button>
         <button class="action-button">Voice Check</button>
         <button class="action-button">Message Check</button>
+      </div>
+      
+      <div class="footer">
+        © 2025 UPI SafePay - All Rights Reserved
       </div>
     </div>
   </body>
