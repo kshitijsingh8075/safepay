@@ -20,4 +20,5 @@ dependencies = [
     "requests>=2.32.3",
     "scikit-learn>=1.6.1",
     "matplotlib>=3.10.1",
+    "flask>=3.1.0",
 ]

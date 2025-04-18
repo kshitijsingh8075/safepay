@@ -15,6 +15,7 @@ import { registerRiskAnalysisRoutes } from "./routes/risk-analysis";
 import { registerSimSwapProtectionRoutes } from "./routes/sim-swap-protection";
 import { registerMLQRScanRoutes } from "./routes/ml-qr-scan";
 import { registerOptimizedQRScanRoutes } from "./routes/register-optimized-qr-scan";
+import { registerAdvancedQRScanRoutes } from "./routes/register-advanced-qr-scan";
 import { registerPoliceComplaintRoutes } from "./routes/police-complaint";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
