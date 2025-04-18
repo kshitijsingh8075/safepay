@@ -165,7 +165,23 @@ export class MemStorage implements IStorage {
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
     const id = this.transactionIdCounter++;
     const timestamp = new Date();
-    const transaction: Transaction = { ...insertTransaction, id, timestamp };
+    
+    // Ensure all required fields are present with defaults if needed
+    const transaction: Transaction = {
+      id,
+      userId: insertTransaction.userId,
+      upiId: insertTransaction.upiId,
+      amount: insertTransaction.amount,
+      status: insertTransaction.status,
+      timestamp,
+      // Provide defaults for optional fields if not provided
+      description: insertTransaction.description || 'Payment',
+      currency: insertTransaction.currency || 'inr',
+      transactionType: insertTransaction.transactionType || 'payment',
+      paymentMethod: insertTransaction.paymentMethod || 'upi',
+      paymentIntentId: insertTransaction.paymentIntentId || null
+    };
+    
     this.transactions.set(id, transaction);
     return transaction;
   }
@@ -212,6 +228,16 @@ export class MemStorage implements IStorage {
     return Array.from(this.scamReports.values()).filter(
       (report) => report.upiId === upiId
     );
+  }
+  
+  async getScamReportsByUserId(userId: number): Promise<ScamReport[]> {
+    return Array.from(this.scamReports.values()).filter(
+      (report) => report.userId === userId
+    ).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Newest first
+  }
+  
+  async getScamReportById(id: number): Promise<ScamReport | undefined> {
+    return this.scamReports.get(id);
   }
   
   async createScamReport(insertReport: InsertScamReport): Promise<ScamReport> {
@@ -444,26 +470,26 @@ export class MemStorage implements IStorage {
     const transactions: InsertTransaction[] = [
       {
         userId: 1,
-        title: 'City Supermarket',
+        description: 'City Supermarket',
         upiId: 'citysupermarket@upi',
         amount: -85000, // In paise (850.00 INR)
-        type: 'debit',
+        transactionType: 'payment',
         status: 'Completed'
       },
       {
         userId: 1,
-        title: 'Aman Sharma',
+        description: 'Aman Sharma',
         upiId: 'amansharma@upi',
         amount: 120000, // In paise (1,200.00 INR)
-        type: 'credit',
+        transactionType: 'payment',
         status: 'Received'
       },
       {
         userId: 1,
-        title: 'Metro Grocery',
+        description: 'Metro Grocery',
         upiId: 'metrogrocery@upi',
         amount: -45000, // In paise (450.00 INR)
-        type: 'debit',
+        transactionType: 'payment',
         status: 'Completed'
       }
     ];

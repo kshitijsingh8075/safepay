@@ -36,6 +36,7 @@ import ConfirmTransaction from "@/pages/confirm-transaction";
 import HistoryPage from "@/pages/history";
 import RiskScoreDemo from "@/pages/risk-score-demo";
 import SecuritySettings from "@/pages/security-settings";
+import MyReports from "@/pages/my-reports";
 import MainLayout from "@/layouts/main-layout";
 
 function Router() {
@@ -148,6 +149,14 @@ function Router() {
         {() => (
           <MainLayout>
             <PaymentMethods />
+          </MainLayout>
+        )}
+      </Route>
+      
+      <Route path="/my-reports">
+        {() => (
+          <MainLayout>
+            <MyReports />
           </MainLayout>
         )}
       </Route>
