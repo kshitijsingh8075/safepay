@@ -10,7 +10,7 @@ A cutting-edge mobile-first React application revolutionizing UPI payment securi
 
 ## 🔴 Live Demo
 
-Watch the project in action on YouTube: [Click here to watch the demo](https://youtu.be/7OcJXmIMKHE)
+Watch the project in action on YouTube: [Click here to watch the demo]([https://youtu.be/7OcJXmIMKHE](https://youtu.be/mGgMQMZ7EKw?si=Ndcq3y2YmVzHbiLs))
 
 ## 🚀 Features
 
