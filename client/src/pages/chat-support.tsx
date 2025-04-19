@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Loader2, Send, Mic, AlertTriangle, MicOff, User, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import MainLayout from '@/layouts/main-layout';
+import { BottomNav } from '@/components/navigation/bottom-nav';
 
 // Import the Voice Analysis for scam detection
 import { analyzeTranscriptForScams, startVoiceRecording, getAudioFromRecorder } from '@/lib/voice-analysis';
@@ -377,12 +378,14 @@ Stay safe!`;
   };
   
   return (
-    <MainLayout className="flex flex-col p-0 bg-background h-[100dvh] overflow-hidden">
-      <Card className="flex flex-col h-full border-0 rounded-none">
-        {/* Fixed Header */}
-        <CardHeader className="border-b bg-card px-4 py-3 flex-shrink-0 z-10">
-          <CardTitle className="text-lg flex items-center justify-between">
-            <div>AI Safety Assistant</div>
+    // Use the fullHeight prop to make the layout work for chat but keep the bottom nav
+    <MainLayout className="p-0" fullHeight>
+      {/* Mobile-optimized chat layout structure */}
+      <div className="flex flex-col h-full w-full">
+        {/* Fixed Header - Always visible at the top */}
+        <header className="border-b bg-card px-4 py-3 flex-shrink-0 z-10 bg-white dark:bg-gray-800">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold">AI Safety Assistant</h1>
             <Button 
               variant="outline" 
               size="sm"
@@ -390,13 +393,22 @@ Stay safe!`;
             >
               Close
             </Button>
-          </CardTitle>
-        </CardHeader>
+          </div>
+        </header>
         
-        {/* Scrollable Messages Area - Only this section should scroll */}
-        <CardContent className="flex-1 p-0 relative overflow-hidden">
-          <ScrollArea className="h-[calc(100dvh-9.5rem)] pb-safe">
-            <div className="flex flex-col p-4 gap-4 pb-16">
+        {/* Scrollable Messages Area - The only part that should scroll */}
+        <div className="flex-1 overflow-hidden relative">
+          {/* Use a native scrollable div instead of ScrollArea for better mobile performance */}
+          <div 
+            className="overflow-y-auto overscroll-contain pb-safe px-4 pt-2"
+            style={{
+              // Adjust for bottom navigation (56px) + input area (58px) + optional quick replies
+              height: quickReplies.length > 0 
+                ? 'calc(100dvh - 56px - 58px - 56px - 48px)' 
+                : 'calc(100dvh - 56px - 58px - 56px)',
+            }}
+          >
+            <div className="flex flex-col gap-4 pb-4">
               {messages.map((message) => (
                 <div 
                   key={message.id} 
@@ -441,33 +453,33 @@ Stay safe!`;
               ))}
               <div ref={messagesEndRef} />
             </div>
-          </ScrollArea>
-        </CardContent>
-        
-        {/* Quick Replies - Positioned right above the footer */}
-        {quickReplies.length > 0 && (
-          <div className="px-4 py-2 sticky bottom-[58px] left-0 right-0 bg-background/90 backdrop-blur-sm border-t z-10">
-            <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar">
-              {quickReplies.map((reply) => (
-                <Button
-                  key={reply.id}
-                  variant="outline"
-                  size="sm"
-                  className="whitespace-nowrap flex-shrink-0 shadow-sm text-xs"
-                  onClick={() => handleQuickReply(reply.text)}
-                  disabled={isSubmitting}
-                >
-                  {reply.text}
-                </Button>
-              ))}
-            </div>
           </div>
-        )}
+          
+          {/* Quick Replies - Absolutely positioned at the bottom of the chat area */}
+          {quickReplies.length > 0 && (
+            <div className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t z-10">
+              <div className="flex overflow-x-auto py-2 px-4 gap-2 no-scrollbar">
+                {quickReplies.map((reply) => (
+                  <Button
+                    key={reply.id}
+                    variant="outline"
+                    size="sm"
+                    className="whitespace-nowrap flex-shrink-0 shadow-sm text-xs"
+                    onClick={() => handleQuickReply(reply.text)}
+                    disabled={isSubmitting}
+                  >
+                    {reply.text}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         
-        {/* Fixed Footer - Will stay above keyboard on mobile */}
-        <CardFooter className="p-3 px-4 border-t flex-shrink-0 bg-background sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        {/* Fixed Input Area - Stays at the bottom above the navigation */}
+        <div className="flex-shrink-0 border-t bg-white dark:bg-gray-800 px-3 py-2 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
           {isRecording ? (
-            <div className="w-full flex items-center gap-2 max-w-full">
+            <div className="w-full flex items-center gap-2">
               <div className="flex-1 bg-muted rounded-lg p-2 flex items-center overflow-hidden">
                 <div className="flex-1 flex items-center gap-2 whitespace-nowrap overflow-hidden">
                   <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
@@ -484,21 +496,37 @@ Stay safe!`;
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="w-full flex items-center gap-2 max-w-full">
+            <form onSubmit={handleSubmit} className="w-full flex items-center gap-2">
               <Input 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message..."
                 disabled={isSubmitting}
-                className="flex-1 min-w-0 py-2"
+                className="flex-1 min-w-0 py-2 px-3 rounded-full border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-2 focus:ring-primary/20"
                 autoComplete="off"
                 autoCapitalize="sentences"
+                spellCheck="true"
+                // These attributes help with mobile keyboard behavior
+                enterKeyHint="send"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                // Important for handling mobile virtual keyboards
+                onFocus={() => {
+                  // Add a small timeout to ensure scrolling happens after keyboard appears
+                  setTimeout(() => {
+                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                  }, 300);
+                }}
               />
               <Button 
                 variant="default"
                 size="icon"
                 type="submit"
-                className="h-10 w-10 flex-shrink-0"
+                className="h-10 w-10 rounded-full flex-shrink-0"
                 disabled={!input.trim() || isSubmitting}
               >
                 <Send size={16} />
@@ -507,7 +535,7 @@ Stay safe!`;
                 variant="outline"
                 size="icon"
                 type="button"
-                className="h-10 w-10 flex-shrink-0"
+                className="h-10 w-10 rounded-full flex-shrink-0"
                 onClick={startRecording}
                 disabled={isSubmitting}
               >
@@ -515,8 +543,8 @@ Stay safe!`;
               </Button>
             </form>
           )}
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </MainLayout>
   );
 }
