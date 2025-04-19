@@ -406,12 +406,9 @@ Stay safe!`;
         <div className="flex-1 overflow-hidden relative">
           {/* Use a native scrollable div instead of ScrollArea for better mobile performance */}
           <div 
-            className="overflow-y-auto overscroll-contain px-4 pt-2 pb-4"
+            className="overflow-y-auto overscroll-contain px-4 pt-2 pb-4 h-full"
             style={{
-              height: "100%",
-              maxHeight: quickReplies.length > 0 
-                ? 'calc(100% - 48px)' 
-                : '100%',
+              maxHeight: 'calc(100vh - 180px)', // Account for header and input area
               // Use these CSS variables for better mobile compatibility
               "--safe-area-inset-bottom": "env(safe-area-inset-bottom, 0px)",
             } as React.CSSProperties}
