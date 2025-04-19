@@ -45,6 +45,8 @@ pnpm-debug.log*
 .eslintcache
 .cache
 .parcel-cache
+cache/
+prediction_cache/
 
 # Vite specific
 vite.config.ts.*

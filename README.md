@@ -182,10 +182,78 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 👥 Contributors
 
-- Your Name (@kshitisingh8075, @yash720, @nihira07, @Niharika01232
+- Team members: @kshitisingh8075, @yash720, @nihira07, @Niharika01232
 
 ## 🙏 Acknowledgements
 
 - OpenAI for API support
 - Replit for development environment
 - Community contributors and testers
+
+## 📌 GitHub Repository Management
+
+### Package.json Updates for GitHub
+
+Before pushing to GitHub, consider updating your package.json with the following information (these changes should be made after exporting the project from Replit):
+
+```json
+{
+  "name": "upi-secure",
+  "description": "A cutting-edge mobile-first React application revolutionizing UPI payment security through intelligent fraud prevention",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/upi-secure.git"
+  },
+  "keywords": [
+    "upi",
+    "payment",
+    "security",
+    "ai",
+    "fraud-detection",
+    "react",
+    "mobile-first"
+  ]
+}
+```
+
+### Branch Strategy
+
+We recommend using the following branch structure:
+- `main` - Production-ready code
+- `develop` - Integration branch for new features
+- `feature/*` - Individual feature branches
+- `bugfix/*` - Bug fix branches
+
+### Pull Request Process
+
+1. Create a branch from `develop` for your feature or bugfix
+2. Make your changes and commit with descriptive messages
+3. Push your branch and create a pull request to `develop`
+4. Request reviews from team members
+5. Merge after approval and passing CI checks
+
+### Commit Message Format
+
+We follow a simplified version of Conventional Commits:
+```
+type(scope): brief description
+
+[optional body]
+
+[optional footer]
+```
+
+Types include:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring without functionality changes
+- `test`: Adding or modifying tests
+- `chore`: Maintenance tasks
+
+### Release Process
+
+1. Merge `develop` into `main` when ready for release
+2. Tag the commit with version number (`v1.0.0`, etc.)
+3. Create a GitHub release with release notes
