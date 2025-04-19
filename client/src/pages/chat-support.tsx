@@ -485,7 +485,7 @@ Stay safe!`;
         </div>
         
         {/* Fixed Input Area - Stays at the bottom above the navigation */}
-        <div className="flex-shrink-0 border-t bg-white dark:bg-gray-800 px-3 py-2 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
+        <div className="flex-shrink-0 border-t bg-white dark:bg-gray-800 px-3 py-2 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)] pb-20">
           {isRecording ? (
             <div className="w-full flex items-center gap-2">
               <div className="flex-1 bg-muted rounded-full p-2 flex items-center overflow-hidden">
