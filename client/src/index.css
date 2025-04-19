@@ -118,6 +118,18 @@
 }
 
 @layer utilities {
+  /* Hide scrollbar for mobile devices while maintaining functionality */
+  .hide-scrollbar::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+  }
+  
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
   .bg-secondary {
     @apply bg-[#F5F6FA] dark:bg-gray-800;
   }

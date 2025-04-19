@@ -22,16 +22,25 @@ export default function MainLayout({
   return (
     <div className={cn(
       "bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300",
-      isChatPage || fullHeight ? "h-[100dvh] w-full overflow-hidden flex flex-col" : "min-h-screen",
+      (isChatPage || fullHeight) ? "h-[100dvh] w-full overflow-hidden flex flex-col" : "min-h-screen",
       className
     )}>
       <main className={cn(
-        isChatPage ? "flex-1 overflow-hidden flex flex-col" : "pb-16",
+        (isChatPage || fullHeight) ? "flex-1 overflow-hidden flex flex-col" : "pb-16",
       )}>
         {children}
       </main>
       
-      {!noBottomNav && <BottomNav />}
+      {/* The bottom nav renders conditionally */}
+      {!noBottomNav && (
+        <div className={cn(
+          "w-full flex-shrink-0",
+          // Ensure the bottom nav remains visible in chat by giving it higher z-index
+          isChatPage && "sticky bottom-0 z-50"
+        )}>
+          <BottomNav />
+        </div>
+      )}
     </div>
   );
 }
